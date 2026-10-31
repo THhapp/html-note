@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-gallery-state="loading">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HTML 笔记组件库 · 预览</title>
+  <link rel="stylesheet" href="../dist/note-library.css">
+  <link rel="stylesheet" href="./gallery.css">
+</head>
+<body>
+  <a class="gallery-skip" href="#gallery-main">跳到组件列表与详情</a>
+  <div class="gallery-shell">
+    <header class="gallery-header">
+      <div class="gallery-brand">
+        <p class="gallery-kicker">HTML 笔记 · 通用组件候选库</p>
+        <h1>组件预览</h1>
+        <p class="gallery-lede">按类别或 ID 查找组件，查看真实运行效果、可替换内容与支持限制。所有演示直接调用公开 API；默认静止，由演示内控件触发。</p>
+      </div>
+      <div class="gallery-build" id="gallery-build" aria-live="polite">正在读取构建清单…</div>
+    </header>
+
+    <div class="gallery-banner" id="gallery-banner" role="status" hidden></div>
+
+    <main class="gallery-main" id="gallery-main">
+      <aside class="gallery-sidebar" aria-label="组件索引">
+        <div class="gallery-filter">
+          <label class="gallery-label" for="gallery-search">检索组件</label>
+          <div class="gallery-search">
+            <input id="gallery-search" class="gallery-search__input" type="search" autocomplete="off" spellcheck="false" placeholder="按 ID、公开名或中文名筛选">
+            <button id="gallery-search-clear" class="gallery-search__clear" type="button" aria-label="清除检索文本" hidden>清除</button>
+          </div>
+          <p class="gallery-hint">输入即时过滤。按 <kbd>/</kbd> 聚焦检索框，<kbd>Esc</kbd> 清空。</p>
+        </div>
+
+        <div class="gallery-categories" id="gallery-categories" role="group" aria-label="按类别筛选"></div>
+
+        <div class="gallery-list-meta">
+          <span id="gallery-count" aria-live="polite">正在读取…</span>
+        </div>
+
+        <nav class="gallery-list-wrap" aria-label="组件列表">
+          <ul id="gallery-list" class="gallery-list"></ul>
+          <div id="gallery-empty" class="gallery-empty" hidden>
+            <p class="gallery-empty__title">没有匹配的组件</p>
+            <p class="gallery-empty__text" id="gallery-empty-text"></p>
+            <button type="button" class="gallery-button" id="gallery-empty-reset">清除筛选</button>
+          </div>
+        </nav>
+
+        <div class="gallery-legend" aria-label="状态与评价说明">
+          <p><strong>技术状态</strong>：planned / implemented / verified / blocked。<br><strong>verified 只表示技术核验，不代表用户认可。</strong></p>
+          <p><strong>用户评价</strong>：not-reviewed / positive-with-scope / rejected。新增组件均为“候选 · 未评价”。</p>
+        </div>
+      </aside>
+
+      <section class="gallery-detail" id="gallery-detail" aria-label="组件详情">
+        <div class="gallery-state">
+          <h2>正在读取组件清单…</h2>
+          <p>预览外壳已加载，正在等待构建清单与演示脚本。</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="gallery-footer">
+      <p>技术候选预览：这里的 <code>verified</code> 只表示技术核验通过，不代表用户认可或审美确认。新增组件未获用户审美评价；旧组件评价范围见各条目的“用户评价范围”。</p>
+      <p>所有演示与分发代码同源，只消费公开 API。离线可用；更多说明见 <a href="../docs/预览与示例.md" target="_blank" rel="noopener">docs/预览与示例.md</a>。</p>
+    </footer>
+  </div>
+
+  <script src="../dist/note-library.js"></script>
+  <script src="../dist/registry.js"></script>
+  <script src="./gallery.js"></script>
+  <script src="demos/legacy.js"></script>
+  <script src="demos/core.js"></script>
+  <script src="demos/ui-layout.js"></script>
+  <script src="demos/ui-actions.js"></script>
+  <script src="demos/ui-content.js"></script>
+  <script src="demos/ui-navigation.js"></script>
+  <script src="demos/ui-forms-basic.js"></script>
+  <script src="demos/ui-forms-advanced.js"></script>
+  <script src="demos/ui-overlay.js"></script>
+  <script src="demos/ui-feedback.js"></script>
+  <script src="demos/ui-extended.js"></script>
+  <script src="demos/viz-objects.js"></script>
+  <script src="demos/viz-mechanisms.js"></script>
+  <script src="demos/viz-chart.js"></script>
+  <script src="demos/blocks-stage.js"></script>
+  <script src="demos/blocks-explain.js"></script>
+  <script src="demos/demo-runtime.js"></script>
+</body>
+</html>

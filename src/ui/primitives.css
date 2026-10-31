@@ -1,0 +1,217 @@
+.nui-badge,
+.nui-notice,
+.nui-disclosure,
+.nui-data-object {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  color: var(--hnv-color-ink, #202938);
+  font-family: var(--hnv-font-family, "Segoe UI", "Microsoft YaHei", sans-serif);
+  -webkit-font-smoothing: antialiased;
+}
+
+.nui-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 4px 10px;
+  border: 1px solid var(--hnv-color-border, #dce2ea);
+  border-radius: 6px;
+  background: var(--hnv-color-surface, #ffffff);
+  font-size: var(--hnv-font-size-label, 14px);
+  font-weight: 550;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.nui-badge[data-tone="accent"] {
+  border-color: #c8d3f4;
+  color: var(--hnv-color-accent, #315cda);
+  background: var(--hnv-color-accent-soft, #eef2ff);
+}
+
+.nui-badge[data-tone="warning"] {
+  border-color: #e7d5ac;
+  color: #775018;
+  background: #fff7e8;
+}
+
+.nui-notice {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 12px;
+  padding: var(--hnv-space-object-inner, 20px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-control, 8px);
+  background: var(--hnv-color-surface, #ffffff);
+}
+
+.nui-notice__marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 20px;
+  height: 20px;
+  margin-top: 3px;
+  border: 1px solid #bcc6d3;
+  border-radius: 50%;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 650;
+  line-height: 1;
+}
+
+.nui-notice__body { min-width: 0; }
+
+.nui-notice__title {
+  margin: 0 0 5px;
+  font-size: var(--hnv-font-size-reading, 16px);
+  font-weight: 650;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.nui-notice__content {
+  font-size: var(--hnv-font-size-reading, 16px);
+  line-height: var(--hnv-font-line-reading, 1.65);
+  overflow-wrap: anywhere;
+}
+
+.nui-notice__content > :first-child,
+.nui-disclosure__content > :first-child { margin-top: 0; }
+.nui-notice__content > :last-child,
+.nui-disclosure__content > :last-child { margin-bottom: 0; }
+
+.nui-notice[data-tone="accent"] { border-left: 3px solid var(--hnv-color-accent, #315cda); }
+.nui-notice[data-tone="accent"] .nui-notice__marker {
+  color: var(--hnv-color-accent, #315cda);
+  border-color: #aebfea;
+  background: var(--hnv-color-accent-soft, #eef2ff);
+}
+.nui-notice[data-tone="warning"] { border-left: 3px solid #b17c25; }
+.nui-notice[data-tone="warning"] .nui-notice__marker {
+  color: #775018;
+  border-color: #e0c38f;
+  background: #fff7e8;
+}
+
+.nui-disclosure {
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-control, 8px);
+  background: var(--hnv-color-surface, #ffffff);
+}
+
+.nui-disclosure__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  box-sizing: border-box;
+  min-width: 0;
+  margin: 0;
+  padding: 15px var(--hnv-space-object-inner, 20px);
+  border-radius: inherit;
+  list-style: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background var(--hnv-motion-ui, 160ms) var(--hnv-motion-ease-ui, ease);
+}
+.nui-disclosure__summary::-webkit-details-marker { display: none; }
+.nui-disclosure__summary::marker { content: ""; }
+.nui-disclosure__summary:hover { background: #f7f9fc; }
+.nui-disclosure__summary:focus-visible {
+  outline: 3px solid #90aafa;
+  outline-offset: 3px;
+}
+.nui-disclosure__text {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.nui-disclosure__title {
+  font-size: var(--hnv-font-size-reading, 16px);
+  font-weight: 600;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.nui-disclosure__description {
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-reading, 16px);
+  line-height: var(--hnv-font-line-reading, 1.65);
+  overflow-wrap: anywhere;
+}
+.nui-disclosure__indicator {
+  box-sizing: border-box;
+  flex: 0 0 8px;
+  width: 8px;
+  height: 8px;
+  margin-right: 3px;
+  border-right: 1.5px solid var(--hnv-color-muted, #5c6879);
+  border-bottom: 1.5px solid var(--hnv-color-muted, #5c6879);
+  transform: rotate(-45deg);
+  transition: transform var(--hnv-motion-ui, 160ms) var(--hnv-motion-ease-ui, ease);
+}
+.nui-disclosure[open] > .nui-disclosure__summary .nui-disclosure__indicator { transform: rotate(45deg); }
+.nui-disclosure__content {
+  min-width: 0;
+  margin: 0 var(--hnv-space-object-inner, 20px);
+  padding: 16px 0 var(--hnv-space-object-inner, 20px);
+  border-top: 1px solid var(--hnv-color-border, #dce2ea);
+  font-size: var(--hnv-font-size-reading, 16px);
+  line-height: var(--hnv-font-line-reading, 1.65);
+  overflow-wrap: anywhere;
+}
+
+.nui-data-object {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: var(--hnv-space-object-inner, 20px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-object, 10px);
+  background: var(--hnv-color-surface, #ffffff);
+  transition: border-color var(--hnv-motion-ui, 160ms) var(--hnv-motion-ease-ui, ease), background var(--hnv-motion-ui, 160ms) var(--hnv-motion-ease-ui, ease);
+}
+.nui-data-object__label {
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-label, 14px);
+  font-weight: 500;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.nui-data-object__value {
+  min-width: 0;
+  color: var(--hnv-color-ink, #202938);
+  font-family: var(--hnv-font-mono, Consolas, monospace);
+  font-size: var(--hnv-font-size-data, 24px);
+  font-weight: 550;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.nui-data-object__caption {
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-reading, 16px);
+  line-height: var(--hnv-font-line-reading, 1.65);
+  overflow-wrap: anywhere;
+}
+.nui-data-object--attention { border-color: var(--hnv-color-attention, #6f82b7); }
+.nui-data-object--changed {
+  border-color: var(--hnv-color-accent, #315cda);
+  background: var(--hnv-color-accent-soft, #eef2ff);
+}
+.nui-data-object--changed .nui-data-object__value { color: var(--hnv-color-accent, #315cda); }
+
+.nui-notice__title[hidden],
+.nui-disclosure__description[hidden],
+.nui-data-object__label[hidden],
+.nui-data-object__caption[hidden] { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .nui-disclosure__summary,
+  .nui-disclosure__indicator,
+  .nui-data-object { transition: none; }
+}

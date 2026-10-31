@@ -1,0 +1,76 @@
+/* 场景 B 宿主样式：页面外壳、外部间距与一行步骤提示。
+   不覆盖 .nblk-* / .nviz-* / .nx-* 的内部样式。 */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--hnv-color-page, #f4f6f9);
+  color: var(--hnv-color-ink, #202938);
+  font-family: var(--hnv-font-family, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif);
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+}
+
+.nd-demo {
+  box-sizing: border-box;
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 36px 28px 56px;
+  background: var(--hnv-color-surface, #fff);
+  border-inline: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  min-height: 100vh;
+}
+
+.nd-demo .nd-kicker {
+  margin: 0;
+  color: var(--hnv-color-muted, #5c6879);
+  letter-spacing: 0.08em;
+}
+
+.nd-demo .nd-lead {
+  margin: 0;
+  color: var(--hnv-color-ink, #202938);
+}
+
+.nd-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+}
+
+.nd-toolbar-label {
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-small, 13px);
+}
+
+.nd-step {
+  margin: 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-small, 13px);
+  font-variant-numeric: tabular-nums;
+}
+
+.nd-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-small, 13px);
+}
+
+.nd-legend b {
+  color: var(--hnv-color-ink, #202938);
+  font-weight: var(--hnv-font-weight-strong, 600);
+}
+
+@media (max-width: 720px) {
+  .nd-demo {
+    padding: 24px 16px 40px;
+    border-inline: 0;
+  }
+}

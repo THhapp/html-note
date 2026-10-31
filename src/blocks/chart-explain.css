@@ -1,0 +1,81 @@
+/* NoteBlocks B10 — ChartExplain
+ * Scope: .nblk-chart-explain
+ * Dependencies: core tokens, NoteBlocks.StepPlayer, NoteViz.Chart,
+ * NoteUI.Notice visuals. The chart is the visual centre; the caption stays
+ * below it and the data table remains available for checking values. */
+
+.nblk-chart-explain {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  color: var(--hnv-color-ink, #202938);
+  font-family: var(--hnv-font-family, "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif);
+  font-size: var(--hnv-font-size-label, 14px);
+  line-height: 1.6;
+}
+
+.nblk-chart-explain__layout {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--hnv-space-2, 8px);
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  padding: var(--hnv-space-3, 12px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-stage, 14px);
+  background: var(--hnv-color-page, #f4f6f9);
+}
+
+.nblk-chart-explain__chart {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  padding: var(--hnv-space-2, 8px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-object, 10px);
+  background: var(--hnv-color-surface, #ffffff);
+}
+
+.nblk-chart-explain__chart .nviz-chart {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.nblk-chart-explain__hint,
+.nblk-chart-explain__note {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.nblk-chart-explain__hint {
+  margin: 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-small, 13px);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.nblk-chart-explain__note .nui-notice {
+  min-width: 0;
+}
+
+@media (max-width: 520px) {
+  .nblk-chart-explain__layout {
+    padding: var(--hnv-space-2, 8px);
+  }
+
+  .nblk-chart-explain__chart {
+    padding: var(--hnv-space-1, 4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nblk-chart-explain,
+  .nblk-chart-explain * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

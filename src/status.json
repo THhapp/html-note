@@ -1,0 +1,739 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-10-31",
+  "statusLegend": {
+    "planned": "已分配范围，尚未实现或未交付",
+    "implemented": "源码与演示已交付，等待主控浏览器核验",
+    "verified": "主控在真实 Edge 中核验实现、示例与必要状态",
+    "blocked": "存在需主控或用户处理的具体阻塞"
+  },
+  "defaults": {
+    "status": "planned",
+    "verification": []
+  },
+  "entries": {
+    "R01": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：R01–R10 在 gallery 与 run.html 实际挂载；R01 变体与旧接口回归，旧预览六组件无 console 错误；R07–R10 沿用原组评价范围；详见 docs/legacy.md",
+        "条目级证据：最终 gallery 与 examples/run.html?id=R01 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "R02": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：R01–R10 在 gallery 与 run.html 实际挂载；R01 变体与旧接口回归，旧预览六组件无 console 错误；R07–R10 沿用原组评价范围；详见 docs/legacy.md",
+        "条目级证据：最终 gallery 与 examples/run.html?id=R02 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "R03": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：R01–R10 在 gallery 与 run.html 实际挂载；R01 变体与旧接口回归，旧预览六组件无 console 错误；R07–R10 沿用原组评价范围；详见 docs/legacy.md",
+        "条目级证据：最终 gallery 与 examples/run.html?id=R03 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "R04": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：R01–R10 在 gallery 与 run.html 实际挂载；R01 变体与旧接口回归，旧预览六组件无 console 错误；R07–R10 沿用原组评价范围；详见 docs/legacy.md",
+        "条目级证据：最终 gallery 与 examples/run.html?id=R04 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "R05": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：R01–R10 在 gallery 与 run.html 实际挂载；R01 变体与旧接口回归，旧预览六组件无 console 错误；R07–R10 沿用原组评价范围；详见 docs/legacy.md",
+        "条目级证据：最终 gallery 与 examples/run.html?id=R05 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "R06": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：R01–R10 在 gallery 与 run.html 实际挂载；R01 变体与旧接口回归，旧预览六组件无 console 错误；R07–R10 沿用原组评价范围；详见 docs/legacy.md",
+        "条目级证据：最终 gallery 与 examples/run.html?id=R06 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "R07": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：R01–R10 在 gallery 与 run.html 实际挂载；R01 变体与旧接口回归，旧预览六组件无 console 错误；R07–R10 沿用原组评价范围；详见 docs/legacy.md",
+        "条目级证据：最终 gallery 与 examples/run.html?id=R07 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "R08": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：R01–R10 在 gallery 与 run.html 实际挂载；R01 变体与旧接口回归，旧预览六组件无 console 错误；R07–R10 沿用原组评价范围；详见 docs/legacy.md",
+        "条目级证据：最终 gallery 与 examples/run.html?id=R08 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "R09": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：R01–R10 在 gallery 与 run.html 实际挂载；R01 变体与旧接口回归，旧预览六组件无 console 错误；R07–R10 沿用原组评价范围；详见 docs/legacy.md",
+        "条目级证据：最终 gallery 与 examples/run.html?id=R09 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "R10": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：R01–R10 在 gallery 与 run.html 实际挂载；R01 变体与旧接口回归，旧预览六组件无 console 错误；R07–R10 沿用原组评价范围；详见 docs/legacy.md",
+        "条目级证据：最终 gallery 与 examples/run.html?id=R10 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "L01": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：L01–L08 gallery/run 挂载；layout-actions 24/24；L07 溢出提示与 L08 键盘/拖动高风险检查通过；1024/390 无页面横向溢出",
+        "条目级证据：最终 gallery 与 examples/run.html?id=L01 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "L02": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：L01–L08 gallery/run 挂载；layout-actions 24/24；L07 溢出提示与 L08 键盘/拖动高风险检查通过；1024/390 无页面横向溢出",
+        "条目级证据：最终 gallery 与 examples/run.html?id=L02 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "L03": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：L01–L08 gallery/run 挂载；layout-actions 24/24；L07 溢出提示与 L08 键盘/拖动高风险检查通过；1024/390 无页面横向溢出",
+        "条目级证据：最终 gallery 与 examples/run.html?id=L03 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "L04": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：L01–L08 gallery/run 挂载；layout-actions 24/24；L07 溢出提示与 L08 键盘/拖动高风险检查通过；1024/390 无页面横向溢出",
+        "条目级证据：最终 gallery 与 examples/run.html?id=L04 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "L05": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：L01–L08 gallery/run 挂载；layout-actions 24/24；L07 溢出提示与 L08 键盘/拖动高风险检查通过；1024/390 无页面横向溢出",
+        "条目级证据：最终 gallery 与 examples/run.html?id=L05 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "L06": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：L01–L08 gallery/run 挂载；layout-actions 24/24；L07 溢出提示与 L08 键盘/拖动高风险检查通过；1024/390 无页面横向溢出",
+        "条目级证据：最终 gallery 与 examples/run.html?id=L06 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "L07": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：L01–L08 gallery/run 挂载；layout-actions 24/24；L07 溢出提示与 L08 键盘/拖动高风险检查通过；1024/390 无页面横向溢出",
+        "条目级证据：最终 gallery 与 examples/run.html?id=L07 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "L08": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：L01–L08 gallery/run 挂载；layout-actions 24/24；L07 溢出提示与 L08 键盘/拖动高风险检查通过；1024/390 无页面横向溢出",
+        "条目级证据：最终 gallery 与 examples/run.html?id=L08 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "C01": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：C01–C12 gallery/run 挂载；content 源码与构建模块 170/170；Table 排序、CodeBlock 复制回退、Markdown 原始 HTML/危险链接、Math 正常/错误检查通过；单文件 C08 无文件请求",
+        "条目级证据：最终 gallery 与 examples/run.html?id=C01 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "C02": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：C01–C12 gallery/run 挂载；content 源码与构建模块 170/170；Table 排序、CodeBlock 复制回退、Markdown 原始 HTML/危险链接、Math 正常/错误检查通过；单文件 C08 无文件请求",
+        "条目级证据：最终 gallery 与 examples/run.html?id=C02 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "C03": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：C01–C12 gallery/run 挂载；content 源码与构建模块 170/170；Table 排序、CodeBlock 复制回退、Markdown 原始 HTML/危险链接、Math 正常/错误检查通过；单文件 C08 无文件请求",
+        "条目级证据：最终 gallery 与 examples/run.html?id=C03 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "C04": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：C01–C12 gallery/run 挂载；content 源码与构建模块 170/170；Table 排序、CodeBlock 复制回退、Markdown 原始 HTML/危险链接、Math 正常/错误检查通过；单文件 C08 无文件请求",
+        "条目级证据：最终 gallery 与 examples/run.html?id=C04 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "C05": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：C01–C12 gallery/run 挂载；content 源码与构建模块 170/170；Table 排序、CodeBlock 复制回退、Markdown 原始 HTML/危险链接、Math 正常/错误检查通过；单文件 C08 无文件请求",
+        "条目级证据：最终 gallery 与 examples/run.html?id=C05 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "C06": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：C01–C12 gallery/run 挂载；content 源码与构建模块 170/170；Table 排序、CodeBlock 复制回退、Markdown 原始 HTML/危险链接、Math 正常/错误检查通过；单文件 C08 无文件请求",
+        "条目级证据：最终 gallery 与 examples/run.html?id=C06 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "C07": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：C01–C12 gallery/run 挂载；content 源码与构建模块 170/170；Table 排序、CodeBlock 复制回退、Markdown 原始 HTML/危险链接、Math 正常/错误检查通过；单文件 C08 无文件请求",
+        "条目级证据：最终 gallery 与 examples/run.html?id=C07 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "C08": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：C01–C12 gallery/run 挂载；content 源码与构建模块 170/170；Table 排序、CodeBlock 复制回退、Markdown 原始 HTML/危险链接、Math 正常/错误检查通过；单文件 C08 无文件请求",
+        "条目级证据：最终 gallery 与 examples/run.html?id=C08 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "C09": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：C01–C12 gallery/run 挂载；content 源码与构建模块 170/170；Table 排序、CodeBlock 复制回退、Markdown 原始 HTML/危险链接、Math 正常/错误检查通过；单文件 C08 无文件请求",
+        "条目级证据：最终 gallery 与 examples/run.html?id=C09 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "C10": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：C01–C12 gallery/run 挂载；content 源码与构建模块 170/170；Table 排序、CodeBlock 复制回退、Markdown 原始 HTML/危险链接、Math 正常/错误检查通过；单文件 C08 无文件请求",
+        "条目级证据：最终 gallery 与 examples/run.html?id=C10 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "C11": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：C01–C12 gallery/run 挂载；content 源码与构建模块 170/170；Table 排序、CodeBlock 复制回退、Markdown 原始 HTML/危险链接、Math 正常/错误检查通过；单文件 C08 无文件请求",
+        "条目级证据：最终 gallery 与 examples/run.html?id=C11 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "C12": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：C01–C12 gallery/run 挂载；content 源码与构建模块 170/170；Table 排序、CodeBlock 复制回退、Markdown 原始 HTML/危险链接、Math 正常/错误检查通过；单文件 C08 无文件请求",
+        "条目级证据：最终 gallery 与 examples/run.html?id=C12 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "A01": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：A01–A03 gallery/run 挂载；layout-actions 24/24；CopyButton 失败回退、Toggle 组值、ButtonGroup 禁用检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=A01 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "A02": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：A01–A03 gallery/run 挂载；layout-actions 24/24；CopyButton 失败回退、Toggle 组值、ButtonGroup 禁用检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=A02 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "A03": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：A01–A03 gallery/run 挂载；layout-actions 24/24；CopyButton 失败回退、Toggle 组值、ButtonGroup 禁用检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=A03 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "N01": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：N01–N07 gallery/run 挂载；navigation 175/175；Tabs keepMounted、Menu 子菜单/Esc/焦点、TreeView 键盘、Breadcrumb 省略、Pagination、Steps、AnchorNav 高风险检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=N01 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "N02": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：N01–N07 gallery/run 挂载；navigation 175/175；Tabs keepMounted、Menu 子菜单/Esc/焦点、TreeView 键盘、Breadcrumb 省略、Pagination、Steps、AnchorNav 高风险检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=N02 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "N03": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：N01–N07 gallery/run 挂载；navigation 175/175；Tabs keepMounted、Menu 子菜单/Esc/焦点、TreeView 键盘、Breadcrumb 省略、Pagination、Steps、AnchorNav 高风险检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=N03 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "N04": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：N01–N07 gallery/run 挂载；navigation 175/175；Tabs keepMounted、Menu 子菜单/Esc/焦点、TreeView 键盘、Breadcrumb 省略、Pagination、Steps、AnchorNav 高风险检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=N04 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "N05": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：N01–N07 gallery/run 挂载；navigation 175/175；Tabs keepMounted、Menu 子菜单/Esc/焦点、TreeView 键盘、Breadcrumb 省略、Pagination、Steps、AnchorNav 高风险检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=N05 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "N06": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：N01–N07 gallery/run 挂载；navigation 175/175；Tabs keepMounted、Menu 子菜单/Esc/焦点、TreeView 键盘、Breadcrumb 省略、Pagination、Steps、AnchorNav 高风险检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=N06 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "N07": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：N01–N07 gallery/run 挂载；navigation 175/175；Tabs keepMounted、Menu 子菜单/Esc/焦点、TreeView 键盘、Breadcrumb 省略、Pagination、Steps、AnchorNav 高风险检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=N07 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "F01": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：F01–F08 gallery/run 挂载；forms-basic 113/113、demo 50/50、Form 集成 9/9；空值不转 0、Select/Combobox 键盘与无结果检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=F01 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "F02": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：F01–F08 gallery/run 挂载；forms-basic 113/113、demo 50/50、Form 集成 9/9；空值不转 0、Select/Combobox 键盘与无结果检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=F02 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "F03": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：F01–F08 gallery/run 挂载；forms-basic 113/113、demo 50/50、Form 集成 9/9；空值不转 0、Select/Combobox 键盘与无结果检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=F03 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "F04": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：F01–F08 gallery/run 挂载；forms-basic 113/113、demo 50/50、Form 集成 9/9；空值不转 0、Select/Combobox 键盘与无结果检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=F04 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "F05": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：F01–F08 gallery/run 挂载；forms-basic 113/113、demo 50/50、Form 集成 9/9；空值不转 0、Select/Combobox 键盘与无结果检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=F05 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "F06": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：F01–F08 gallery/run 挂载；forms-basic 113/113、demo 50/50、Form 集成 9/9；空值不转 0、Select/Combobox 键盘与无结果检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=F06 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "F07": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：F01–F08 gallery/run 挂载；forms-basic 113/113、demo 50/50、Form 集成 9/9；空值不转 0、Select/Combobox 键盘与无结果检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=F07 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "F08": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：F01–F08 gallery/run 挂载；forms-basic 113/113、demo 50/50、Form 集成 9/9；空值不转 0、Select/Combobox 键盘与无结果检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=F08 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "F09": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：F09–F15 gallery/run 挂载；forms-advanced 74 项 + 深度 15 场景；DatePicker 范围/非法日期、TimePicker、ColorPicker、FileInput 本地选择/移除、Form 校验检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=F09 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "F10": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：F09–F15 gallery/run 挂载；forms-advanced 74 项 + 深度 15 场景；DatePicker 范围/非法日期、TimePicker、ColorPicker、FileInput 本地选择/移除、Form 校验检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=F10 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "F11": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：F09–F15 gallery/run 挂载；forms-advanced 74 项 + 深度 15 场景；DatePicker 范围/非法日期、TimePicker、ColorPicker、FileInput 本地选择/移除、Form 校验检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=F11 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "F12": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：F09–F15 gallery/run 挂载；forms-advanced 74 项 + 深度 15 场景；DatePicker 范围/非法日期、TimePicker、ColorPicker、FileInput 本地选择/移除、Form 校验检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=F12 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "F13": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：F09–F15 gallery/run 挂载；forms-advanced 74 项 + 深度 15 场景；DatePicker 范围/非法日期、TimePicker、ColorPicker、FileInput 本地选择/移除、Form 校验检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=F13 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "F14": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：F09–F15 gallery/run 挂载；forms-advanced 74 项 + 深度 15 场景；DatePicker 范围/非法日期、TimePicker、ColorPicker、FileInput 本地选择/移除、Form 校验检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=F14 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "F15": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：F09–F15 gallery/run 挂载；forms-advanced 74 项 + 深度 15 场景；DatePicker 范围/非法日期、TimePicker、ColorPicker、FileInput 本地选择/移除、Form 校验检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=F15 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "O01": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：O01–O04 gallery/run 挂载；overlay 291/291；Dialog/Popover/Drawer/Tooltip 焦点、Esc、外点、嵌套关闭检查通过；core 嵌套焦点修复回归 12/12",
+        "条目级证据：最终 gallery 与 examples/run.html?id=O01 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "O02": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：O01–O04 gallery/run 挂载；overlay 291/291；Dialog/Popover/Drawer/Tooltip 焦点、Esc、外点、嵌套关闭检查通过；core 嵌套焦点修复回归 12/12",
+        "条目级证据：最终 gallery 与 examples/run.html?id=O02 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "O03": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：O01–O04 gallery/run 挂载；overlay 291/291；Dialog/Popover/Drawer/Tooltip 焦点、Esc、外点、嵌套关闭检查通过；core 嵌套焦点修复回归 12/12",
+        "条目级证据：最终 gallery 与 examples/run.html?id=O03 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "O04": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：O01–O04 gallery/run 挂载；overlay 291/291；Dialog/Popover/Drawer/Tooltip 焦点、Esc、外点、嵌套关闭检查通过；core 嵌套焦点修复回归 12/12",
+        "条目级证据：最终 gallery 与 examples/run.html?id=O04 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "S01": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：S01–S06 gallery/run 挂载；feedback 19 项；Toast 队列/清理、Progress 不确定态无假数值检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=S01 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "S02": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：S01–S06 gallery/run 挂载；feedback 19 项；Toast 队列/清理、Progress 不确定态无假数值检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=S02 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "S03": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：S01–S06 gallery/run 挂载；feedback 19 项；Toast 队列/清理、Progress 不确定态无假数值检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=S03 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "S04": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：S01–S06 gallery/run 挂载；feedback 19 项；Toast 队列/清理、Progress 不确定态无假数值检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=S04 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "S05": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：S01–S06 gallery/run 挂载；feedback 19 项；Toast 队列/清理、Progress 不确定态无假数值检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=S05 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "S06": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：S01–S06 gallery/run 挂载；feedback 19 项；Toast 队列/清理、Progress 不确定态无假数值检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=S06 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "D01": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：D01–D06 gallery/run 挂载；viz-objects 12/12；Sequence 身份、Matrix 行列目标、Graph marker 唯一、Timeline、TreeDiagram、CompareView 高风险检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=D01 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "D02": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：D01–D06 gallery/run 挂载；viz-objects 12/12；Sequence 身份、Matrix 行列目标、Graph marker 唯一、Timeline、TreeDiagram、CompareView 高风险检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=D02 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "D03": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：D01–D06 gallery/run 挂载；viz-objects 12/12；Sequence 身份、Matrix 行列目标、Graph marker 唯一、Timeline、TreeDiagram、CompareView 高风险检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=D03 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "D04": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：D01–D06 gallery/run 挂载；viz-objects 12/12；Sequence 身份、Matrix 行列目标、Graph marker 唯一、Timeline、TreeDiagram、CompareView 高风险检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=D04 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "D05": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：D01–D06 gallery/run 挂载；viz-objects 12/12；Sequence 身份、Matrix 行列目标、Graph marker 唯一、Timeline、TreeDiagram、CompareView 高风险检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=D05 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "D06": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：D01–D06 gallery/run 挂载；viz-objects 12/12；Sequence 身份、Matrix 行列目标、Graph marker 唯一、Timeline、TreeDiagram、CompareView 高风险检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=D06 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "M01": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：M01–M04 gallery/run 挂载；mechanisms 175/175；回退/重看/快速连点收敛、无副本残留、减少动效检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=M01 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "M02": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：M01–M04 gallery/run 挂载；mechanisms 175/175；回退/重看/快速连点收敛、无副本残留、减少动效检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=M02 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "M03": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：M01–M04 gallery/run 挂载；mechanisms 175/175；回退/重看/快速连点收敛、无副本残留、减少动效检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=M03 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "M04": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：M01–M04 gallery/run 挂载；mechanisms 175/175；回退/重看/快速连点收敛、无副本残留、减少动效检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=M04 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "V01": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：V01 gallery/run 挂载；chart 82 项；bar/line/scatter/pie、负值、空数据、focus/changed、数据表、getTarget 检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=V01 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "X01": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：X01–X07 gallery/run 挂载；extended 179/179 + demo 38/38；Carousel 不自播/隐藏页不可聚焦、Cascader/TreeSelect 键盘与焦点、TransferList、CommandPalette 检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=X01 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "X02": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：X01–X07 gallery/run 挂载；extended 179/179 + demo 38/38；Carousel 不自播/隐藏页不可聚焦、Cascader/TreeSelect 键盘与焦点、TransferList、CommandPalette 检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=X02 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "X03": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：X01–X07 gallery/run 挂载；extended 179/179 + demo 38/38；Carousel 不自播/隐藏页不可聚焦、Cascader/TreeSelect 键盘与焦点、TransferList、CommandPalette 检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=X03 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "X04": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：X01–X07 gallery/run 挂载；extended 179/179 + demo 38/38；Carousel 不自播/隐藏页不可聚焦、Cascader/TreeSelect 键盘与焦点、TransferList、CommandPalette 检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=X04 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "X05": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：X01–X07 gallery/run 挂载；extended 179/179 + demo 38/38；Carousel 不自播/隐藏页不可聚焦、Cascader/TreeSelect 键盘与焦点、TransferList、CommandPalette 检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=X05 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "X06": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：X01–X07 gallery/run 挂载；extended 179/179 + demo 38/38；Carousel 不自播/隐藏页不可聚焦、Cascader/TreeSelect 键盘与焦点、TransferList、CommandPalette 检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=X06 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "X07": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：X01–X07 gallery/run 挂载；extended 179/179 + demo 38/38；Carousel 不自播/隐藏页不可聚焦、Cascader/TreeSelect 键盘与焦点、TransferList、CommandPalette 检查通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=X07 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "B01": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：B01–B10 gallery/run 挂载；blocks-stage 14/14 + demo 10/10；B05–B10 直接挂载与 demo 步进交互；Stage 空舞台缺陷已修复并回归；最终单文件离线审计通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=B01 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "B02": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：B01–B10 gallery/run 挂载；blocks-stage 14/14 + demo 10/10；B05–B10 直接挂载与 demo 步进交互；Stage 空舞台缺陷已修复并回归；最终单文件离线审计通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=B02 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "B03": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：B01–B10 gallery/run 挂载；blocks-stage 14/14 + demo 10/10；B05–B10 直接挂载与 demo 步进交互；Stage 空舞台缺陷已修复并回归；最终单文件离线审计通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=B03 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "B04": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：B01–B10 gallery/run 挂载；blocks-stage 14/14 + demo 10/10；B05–B10 直接挂载与 demo 步进交互；Stage 空舞台缺陷已修复并回归；最终单文件离线审计通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=B04 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "B05": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：B01–B10 gallery/run 挂载；blocks-stage 14/14 + demo 10/10；B05–B10 直接挂载与 demo 步进交互；Stage 空舞台缺陷已修复并回归；最终单文件离线审计通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=B05 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "B06": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：B01–B10 gallery/run 挂载；blocks-stage 14/14 + demo 10/10；B05–B10 直接挂载与 demo 步进交互；Stage 空舞台缺陷已修复并回归；最终单文件离线审计通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=B06 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "B07": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：B01–B10 gallery/run 挂载；blocks-stage 14/14 + demo 10/10；B05–B10 直接挂载与 demo 步进交互；Stage 空舞台缺陷已修复并回归；最终单文件离线审计通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=B07 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "B08": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：B01–B10 gallery/run 挂载；blocks-stage 14/14 + demo 10/10；B05–B10 直接挂载与 demo 步进交互；Stage 空舞台缺陷已修复并回归；最终单文件离线审计通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=B08 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "B09": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：B01–B10 gallery/run 挂载；blocks-stage 14/14 + demo 10/10；B05–B10 直接挂载与 demo 步进交互；Stage 空舞台缺陷已修复并回归；最终单文件离线审计通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=B09 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "B10": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156：B01–B10 gallery/run 挂载；blocks-stage 14/14 + demo 10/10；B05–B10 直接挂载与 demo 步进交互；Stage 空舞台缺陷已修复并回归；最终单文件离线审计通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=B10 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "I01": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156 最终构建：I01–I05 在 gallery 99 条中逐条挂载、run.html 99 条锚点渲染；core 自检 72/72，core demo 33/33；嵌套浮层焦点修复回归 12/12；单文件离线审计通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=I01 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "I02": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156 最终构建：I01–I05 在 gallery 99 条中逐条挂载、run.html 99 条锚点渲染；core 自检 72/72，core demo 33/33；嵌套浮层焦点修复回归 12/12；单文件离线审计通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=I02 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "I03": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156 最终构建：I01–I05 在 gallery 99 条中逐条挂载、run.html 99 条锚点渲染；core 自检 72/72，core demo 33/33；嵌套浮层焦点修复回归 12/12；单文件离线审计通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=I03 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "I04": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156 最终构建：I01–I05 在 gallery 99 条中逐条挂载、run.html 99 条锚点渲染；core 自检 72/72，core demo 33/33；嵌套浮层焦点修复回归 12/12；单文件离线审计通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=I04 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "I05": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 主控 Edge 156 最终构建：I01–I05 在 gallery 99 条中逐条挂载、run.html 99 条锚点渲染；core 自检 72/72，core demo 33/33；嵌套浮层焦点修复回归 12/12；单文件离线审计通过",
+        "条目级证据：最终 gallery 与 examples/run.html?id=I05 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
+      ]
+    },
+    "I06": {
+      "status": "verified",
+      "verification": [
+        "2026-10-27 node scripts/build.mjs --final 与 node scripts/check.mjs 均通过：99 ID、15 模块、全量与模块产物齐全",
+        "单文件预览复制到独立目录、禁止网络后：99 条 demo 全部渲染，请求列表只有该 HTML 自身；KaTeX 字体 20 个已加载",
+        "ZIP 与发布副本由构建/交付步骤生成；不含 node_modules、_dev 证据、缓存或浏览器 profile"
+      ]
+    },
+    "I07": {
+      "status": "verified",
+      "verification": [
+        "2026-10-28 主控 Edge 156 headless：tests/demo/core-check.mjs 59/59、adapters-check.mjs 202/202、ui-check.mjs 90/90、integration-check.mjs 108/108（含 M01 真实删除/交换与中途取消、模型不符报错、R10 重建 DOM 与 resize 后标记重定位、两会话隔离、借用实例、减少动效、file:// 单文件预览五场景推进）",
+        "2026-10-28 回归与入口：tests/checks/viz-mechanisms-check.mjs 175/175、blocks-stage-check.mjs 14/14；gallery/index.html#I07 与 dist/组件库-预览.html#I07 真实挂载（默认静止、按钮推进、字幕与标记正确，单文件预览仅请求自身）",
+        "2026-10-28 node scripts/build.mjs --final --release 与 node scripts/check.mjs 通过：100 ID、17 模块（含 demo-runtime、demo-ui），页面入口与文档路径一致；scripts/build-demo-preview.mjs 生成 ../html-note-公共编排层预览.html 并逐场景推进通过",
+        "I07 userReview 为 not-reviewed：技术核验不代表用户认可，观感仍待用户评价",
+        "2026-10-29 体验修复：真实 Edge 实测 M01/R10/联动三类场景；下一步接受后即时统一灰色可聚焦禁用，执行与 R10 收尾淡入期间持续，恢复可用时稳定结果与 Frame 标记已落位；linked 示例可配合动作并行衔接；ui-check 102/102、integration-check 145/145、core-check 59/59、adapters-check 202/202、viz-mechanisms-check 175/175、blocks-stage-check 14/14、gallery demo 回归通过",
+        "2026-10-29 scene 整合：真实 Edge 在 examples/demo-scene 与 dist/公共编排层-整合预览.html（file://）跑通字节填充（41 7E 7D 42 → 41 7D 5E 7D 5D 42，D01 sequence layout + 目标 range 括线 + dom reveal objects-settled）、另一组非 PPP 数据、自定义 Adapter cut+reveal；灰色执行态、中途取消/回退/重看/减少动效、漏列变化 Binding 拒绝、mark 轨道不拖住 objects-settled、无外部请求；adapters-check 281/281、ui-check 140/140、integration-check 153/153、core-check 59/59；build --final --release、build-demo-preview、check 通过；Anime/Motion 样片未过内层接管/资源清理门槛，采用窄 translate-only FLIP+WAAPI，无新增运行时动画依赖",
+        "2026-10-29 公共呈现整改：默认舞台按全部 Frame 字幕在当前宽度下预留阅读高度、画布会话内只增长不回缩；三个样例在 1280 宽度下推进前/运行中/停稳后的字幕与按钮相对位置一致（字节样例画面 227—352、字幕 358—385、控件 393—433；Range/Link 画布上方预留 26px 标记走廊）。D01 增加 summary/stateText/stable，NoteDemo sequence 默认隐藏重复摘要与“变化”文字并稳定占位，保留对象标签/视觉 cues/aria；样例开发说明与自检移入折叠区，result 只保留有独立价值的一行或在非必需样例中省略；scene 默认时长与值闪错开精修。viz-objects-check 12/12、adapters-check 281/281、ui-check 140/140、integration-check 157/157、core-check 59/59；构建、整合预览与检查通过",
+        "2026-10-30 动效节奏整改：scene 默认改为布局 600ms、入场 420ms/stagger 40、值替换 delay 160ms/duration 420ms、值强调 560ms、关系提示 200–620ms、揭示 260ms，缓动改 cubic-bezier(.3,0,.15,1) 以避免开头瞬移；sequence Adapter 在 commit 后用 aria-hidden 的旧值 ghost 叠加，先随对象移动再上移淡出，新值从下方淡入，强调保持后淡出，取消/减少动效立即移除 ghost。真实 Edge 下三停点首步约 885ms 完成且按钮恢复位置不变（stage 99、字幕 105、按钮 140），中途取消回 raw 且 ghost=0，另一组数据同样可辨认；减少动效立即到目标；adapters-check 283/283、integration-check 157/157、ui-check 140/140、core-check 59/59、viz-objects-check 12/12；构建、预览与检查通过",
+        "2026-10-30 公共界面完善：B01 字幕增加可配置“字幕”身份标签与正文分栏；Presentation 控件改为底部操作带（上一步/下一步成组、重看/重来次要、进度靠右）；样例改为浅色画布 + 右侧窄“结果 · 接收端”读数，去掉大虚线框；自定义样例面板标题改为说明/结论；D01 对象比例更紧凑，状态文字关闭时不再预留不可见行。字幕换句在 Presentation 中以 200ms 整句淡入实现（首屏/取消/回退/错误/减少动效不播，停稳前关闭，无副本朗读）。真实 Edge 1280/900/520/390 检查：390 无横向溢出、无滚动提示；1280 推进前/中/后位置稳定；长字幕完整换行且控件不动；blocks-stage 14/14、ui 140/140、integration 157/157、adapters 283/283、core 59/59、viz-objects 12/12；构建、整合预览与检查通过",
+        "2026-10-30 公共层复用验证：新增 examples/reuse-matrix-product 与自包含 dist/公共层复用验证-矩阵乘法.html；只计算 C₁₂：A 第1行×B 第2列，五项停点展示配对、乘积 4/1/12、累计 4→5→17 与结果。复用 NoteDemo.mount/Frame/字幕/控件/取消/减少动效、scene 完成边界、D02 Matrix、D01 Sequence、dom reveal；公共缺口最小补充：matrix Adapter 增加 sceneModes ['cut']（集成测试 matrix cut），D02 Matrix 增加 summary 显示选项（示例关闭重复标记汇总）。真实 Edge 1280/900/620/390：按钮 top 稳定 520、画布高 409，初始/推进/上一步/重看/重来/一次中途取消/减少动效正常；自包含预览无外部请求、无控制台错误；integration 160/160、adapters 284/284、blocks-stage 14/14、ui 140/140、core 59/59、viz 12/12；构建/预览/检查通过",
+        "2026-10-30 公共过渡能力首批：scene update/defaultSceneMode/after/ready-finished、matrix update 与真实读回、dom 文本 update、NoteUI.Expression C13/expression Adapter、Frame.marks id 与 scene keyed 复用、字幕 finished 并入运行；矩阵演示改用 update+after+Expression。真实 Edge 自包含矩阵预览 1280/900/620/390、回退/重看/重来/取消/减少动效；public-transition 14/14、adapters 286/286、integration 160/160、ui 140/140、core 59/59、viz 12/12、blocks-stage 14/14；构建与 check 通过。",
+        "2026-10-30 公共动效承接开发：新增私有 src/demo/effects.js；timing 解析改为公共默认→Adapter.sceneTimingDefaults→scene.timing→member.timing，新增 cueDuration；Matrix 修源 flag 快照、stateText 与可访问状态、连续 cue/局部值副本，去掉 matrix→terms 冗余 after；Expression 稳定 unit/content/value、复用 Math、cue-only 与局部换值 ghost；DOM 根内 valueSlot 局部 ghost、读回不计 ghost；Sequence 接入共享 ghost/cue 工具并保留认可波形；cut+after 定义拒绝。真实 Edge 构建预览：矩阵首乘积约403ms首次不透明、按钮约1028ms恢复，byte约911ms停稳且无外部请求/控制台错误；public-transition 29/29、adapters 286/286、integration 160/160、ui 140/140、core 59/59；build --final --release、两个 demo 预览与 check 通过。",
+        "2026-10-30 作者装配与动态聚焦：新增 scene.attention（作者顺序目标、默认舞台单一连续 Focus、取消/减少动效边界）；NoteDemo.compile/collectSlots、自定义 layout 无 main 别名与可选 cleanup、NoteDemoRecipes.focusWorkbench 进入 demo-ui；作者入口 examples/authoring 与自包含 dist/作者装配与聚焦-预览.html 使用同一整库入口。矩阵作者样例改为 A 单元→B 单元→当前项→最终累计的焦点交接，矩阵单元不再同时叠直接焦点，terms 与 sum/result 保持稳定；单行读数结构复用同一配方。真实 Edge 观察焦点框顺序与最终 17；public-transition 33/33；构建/check/打包通过。用户观感仍待单独评价。",
+        "2026-10-30 动态聚焦节奏修正：attention 默认焦点步 560ms、淡出 260ms、目标可单独 holdDuration；声明 attention 的 scene 使用公共较慢内容节奏（enter 560/cue 680/reveal 420 等），普通 scene 保持原默认；Focus 外层增加局部柔光/呼吸和收尾淡出，不遮罩其他区域。作者预览配对焦点 A→B→当前项约 1.8s 内完成，最终和停留后接结果；用户此前指出的过快与框简陋问题待实际观看确认。public-transition 33/33、adapters 286/286、integration 160/160、ui 140/140、core 59/59；构建/check 通过。",
+        "2026-10-31 聚焦到达门控与框面修正：attention 默认焦点步 560ms、淡出 260ms、settleDuration 0；声明 attention 的 scene 按目标到达时刻才启动对应 layout/update/reveal 成员，未到达前保持源视觉；移除额外框角装饰，只保留局部柔光/呼吸和收尾淡出。矩阵配对 A/B 时乘积仍为占位，焦点到项后值才出现；最终和停留后结果显现再接焦点；旧 byte 约929ms（上一轮约911ms）。public-transition 33/33、adapters 286/286、integration 160/160、ui 140/140、core 59/59；构建/check 通过。",
+        "2026-10-31 公共聚焦机制纠偏：NoteExpr.Focus 增加 whenArrived()/whenHidden() 实际完成句柄与 rAF 真实 rect 跟随；presentation 删除按累计时长推进和固定 exit 计时，改为 Focus 到达后启动 scene 内容、等待作者观察停留与成员 ready 后才迁移，最后等待真实 hide；scene 删除 attentionStarts/attentionTimers/attentionEpoch，建立 Binding 级 coordinator，重复目标与 cut 目标明确报错。作者预览 A/B 时乘积保持占位，焦点到项后内容才启动，焦点等内容可辨认才离开；最终结果与焦点同步。public-transition 35/35、core 59/59、adapters 286/286、integration 160/160、ui 140/140、viz 12/12；构建/check 通过；用户观感仍待本轮实际观看。",
+        "2026-10-31 聚焦软出现修正：发现 presentation 在启动 attention 时先 show 首目标、随后 step 又 show 一次，第二次 show 取消首帧入场动画，导致焦点框瞬间直出。删除重复首帧 show；Focus 增加 entrance:'soft'（320ms 淡入 + 上浮/缩放 .93→1），attention 使用该软出现；普通 Focus 标记保持原 220ms。真实 Edge 逐帧确认 opacity/transform 入场动画不再被取消；public-transition 35/35、ui 140/140、integration 160/160；构建/check 通过；观感仍待本轮实际观看。"
+      ]
+    },
+    "C13": {
+      "status": "verified",
+      "verification": [
+        "2026-10-30 公共过渡能力首批：NoteUI.Expression 静态组件、text/tex 项、稳定 id、update/getState/getTarget/getMotionTargets/setSceneActive，与 expression Adapter 的项级 layout/值交换/进入/退出；gallery 与矩阵演示实际挂载，真实 Edge 与 public-transition 检查通过。",
+        "2026-10-30 动效承接整改：Expression 改为稳定 unit→contentCarrier→valueSlot，未变项与 Math 实例复用；同 ID 换值旧副本在 contentCarrier 内跟随目标 unit，新增 cue-only 差分；gallery/矩阵演示与 public-transition 29/29 通过。"
+      ]
+    }
+  }
+}

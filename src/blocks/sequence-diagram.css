@@ -1,0 +1,245 @@
+/* NoteBlocks B08 — SequenceDiagram
+ * Scope: .nblk-sequence-diagram
+ * Dependencies: core tokens, NoteBlocks.StepPlayer, NoteUI.Button/Layout.
+ * The SVG is block-specific; it is not a generic graph editor.
+ * Message type is distinguished by line style, arrowhead shape and visible text. */
+
+.nblk-sequence-diagram {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  color: var(--hnv-color-ink, #202938);
+  font-family: var(--hnv-font-family, "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif);
+  font-size: var(--hnv-font-size-label, 14px);
+  line-height: 1.6;
+}
+
+.nblk-sequence-diagram__layout {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--hnv-space-2, 8px);
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  padding: var(--hnv-space-3, 12px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-stage, 14px);
+  background: var(--hnv-color-page, #f4f6f9);
+}
+
+.nblk-sequence-diagram__context,
+.nblk-sequence-diagram__warning,
+.nblk-sequence-diagram__hint {
+  margin: 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-label, 14px);
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.nblk-sequence-diagram__context {
+  color: var(--hnv-color-ink, #202938);
+}
+
+.nblk-sequence-diagram__warning {
+  box-sizing: border-box;
+  padding: var(--hnv-space-2, 8px) var(--hnv-space-3, 12px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-warning, #8a5a12);
+  border-radius: var(--hnv-radius-control, 8px);
+  background: var(--hnv-color-warning-soft, #fdf5e4);
+  color: var(--hnv-color-warning, #8a5a12);
+}
+
+.nblk-sequence-diagram__viewport {
+  box-sizing: border-box;
+  max-width: 100%;
+  max-height: min(34rem, 66vh);
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-object, 10px);
+  background: var(--hnv-color-surface, #ffffff);
+}
+
+.nblk-sequence-diagram__viewport:focus-visible {
+  outline: var(--hnv-focus-ring-width, 3px) solid var(--hnv-color-focus, #315cda);
+  outline-offset: 2px;
+}
+
+.nblk-sequence-diagram__svg {
+  display: block;
+  max-width: none;
+  background: var(--hnv-color-surface, #ffffff);
+  font-family: var(--hnv-font-family, "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif);
+  user-select: text;
+}
+
+.nblk-sequence-diagram__svg text {
+  font-family: inherit;
+}
+
+.nblk-sequence-diagram__participant-box {
+  fill: var(--hnv-color-page, #f4f6f9);
+  stroke: var(--hnv-color-border, #dce2ea);
+  stroke-width: 1.5;
+}
+
+.nblk-sequence-diagram__participant-label {
+  fill: var(--hnv-color-ink, #202938);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.nblk-sequence-diagram__participant-note {
+  fill: var(--hnv-color-muted, #5c6879);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.nblk-sequence-diagram__lifeline {
+  fill: none;
+  stroke: var(--hnv-color-border, #dce2ea);
+  stroke-width: 1.25;
+  stroke-dasharray: 4 5;
+}
+
+.nblk-sequence-diagram__current-row {
+  fill: var(--hnv-color-accent-soft, #eef2ff);
+  stroke: var(--hnv-color-accent, #315cda);
+  stroke-width: 1.25;
+}
+
+.nblk-sequence-diagram__message-line {
+  fill: none;
+  stroke: var(--hnv-color-ink, #202938);
+  stroke-width: 1.75;
+  stroke-linecap: round;
+}
+
+.nblk-sequence-diagram__message-line.is-async {
+  stroke: var(--hnv-color-attention, #6f82b7);
+  stroke-dasharray: 9 6;
+}
+
+.nblk-sequence-diagram__message-line.is-return {
+  stroke: var(--hnv-color-muted, #5c6879);
+  stroke-dasharray: 2 5;
+}
+
+.nblk-sequence-diagram__message-line.is-current {
+  stroke: var(--hnv-color-accent, #315cda);
+  stroke-width: 3;
+}
+
+.nblk-sequence-diagram__arrowhead {
+  fill: var(--hnv-color-ink, #202938);
+  stroke: none;
+}
+
+.nblk-sequence-diagram__arrowhead.is-return {
+  fill: none;
+  stroke: var(--hnv-color-muted, #5c6879);
+  stroke-width: 1.7;
+}
+
+.nblk-sequence-diagram__arrowhead.is-current {
+  fill: var(--hnv-color-accent, #315cda);
+}
+
+.nblk-sequence-diagram__arrowhead.is-current.is-return {
+  fill: none;
+  stroke: var(--hnv-color-accent, #315cda);
+}
+
+.nblk-sequence-diagram__message-label {
+  fill: var(--hnv-color-ink, #202938);
+  stroke: var(--hnv-color-surface, #ffffff);
+  stroke-width: 4px;
+  paint-order: stroke;
+  stroke-linejoin: round;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.nblk-sequence-diagram__message-label.is-current {
+  fill: var(--hnv-color-accent, #315cda);
+  font-weight: 700;
+}
+
+.nblk-sequence-diagram__row-number {
+  fill: var(--hnv-color-muted, #5c6879);
+  font-family: var(--hnv-font-mono, Consolas, monospace);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.nblk-sequence-diagram__current-tag {
+  fill: var(--hnv-color-accent, #315cda);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.nblk-sequence-diagram__hint {
+  font-size: var(--hnv-font-size-small, 13px);
+}
+
+.nblk-sequence-diagram__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hnv-space-1, 4px) var(--hnv-space-3, 12px);
+  min-width: 0;
+}
+
+.nblk-sequence-diagram__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--hnv-space-1, 4px);
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 2px 8px;
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-pill, 999px);
+  background: var(--hnv-color-surface, #ffffff);
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.nblk-sequence-diagram__legend-item::before {
+  content: "";
+  display: inline-block;
+  width: 18px;
+  height: 0;
+  border-top: 2px solid var(--hnv-color-ink, #202938);
+}
+
+.nblk-sequence-diagram__legend-item[data-type="async"]::before {
+  border-top-style: dashed;
+  border-top-color: var(--hnv-color-attention, #6f82b7);
+}
+
+.nblk-sequence-diagram__legend-item[data-type="return"]::before {
+  border-top-style: dotted;
+  border-top-color: var(--hnv-color-muted, #5c6879);
+}
+
+@media (max-width: 520px) {
+  .nblk-sequence-diagram__layout {
+    padding: var(--hnv-space-2, 8px);
+  }
+
+  .nblk-sequence-diagram__viewport {
+    max-height: min(30rem, 62vh);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nblk-sequence-diagram,
+  .nblk-sequence-diagram * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

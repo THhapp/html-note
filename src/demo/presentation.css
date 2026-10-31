@@ -1,0 +1,172 @@
+/* NoteDemo presentation — default stage chrome for NoteDemo.mount().
+ * Owned roots: .note-demo (inside B01 .nblk-demo-stage__stage).
+ * Scope only .note-demo-*; no page/body/element-wide selectors.
+ * No @import and no url(); classic stylesheet, file:// safe. */
+
+.note-demo {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  color: var(--hnv-color-ink, #202938);
+  font-family: var(--hnv-font-family, "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif);
+  font-size: var(--hnv-font-size-label, 14px);
+  line-height: 1.6;
+  text-align: start;
+}
+
+.note-demo > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* 关系标记的文字/括线可能位于目标上方，画布顶部保留一条标记走廊；
+ * 宿主可用 --note-demo-mark-gutter 调整，不影响 B01 之外的组件。 */
+.note-demo--has-marks {
+  padding-top: var(--note-demo-mark-gutter, 26px);
+}
+
+.note-demo__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px var(--hnv-space-4, 16px);
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+}
+
+.note-demo__control-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hnv-space-2, 8px);
+  min-width: 0;
+}
+
+.note-demo__control-group--playback .nui-button--primary {
+  min-width: 6.2em;
+}
+
+.note-demo__control-group--utility {
+  margin-inline-start: calc(var(--hnv-space-1, 4px) * -1);
+}
+
+.note-demo__progress {
+  margin-inline-start: auto;
+  padding-inline-start: var(--hnv-space-4, 16px);
+  border-inline-start: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.note-demo__error {
+  box-sizing: border-box;
+  margin: var(--hnv-space-3, 12px) 0 0;
+  padding: var(--hnv-space-4, 16px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-danger-border, #f0b4ae);
+  border-inline-start: 4px solid var(--hnv-color-danger, #b23a45);
+  border-radius: var(--hnv-radius-control, 8px);
+  background: var(--hnv-color-danger-soft, #fbeef0);
+  color: var(--hnv-color-ink, #202938);
+  text-align: start;
+}
+
+.note-demo__error[hidden] {
+  display: none !important;
+}
+
+.note-demo__error-title {
+  margin: 0;
+  color: var(--hnv-color-danger, #b23a45);
+  font-size: var(--hnv-font-size-reading, 16px);
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.note-demo__error-message {
+  margin: 6px 0 0;
+  font-size: var(--hnv-font-size-label, 14px);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.note-demo__error-meta {
+  margin: 6px 0 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-family: var(--hnv-font-mono, "Cascadia Mono", Consolas, monospace);
+  font-size: var(--hnv-font-size-caption, 12px);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 520px) {
+  .note-demo__controls {
+    margin-top: 14px;
+    padding-top: 12px;
+    gap: 10px 12px;
+  }
+
+  .note-demo__progress {
+    flex-basis: 100%;
+    margin-inline-start: 0;
+    padding-inline-start: 0;
+    border-inline-start: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .note-demo,
+  .note-demo * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+/* attention：公共层唯一的关注框。保留局部性，不做遮罩或全局变色；
+ * 内层细描边负责精确框选，外层柔光负责从静止画面中浮出。 */
+.note-demo-attention {
+  --nx-accent: var(--hnv-color-accent, #315cda);
+}
+
+.note-demo-attention .nx-focus__box {
+  border: 2px solid color-mix(in srgb, var(--nx-accent) 78%, white);
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--nx-accent) 4.5%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--nx-accent) 14%, transparent),
+    0 10px 28px color-mix(in srgb, var(--nx-accent) 18%, transparent),
+    inset 0 0 20px color-mix(in srgb, var(--nx-accent) 6%, transparent);
+  will-change: left, top, width, height;
+}
+
+.note-demo-attention .nx-focus__box::before {
+  content: '';
+  position: absolute;
+  inset: -12px;
+  border-radius: 24px;
+  background: radial-gradient(ellipse at center, transparent 48%, color-mix(in srgb, var(--nx-accent) 8%, transparent) 78%, transparent 100%);
+  box-shadow: 0 0 26px color-mix(in srgb, var(--nx-accent) 20%, transparent);
+  pointer-events: none;
+  animation: note-demo-attention-breathe 3.2s cubic-bezier(.37, 0, .63, 1) infinite;
+}
+
+@keyframes note-demo-attention-breathe {
+  0%, 100% { opacity: .55; transform: scale(.995); }
+  50% { opacity: 1; transform: scale(1.005); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .note-demo-attention .nx-focus__box::before { animation: none; opacity: .8; }
+}

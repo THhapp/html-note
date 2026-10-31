@@ -1,0 +1,27 @@
+{
+  "module": "demo-ui",
+  "title": "公共演示默认舞台与作者配方",
+  "js": [
+    "src/demo/presentation-chrome.js",
+    "src/demo/presentation-marks.js",
+    "src/demo/presentation.js",
+    "src/demo/recipes.js"
+  ],
+  "css": [
+    "src/demo/presentation.css",
+    "src/demo/recipes.css"
+  ],
+  "demos": [],
+  "dependencies": [
+    "core",
+    "legacy",
+    "ui-layout",
+    "ui-content",
+    "ui-navigation",
+    "viz-objects",
+    "viz-chart",
+    "blocks",
+    "demo-runtime"
+  ],
+  "entries": []
+}

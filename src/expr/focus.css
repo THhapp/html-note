@@ -1,0 +1,36 @@
+/*!
+ * 关注与范围标记 · 组件样式 v1.0.0
+ * 作用域：全部选择器限定在 .nx-focus 之下；无全局选择器、无外部资源引用。
+ * 令牌：--nx-accent（当前关注色）、--nx-z（层级）；宿主可写在实例根 instance.el.style 上覆盖。
+ */
+.nx-focus {
+  --nx-accent: #1f6f6a;
+  --nx-z: 1210;
+  position: fixed;
+  inset: 0;
+  z-index: var(--nx-z, 1210);
+  pointer-events: none;
+  overflow: visible;
+}
+
+.nx-focus__box,
+.nx-focus__rule {
+  position: absolute;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+/* 元素框选：1.5px 强调色描边画在框内侧，8px 圆角，不填充、不遮挡目标 */
+.nx-focus__box {
+  border: 1.5px solid var(--nx-accent);
+  border-radius: 8px;
+  transform-origin: 50% 50%;
+}
+
+/* 文本下划线：2px 圆头线，按 Range 每行盒逐段绘制 */
+.nx-focus__rule {
+  height: 2px;
+  border-radius: 2px;
+  background: var(--nx-accent);
+  transform-origin: 0 50%;
+}

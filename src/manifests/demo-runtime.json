@@ -1,0 +1,131 @@
+{
+  "module": "demo-runtime",
+  "title": "公共演示编排核心",
+  "js": [
+    "src/demo/definition-compare.js",
+    "src/demo/definition-compile.js",
+    "src/demo/definition-prepare.js",
+    "src/demo/definition.js",
+    "src/demo/effects.js",
+    "src/demo/scene-geometry.js",
+    "src/demo/scene-effects.js",
+    "src/demo/scene-attention.js",
+    "src/demo/scene.js",
+    "src/demo/runner.js",
+    "src/demo/bindings.js",
+    "src/demo/controller.js",
+    "src/demo/adapters/matrix.js",
+    "src/demo/adapters/sequence.js",
+    "src/demo/adapters/sequence-edit.js",
+    "src/demo/adapters/sequence-insert.js",
+    "src/demo/adapters/dom.js",
+    "src/demo/adapters/expression.js",
+    "src/demo/adapters/index.js",
+    "src/demo/authoring.js",
+    "src/demo/index.js"
+  ],
+  "css": [],
+  "demos": [
+    "gallery/demos/demo-runtime.js"
+  ],
+  "dependencies": [
+    "core"
+  ],
+  "entries": [
+    {
+      "id": "I07",
+      "name": "NoteDemo",
+      "cn": "公共演示编排层",
+      "category": "共享基础与交付",
+      "purpose": "在浏览器端统一管理演示停点、组件命令过渡与 scene 完整目标画面过渡、字幕、受控标记和操作控件；组件实例常驻，内容与动作职责分开，成品运行不需要 Agent、LLM 或网络服务。",
+      "inputs": [
+        "definition",
+        "slots",
+        "adapters",
+        "initialFrameId"
+      ],
+      "customizable": [
+        "Frame 与 Transition 定义（actions/parallel 或 scene）",
+        "Binding 布局与插槽",
+        "内置或自定义 Adapter（sceneModes / prepareChange 扩展）",
+        "字幕与三类标记",
+        "scene 的 layout/cut/reveal 与 timing（含值替换阶段）",
+        "matrix 作为 scene cut 稳定参照",
+        "默认舞台的字幕预留、字幕身份标签与稳定操作位置",
+        "结果区由宿主 layout 装配（公共舞台不强制右侧栏）",
+        "D01 的 summary/stateText/stable 显示选择",
+        "串行或并行动作组合",
+        "减少动效与受控状态",
+        "scene update 模式与 Adapter.defaultSceneMode",
+        "scene 参与者 after 依赖与 ready/finished gate",
+        "Adapter.sceneTimingDefaults 与 scene.bindings[i].timing",
+        "cueDuration 与 Matrix stateText",
+        "scene.attention 的注意顺序、观察停留与焦点框实际到达/收尾",
+        "attention 到达后才启动对应 Binding 内容效果的公共门控",
+        "attention 场景的公共内容节奏（与普通 scene 隔离）",
+        "NoteDemo.compile 快照简写与 NoteDemo.collectSlots 槽位检查",
+        "自定义 layout 的 required slots 与可选 cleanup"
+      ],
+      "states": [
+        "初始停点恢复",
+        "相邻动作过渡",
+        "串行/并行动作",
+        "scene 完整目标画面过渡（layout/cut/reveal）",
+        "scene 目标括线与 objects-settled 揭示",
+        "matrix 在 scene 中同步换关注 cues",
+        "值替换的旧值→新值视觉阶段与取消清理",
+        "默认舞台字幕/操作位置稳定与开发说明折叠",
+        "字幕换句轻提示与取消/回退/减少动效清理",
+        "前进/回退/跳转/重看/重来",
+        "动作/scene 取消与旧任务失效",
+        "模型不符报错与恢复",
+        "减少动效",
+        "两会话隔离与销毁",
+        "update 的内容/关注受控过渡与源视觉保持",
+        "after 依赖与循环拒绝",
+        "ready/finished 边界与正常完成清理",
+        "keyed Frame.marks 延续",
+        "参数 0/未知字段/非法值的定义期拒绝",
+        "效果创建失败定位、清理与来源恢复",
+        "Matrix 源标签快照与可见/可访问状态分离",
+        "Expression 稳定载体、同 ID 换值与 cue-only",
+        "DOM 根内局部值交换",
+        "作者声明的单一焦点框按 A→B→项→和→结果顺序交接",
+        "attention 场景使用较慢的公共识别节奏、局部柔光框与软出现；普通 scene 保持原默认",
+        "焦点实际到达目标前内容保持源视觉/隐藏；到达后才启动对应效果，焦点等待内容 ready 后再离开",
+        "焦点显示期间按真实 rect 跟随目标；稳定参照可重复访问"
+      ],
+      "usage": "var session = NoteDemo.create({ definition: definition, slots: { main: host } }); session.subscribe(function (state) {}); session.next().then(function (result) {}); // scene: transitions:[{from,to,scene:{bindings:[{binding,mode:'layout'|'update'|'cut'|'reveal',after?,at?,timing?}], attention:{targets:[{binding,query,holdDuration?}],stepDuration?}}}]; // 作者简写: var def = NoteDemo.compile({bindings,initial,steps}); var slots = NoteDemo.collectSlots(root, ['main'])",
+      "dependencies": [
+        "core"
+      ],
+      "limitations": [
+        "frames 为有序线性停点，不实现分支剧情、自动串播、暂停恢复或可视化编辑器。",
+        "内置 Adapter 覆盖 matrix、sequence、sequence-edit、sequence-insert、dom、expression；其他图形用本地自定义 Adapter 接入（cut/reveal 可 restore-only，layout/update 需 prepareChange），不建设通用 HTML 解释器。D02 支持 cut/update，不支持 layout/reveal 与行列重排；expression 默认 layout，稳定 part 载体已接入，但退出副本仍使用私有固定坐标层。",
+        "scene 只实现窄 HTML 布局过渡：布局载体只做位移，不通过 scale 处理尺寸变化，不覆盖 SVG 内部 transform，不提供任意时间轴；D02–D06 未全部迁移 scene。matrix 支持 scene cut/update，不支持 layout/reveal 与行列重排。",
+        "默认舞台按全部 Frame 字幕在当前宽度下的最高高度预留阅读区，画布在会话内只增长不回缩；任意自定义内容若在不同停点高度差异很大，首次出现更高画面仍可能重排一次。D01 stable 会固定标签/状态行高度，可用 stable:false 关闭。",
+        "结果区不是默认舞台的必需结构：是否有结果、放在哪里、如何标注由宿主 layout 决定；公共层只保证字幕身份与换句提示，不会自动把宿主结果改成读数样式。字幕提示是整句淡入，不按字数延长朗读时间。",
+        "值替换旧值 ghost 由各 Adapter 通过私有 effects 工具按自身波形创建，仅视觉且 aria-hidden；不改变模型、不进入读回，取消或减少动效时立即移除；自定义 Adapter 不自动获得该 staging。",
+        "scene 关系提示写在目标 Frame.marks；运行期不接受 transition.marks。目标 Frame 有 marks 时自备宿主需传 presentation port；D01 离场不生成 ghost，删除证据用目标状态/标签表达。",
+        "默认舞台 NoteDemo.mount 由 demo-ui 分发模块提供；只加载 demo-runtime 的宿主需自备 slots，UI 入口仍携带 blocks 及其传递依赖。",
+        "Frame 只保存数据与提示，不保存 Element、函数、像素坐标、Promise 或私有撤销历史；运行期间公共层管理受控视图，宿主不同时写同一视图。",
+        "不实现跨会话共享、持久化或事务日志；动作/scene 失败只尝试恢复最近已停稳 Frame。",
+        "scene.attention 只给作者明确列出的一个目标序列交接一个焦点框；不从内容、Adapter 或数据变化自动猜教学重点。焦点框需要默认舞台 presentation/NoteExpr.Focus，减少动效时不迁移也不增加等待；结算后焦点框不保留为证据。内容启动使用 Focus 的真实到达句柄，焦点离开等待作者观察停留与 scene 成员 ready，不靠累计时长或固定 settle/exit。协调粒度是 Binding：同一参与内容变化的 Binding 在一次 attention 中只允许一个目标，重复目标与 cut 目标会明确报错；稳定参照可重复访问但不重启内容；未列入 attention 的成员不会自动延后。",
+        "NoteDemo.compile 只按整个 Binding 替换视图并生成相邻 transitions；不深合并、不推断 actions、不为未声明的变化自动造 cut。layout 回调返回前抛错时，其内部已创建的局部资源仍由 layout 自行清理；公共层只能清理已返回的 cleanup。",
+        "Matrix 的 update 仍是整表重建后做源/目标样式过渡，不是局部 cue 增量；Expression 已保留项载体和 Math，但退出副本仍使用私有固定坐标层。外部 Focus 自动进入目标 Binding.ready、普通非 scene 帧的 keyed 标记仍未接入；cut 不支持 after。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增公共能力，未获用户评价；技术核验不替代观感认可",
+      "consensus": [
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K12",
+        "K16"
+      ],
+      "docs": "docs/公共编排层.md",
+      "notes": "I07 只计一次公共能力；matrix、sequence、sequence-edit、sequence-insert、dom 适配器、scene 执行文件与 demo-ui 分发模块不另计组件 ID。"
+    }
+  ]
+}

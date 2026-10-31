@@ -1,0 +1,550 @@
+/* 矩阵乘法 C₁₂ 复用验证页 — 仅本页作用域 .mp-*。
+ * 公共舞台/字幕/控件来自 NoteDemo；矩阵、乘积序列与纯文本读数使用现有组件。
+ */
+
+.mp-page {
+  box-sizing: border-box;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  background: var(--hnv-color-page, #f4f6f9);
+  color: var(--hnv-color-ink, #202938);
+  font-family: var(--hnv-font-family, "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif);
+  font-size: var(--hnv-font-size-reading, 16px);
+  line-height: var(--hnv-font-line-reading, 1.65);
+  text-align: start;
+}
+
+.mp-page *,
+.mp-page *::before,
+.mp-page *::after {
+  box-sizing: border-box;
+}
+
+.mp-head {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 38px 20px 18px;
+}
+
+.mp-kicker {
+  margin: 0 0 8px;
+  color: var(--hnv-color-accent, #315cda);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+}
+
+.mp-head h1 {
+  margin: 0 0 10px;
+  font-size: clamp(26px, 3vw, 34px);
+  font-weight: 650;
+  line-height: 1.28;
+  letter-spacing: -0.015em;
+}
+
+.mp-lede {
+  max-width: 76ch;
+  margin: 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-label, 14px);
+  line-height: 1.75;
+}
+
+.mp-main {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 20px 40px;
+}
+
+.mp-card {
+  padding: 24px 26px 18px;
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: 16px;
+  background: var(--hnv-color-surface, #ffffff);
+  box-shadow: 0 1px 2px rgba(32, 41, 56, 0.04), 0 14px 34px rgba(32, 41, 56, 0.055);
+}
+
+.mp-host {
+  min-width: 0;
+}
+
+/* ---- 演示画布 ---- */
+
+.mp-canvas {
+  display: block;
+  min-width: 0;
+  padding: 26px 24px 22px;
+  border: var(--hnv-border-width, 1px) solid color-mix(in srgb, var(--hnv-color-border, #dce2ea) 82%, var(--hnv-color-ink, #202938));
+  border-radius: var(--hnv-radius-stage, 14px);
+  background: color-mix(in srgb, var(--hnv-color-page, #f4f6f9) 58%, var(--hnv-color-surface, #fff));
+}
+
+.mp-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(10rem, 0.72fr);
+  gap: 26px;
+  align-items: start;
+}
+
+/* ---- 矩阵参照 ---- */
+
+.mp-matrix {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+}
+
+.mp-matrix-head {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  margin: 0 0 9px;
+}
+
+.mp-matrix-name {
+  margin: 0;
+  color: var(--hnv-color-ink, #202938);
+  font-size: 22px;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.mp-matrix-size {
+  margin: 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-family: var(--hnv-font-mono, "Cascadia Mono", Consolas, monospace);
+  font-size: 11px;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+}
+
+.mp-matrix-slot {
+  width: 100%;
+  min-width: 0;
+}
+
+.mp-matrix .nviz-matrix {
+  gap: 0;
+}
+
+.mp-matrix .nviz-matrix__viewport {
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  scrollbar-gutter: auto;
+}
+
+.mp-matrix .nviz-matrix__table {
+  width: max-content;
+  min-width: 0;
+  margin: 0 auto;
+  font-size: 15px;
+}
+
+.mp-matrix .nviz-matrix__table th,
+.mp-matrix .nviz-matrix__table td {
+  padding: 8px 10px;
+}
+
+.mp-matrix .nviz-matrix__corner {
+  min-width: 2.1em;
+  padding: 4px 6px;
+  background: transparent;
+  font-size: 9px;
+}
+
+.mp-matrix .nviz-matrix__rowhead {
+  min-width: 2.2em;
+  padding: 7px 8px;
+  background: var(--hnv-color-surface, #fff);
+  font-size: 13px;
+  text-align: center;
+}
+
+.mp-matrix .nviz-matrix__colhead {
+  min-width: 2.8em;
+  padding: 6px 8px;
+  background: transparent;
+  font-size: 12px;
+  text-align: center;
+}
+
+.mp-matrix .nviz-matrix__cell {
+  min-width: 3.1em;
+  padding: 9px 11px;
+  border-color: var(--hnv-color-border, #dce2ea);
+}
+
+.mp-matrix .nviz-matrix__value {
+  font-family: var(--hnv-font-mono, "Cascadia Mono", Consolas, monospace);
+  font-size: 17px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.mp-matrix .nviz-matrix__headlabel {
+  justify-content: center;
+}
+
+.mp-matrix .nviz-matrix__headmark {
+  padding: 0 4px;
+  font-size: 10px;
+}
+
+/* 当前配对是“关注”而不是数据变化：直接关注单元用同一强调色标出配对。 */
+.mp-matrix .nviz-matrix__cell[data-direct-mark="focus"] {
+  border-color: var(--hnv-color-accent, #315cda);
+  background: var(--hnv-color-accent-soft, #eef2ff);
+  outline: 2px solid var(--hnv-color-accent, #315cda);
+  outline-offset: -4px;
+}
+
+.mp-matrix .nviz-matrix__cell[data-direct-mark="focus"] .nviz-matrix__cellflag {
+  border-color: var(--hnv-color-accent, #315cda);
+  color: var(--hnv-color-accent, #315cda);
+}
+
+/* ---- 结果读数 ---- */
+
+.mp-result {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-self: stretch;
+  gap: 8px;
+  min-width: 0;
+  padding-inline-start: 22px;
+  border-inline-start: var(--hnv-border-width, 1px) solid color-mix(in srgb, var(--hnv-color-border, #dce2ea) 86%, var(--hnv-color-ink, #202938));
+}
+
+.mp-result-label {
+  margin: 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.5;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+.mp-result-value {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 2.4em;
+  color: var(--hnv-color-accent, #315cda);
+  font-family: var(--hnv-font-mono, "Cascadia Mono", Consolas, monospace);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.02em;
+}
+
+/* ---- 乘积与求和 ---- */
+
+.mp-process {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: var(--hnv-border-width, 1px) solid color-mix(in srgb, var(--hnv-color-border, #dce2ea) 86%, var(--hnv-color-ink, #202938));
+}
+
+.mp-process-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 12px;
+}
+
+.mp-process-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 12px;
+  min-width: 0;
+}
+
+.mp-eyebrow {
+  margin: 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.5;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+.mp-context-text {
+  margin: 0;
+  color: var(--hnv-color-ink, #202938);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.mp-terms {
+  min-width: 0;
+}
+
+.mp-terms .nviz-sequence {
+  gap: 0;
+}
+
+.mp-terms .nviz-sequence__viewport {
+  overflow: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  scrollbar-gutter: auto;
+}
+
+.mp-terms .nviz-sequence__track {
+  gap: 14px;
+  justify-content: flex-start;
+}
+
+.mp-terms .nviz-sequence__cells {
+  gap: 14px;
+}
+
+.mp-terms .nviz-sequence__cell {
+  min-width: 9.2em;
+  padding: 11px 14px;
+}
+
+.mp-terms .nviz-sequence__value {
+  font-family: var(--hnv-font-mono, "Cascadia Mono", Consolas, monospace);
+  font-size: 16px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.mp-terms .nviz-sequence__label {
+  color: var(--hnv-color-muted, #5c6879);
+  font-family: var(--hnv-font-mono, "Cascadia Mono", Consolas, monospace);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+
+.mp-total {
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+}
+
+.mp-total-label-wrap {
+  flex: 0 0 10rem;
+  min-width: 0;
+}
+
+.mp-total-value {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 1.8em;
+  color: var(--hnv-color-ink, #202938);
+  font-family: var(--hnv-font-mono, "Cascadia Mono", Consolas, monospace);
+  font-size: 19px;
+  font-weight: 650;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  overflow-wrap: anywhere;
+}
+
+.mp-total-value .note-demo-dom,
+.mp-result-value .note-demo-dom {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.mp-total-value .nui-expression {
+  gap: 0.28em;
+  color: var(--hnv-color-ink, #202938);
+  font-family: var(--hnv-font-mono, "Cascadia Mono", Consolas, monospace);
+  font-size: 19px;
+  font-weight: 650;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+}
+
+.mp-slot {
+  min-width: 0;
+  min-height: 0;
+}
+
+/* ---- 开发说明 ---- */
+
+.mp-dev {
+  margin: 14px 0 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+  line-height: 1.6;
+}
+
+.mp-dev summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.mp-dev summary:focus-visible {
+  outline: var(--hnv-focus-ring-width, 3px) solid var(--hnv-color-focus, #315cda);
+  outline-offset: 2px;
+}
+
+.mp-dev-readout,
+.mp-dev-note {
+  max-width: 82ch;
+  margin: 8px 0 0;
+}
+
+.mp-dev-readout {
+  padding-inline-start: 9px;
+  border-inline-start: 2px solid var(--hnv-color-border, #dce2ea);
+  font-family: var(--hnv-font-mono, "Cascadia Mono", Consolas, monospace);
+  font-size: 12px;
+}
+
+.mp-dev-readout[data-demo-error="true"] {
+  border-inline-start-color: var(--hnv-color-danger, #b23a45);
+  color: var(--hnv-color-danger, #b23a45);
+}
+
+.mp-foot {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 20px 40px;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+  line-height: 1.75;
+}
+
+.mp-foot p {
+  margin: 0 0 4px;
+}
+
+@media (max-width: 900px) {
+  .mp-head {
+    padding: 30px 16px 14px;
+  }
+
+  .mp-main {
+    padding: 0 16px 32px;
+  }
+
+  .mp-card {
+    padding: 20px 18px 16px;
+  }
+
+  .mp-canvas {
+    padding: 22px 18px 18px;
+  }
+
+  .mp-top {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .mp-result {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 0 0;
+    border-inline-start: 0;
+    border-top: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  }
+
+  .mp-result-value {
+    min-height: 0;
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 620px) {
+  .mp-head h1 {
+    font-size: 26px;
+  }
+
+  .mp-top {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mp-matrix {
+    align-items: flex-start;
+  }
+
+  .mp-result {
+    grid-column: auto;
+  }
+
+  .mp-process {
+    margin-top: 18px;
+    padding-top: 14px;
+  }
+
+  .mp-process-head {
+    display: block;
+  }
+
+  .mp-process-context {
+    margin-top: 4px;
+  }
+
+  .mp-context-text {
+    font-size: 14px;
+  }
+
+  .mp-terms .nviz-sequence__cell {
+    min-width: 6.6em;
+    padding: 8px;
+  }
+
+  .mp-terms .nviz-sequence__cells {
+    gap: 8px;
+  }
+
+  .mp-terms .nviz-sequence__value {
+    font-size: 13px;
+  }
+
+  .mp-terms .nviz-sequence__label {
+    font-size: 10px;
+  }
+
+  .mp-total {
+    display: block;
+    margin-top: 14px;
+    padding-top: 12px;
+  }
+
+  .mp-total-label-wrap {
+    margin-bottom: 4px;
+  }
+
+  .mp-total-value {
+    min-height: 1.6em;
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mp-page,
+  .mp-page * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

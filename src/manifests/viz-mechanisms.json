@@ -1,0 +1,108 @@
+{
+  "module": "viz-mechanisms",
+  "title": "可复用变化机制",
+  "js": [
+    "src/viz/mechanisms.js",
+    "src/viz/mechanisms-sequence-edit.js",
+    "src/viz/mechanisms-transfer.js",
+    "src/viz/mechanisms-split-merge.js",
+    "src/viz/mechanisms-replace-reveal.js"
+  ],
+  "css": ["src/viz/mechanisms.css"],
+  "demos": ["gallery/demos/viz-mechanisms.js"],
+  "dependencies": ["core"],
+  "entries": [
+    {
+      "id": "M01",
+      "name": "NoteViz.SequenceEdit",
+      "cn": "删除与重排",
+      "category": "可复用变化机制",
+      "purpose": "对已存在序列对象做删除、移动和交换，保留稳定 ID，用让位和终态表达变化，并提供撤销、重置与重看。",
+      "inputs": ["items", "focus", "changed", "animate", "label", "onChange"],
+      "customizable": ["对象序列与标签", "当前关注 id", "本步变化 id", "动画开关", "可访问名称", "用户动作回调"],
+      "states": ["初始序列", "删除让位", "移动与交换", "关注与变化合并标记", "撤销与重置", "动画中再次操作", "减少动效", "空序列"],
+      "usage": "NoteViz.SequenceEdit.mount(host, { items: [{ id: 'a', label: '读取' }, { id: 'b', label: '校验' }], focus: ['a'], onChange: function (state) {} })",
+      "dependencies": ["core"],
+      "limitations": [
+        "插入不在本项重复实现；课程播放器式插入请复用 R10 SeqInsert。",
+        "只提供最近动作快照与一层层撤销栈，不做跨组件事务或远程同步。",
+        "字符串项生成局部 id；跨更新要稳定引用对象时应由宿主提供 id。",
+        "重看期间视觉暂显旧快照，长期 DOM 引用应以停稳后的 getTarget 为准。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": ["K04", "K05", "K06", "K12"],
+      "docs": "docs/viz-mechanisms.md#M01",
+      "notes": "删除使用临时 ghost；选中与变化合成为一个文字标记；插入走 R10。"
+    },
+    {
+      "id": "M02",
+      "name": "NoteViz.Transfer",
+      "cn": "对象传递",
+      "category": "可复用变化机制",
+      "purpose": "把唯一对象从起点送到终点，终态在 target 容器中真实归属，并用短促移动与临时路径提示让传递可追踪。",
+      "inputs": ["source", "target", "object", "sourceLabel", "targetLabel", "animate", "onSettle"],
+      "customizable": ["起点/终点元素或选择器", "对象 id 与标签", "起终点可见标签", "动画开关", "停稳回调", "是否由组件自建区域"],
+      "states": ["起点", "传递中", "终点归属", "回到起点", "重看", "重复 send", "缺少外部容器时使用内部区域", "减少动效"],
+      "usage": "NoteViz.Transfer.mount(host, { object: { id: 'packet', label: '数据包 A' }, sourceLabel: '发送端', targetLabel: '接收端', onSettle: function (state) {} })",
+      "dependencies": ["core"],
+      "limitations": [
+        "一次只承载一个对象；多对象传递由宿主组合多个实例。",
+        "source/target 固定于挂载，update 不更换容器；二者必须同时提供且不能相同。",
+        "外部容器中组件只负责对象样式与移动，区域布局与外观由宿主负责。",
+        "body 上的 SVG 路径提示是临时视觉层，按视口测量；宿主容器有缩放变换时路径可能与内部坐标不完全重合。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": ["K04", "K05", "K06", "K12"],
+      "docs": "docs/viz-mechanisms.md#M02",
+      "notes": "同一对象节点移动，不克隆；路径层停稳即移除；重看重新测量。"
+    },
+    {
+      "id": "M03",
+      "name": "NoteViz.SplitMerge",
+      "cn": "拆分与合并",
+      "category": "可复用变化机制",
+      "purpose": "按宿主前后对象与映射呈现拆分或合并，来源、结果与连线同屏保留，停住后可核对对象对应关系。",
+      "inputs": ["mode", "before", "after", "links", "animate", "label", "onSettle"],
+      "customizable": ["拆分/合并模式", "前后对象与标签", "显式或默认映射", "动画开关", "停稳回调", "可访问名称"],
+      "states": ["变化前", "拆分播放", "合并播放", "结果与映射停稳", "重置回变化前", "重看", "窄容器纵向布局", "减少动效"],
+      "usage": "NoteViz.SplitMerge.mount(host, { mode: 'split', before: [{ id: 's', label: '整段数据' }], after: [{ id: 'a', label: '帧头' }, { id: 'b', label: '载荷' }], onSettle: function (state) {} })",
+      "dependencies": ["core"],
+      "limitations": [
+        "只呈现宿主给定的映射，不推断数据语义，也不执行拆分/合并运算。",
+        "同一 id 同时出现在前后两侧时 getTarget 优先返回结果卡。",
+        "默认规则仅在 links 省略或为空数组时生效；显式空数组不等于“无映射”。",
+        "结果卡在变化前保留布局但不可见；update 数据后回到变化前，不保留旧播放阶段。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": ["K04", "K05", "K06", "K12"],
+      "docs": "docs/viz-mechanisms.md#M03",
+      "notes": "连线为 aria-hidden 的 SVG，另有可访问的映射列表；动画不克隆对象节点。"
+    },
+    {
+      "id": "M04",
+      "name": "NoteViz.ReplaceReveal",
+      "cn": "替换与局部展开",
+      "category": "可复用变化机制",
+      "purpose": "在同一对象外框内替换值或展开内部说明，保持对象身份和整体上缘位置，停住后可核对前后。",
+      "inputs": ["mode", "before", "after", "animate"],
+      "customizable": ["replace/reveal 模式", "对象 id、标签与值", "内部说明", "动画开关"],
+      "states": ["替换前", "替换后并显示前后值", "内部收起", "内部展开并显示展开前线索", "重看", "同一对象位置保持", "减少动效"],
+      "usage": "NoteViz.ReplaceReveal.mount(host, { mode: 'replace', before: { id: 'count', label: '计数器', value: 12 }, after: { id: 'count', label: '计数器', value: 14 } })",
+      "dependencies": ["core"],
+      "limitations": [
+        "值内部说明只按纯文本显示，不解析 HTML、公式或子组件。",
+        "只描述单个对象；多对象同时替换或嵌套展开需要宿主组合多个实例。",
+        "展开会增加卡片高度，可能推动下方内容；保持的是对象上缘与身份而非整页静止。",
+        "没有 onSettle 公共回调；update 会回到变化前，宿主不能依赖内部计时。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": ["K04", "K05", "K06", "K12"],
+      "docs": "docs/viz-mechanisms.md#M04",
+      "notes": "replace 只在同一值框内换文本并保留旧值对照；reveal 只展开内部，不强制显示第二张对象图。"
+    }
+  ]
+}

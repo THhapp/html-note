@@ -1,0 +1,645 @@
+{
+  "module": "ui-content",
+  "title": "文字与知识内容",
+  "js": [
+    "src/ui/content.js",
+    "src/ui/expression.js"
+  ],
+  "css": [
+    "src/ui/content.css",
+    "src/ui/expression.css"
+  ],
+  "demos": [
+    "gallery/demos/ui-content.js"
+  ],
+  "dependencies": [
+    "core"
+  ],
+  "entries": [
+    {
+      "id": "C01",
+      "name": "NoteUI.Typography",
+      "cn": "排版",
+      "category": "文字与知识内容",
+      "purpose": "用共享字号、行高和语义标签组织标题、正文、引导语与辅助说明，同时提供可直接写在宿主标记上的作用域类。",
+      "inputs": [
+        "variant",
+        "content",
+        "as"
+      ],
+      "customizable": [
+        "h1/h2/h3/body/lead/caption 变体",
+        "字符串或 DOM 内容",
+        "初始语义标签 as",
+        "静态类 .nui-type-*"
+      ],
+      "states": [
+        "六个排版变体",
+        "静态类名用法",
+        "mount 后替换内容",
+        "长中文/英文",
+        "窄容器"
+      ],
+      "usage": "NoteUI.Typography.mount(host, { variant: 'h2', as: 'h2', content: '小节标题' })",
+      "dependencies": [
+        "core"
+      ],
+      "limitations": [
+        "variant 类名可在 update 时更换，但 as 只在 mount 时决定标签；需要更换语义标签时重新 mount。",
+        "静态类只负责字号、行高、颜色与换行，不设置章节外部间距；间距由宿主负责。",
+        "不会把字符串当作 HTML 解析。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": [
+        "K02",
+        "K09",
+        "K11",
+        "K13"
+      ],
+      "docs": "docs/ui-content.md#C01",
+      "notes": "可直接用 .nui-type-h1/.nui-type-h2/.nui-type-h3/.nui-type-body/.nui-type-lead/.nui-type-caption，无需 JS。"
+    },
+    {
+      "id": "C02",
+      "name": "NoteUI.TextLink",
+      "cn": "文本链接",
+      "category": "文字与知识内容",
+      "purpose": "在正文中提供普通、外部和禁用的文本链接，保留原生 href 打开方式并安全处理外部窗口与危险协议。",
+      "inputs": [
+        "label",
+        "href",
+        "external",
+        "disabled",
+        "onClick"
+      ],
+      "customizable": [
+        "链接文字或宿主 DOM",
+        "href",
+        "外部链接标记",
+        "禁用状态",
+        "点击回调"
+      ],
+      "states": [
+        "普通链接",
+        "外部新窗口链接",
+        "禁用链接",
+        "危险协议拦截",
+        "键盘焦点"
+      ],
+      "usage": "NoteUI.TextLink.mount(host, { label: '查看资料', href: 'https://example.com/', external: true })",
+      "dependencies": [
+        "core"
+      ],
+      "limitations": [
+        "只接受 http(s)、mailto、tel、相对路径和锚点；javascript:、data:、vbscript: 等协议不会写入 href，并按不可用链接处理。",
+        "禁用链接移除 href、保留可聚焦的 aria-disabled 呈现，点击和 Enter/Space 都不导航，也不调用 onClick。",
+        "外部窗口是否真的新开仍受浏览器与拦截策略影响；组件提供 target=_blank、rel=noopener noreferrer 和屏幕阅读器提示。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": [
+        "K02",
+        "K09",
+        "K11",
+        "K13"
+      ],
+      "docs": "docs/ui-content.md#C02",
+      "notes": "外部图标为可见的 ↗ 字形；屏幕阅读器额外获得“外部链接，在新窗口打开”提示。"
+    },
+    {
+      "id": "C03",
+      "name": "NoteUI.InlineText",
+      "cn": "行内标记",
+      "category": "文字与知识内容",
+      "purpose": "在同一组行内变体中区分代码、键帽、重点标记、强调和小字，不把每个变体扩成独立组件。",
+      "inputs": [
+        "text",
+        "variant"
+      ],
+      "customizable": [
+        "code/kbd/mark/strong/small 变体",
+        "纯文本内容",
+        "静态作用域类"
+      ],
+      "states": [
+        "行内代码",
+        "键帽",
+        "重点词",
+        "加粗强调",
+        "辅助小字",
+        "超长无空格词",
+        "窄容器"
+      ],
+      "usage": "NoteUI.InlineText.mount(host, { text: 'npm run build', variant: 'code' })",
+      "dependencies": [
+        "core"
+      ],
+      "limitations": [
+        "text 始终按纯文本处理，不解析 HTML 或 Markdown。",
+        "mount 使用外层 span 包住语义元素，以便 update 切换 variant；直接写标记时可使用 .nui-inline-code 等静态类。",
+        "超长词允许在任何位置断行，牺牲严格单词完整性来保证窄容器不溢出。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": [
+        "K02",
+        "K09",
+        "K11",
+        "K13"
+      ],
+      "docs": "docs/ui-content.md#C03",
+      "notes": "变体对应语义标签 code/kbd/mark/strong/small；不执行行内代码。"
+    },
+    {
+      "id": "C04",
+      "name": "NoteUI.Quote",
+      "cn": "引用与出处",
+      "category": "文字与知识内容",
+      "purpose": "以 figure、blockquote、figcaption 组织引用正文和可替换出处，并与常驻 Notice 说明区分。",
+      "inputs": [
+        "content",
+        "source",
+        "cite"
+      ],
+      "customizable": [
+        "引文正文（字符串或 DOM）",
+        "来源文字",
+        "出处链接"
+      ],
+      "states": [
+        "带出处引用",
+        "无出处引用",
+        "长文换行",
+        "安全 cite 链接",
+        "危险协议不出链接"
+      ],
+      "usage": "NoteUI.Quote.mount(host, { content: '引用正文', source: '资料名', cite: 'https://example.com/source' })",
+      "dependencies": [
+        "core"
+      ],
+      "limitations": [
+        "cite 只用安全协议生成链接；不安全时退化为纯文本来源。",
+        "视觉样式只负责局部引用，不替代 Notice 的常驻提醒语义。",
+        "不解析引文中的 HTML 或 Markdown。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": [
+        "K02",
+        "K09",
+        "K11",
+        "K13"
+      ],
+      "docs": "docs/ui-content.md#C04",
+      "notes": "没有来源时 figcaption 隐藏；引文和出处均可在 update 中替换。"
+    },
+    {
+      "id": "C05",
+      "name": "NoteUI.List",
+      "cn": "列表",
+      "category": "文字与知识内容",
+      "purpose": "统一有序、无序和说明型列表及其嵌套结构，让标记与长文本第一行对齐，窄容器不溢出。",
+      "inputs": [
+        "items",
+        "variant",
+        "ordered",
+        "start",
+        "label"
+      ],
+      "customizable": [
+        "items 字符串/DOM/{content, children}",
+        "三种列表类型",
+        "有序起始序号",
+        "可访问标签",
+        "嵌套层级"
+      ],
+      "states": [
+        "无序列表",
+        "有序列表 start=3",
+        "说明型破折号列表",
+        "嵌套 children",
+        "DOM 条目",
+        "长中文/英文词"
+      ],
+      "usage": "NoteUI.List.mount(host, { variant: 'ordered', start: 3, items: ['步骤', { content: '父项', children: ['子项'] }] })",
+      "dependencies": [
+        "core"
+      ],
+      "limitations": [
+        "variant 优先于 ordered 快捷键；嵌套列表沿用父列表类型，不支持每层单独指定类型。",
+        "说明型只是破折号列表的呈现，成对术语与值应使用 C11 DefinitionList。",
+        "字符串按纯文本处理；DOM 节点会被移入列表并随重新渲染移动。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": [
+        "K02",
+        "K09",
+        "K11",
+        "K13"
+      ],
+      "docs": "docs/ui-content.md#C05",
+      "notes": "优先使用原生 ol/ul/li；起始序号写入 ol.start。"
+    },
+    {
+      "id": "C06",
+      "name": "NoteUI.Table",
+      "cn": "表格",
+      "category": "文字与知识内容",
+      "purpose": "呈现宿主提供的行列数据，支持表头、对齐、行列强调、空态、可选本地排序和宽表局部滚动。",
+      "inputs": [
+        "columns",
+        "rows",
+        "rowKey",
+        "caption",
+        "empty",
+        "sort",
+        "onSort",
+        "emphasis",
+        "maxHeight",
+        "dense"
+      ],
+      "customizable": [
+        "列 key/label/align/width/sortable",
+        "行数据与行键",
+        "表注与空态",
+        "本地排序初值与回调",
+        "行/列强调",
+        "最大高度和密度"
+      ],
+      "states": [
+        "基础表格",
+        "DOM 单元格",
+        "升序/降序/取消",
+        "aria-sort",
+        "空行态",
+        "行/列强调",
+        "宽表横向滚动",
+        "高表纵向滚动",
+        "紧凑视图"
+      ],
+      "usage": "NoteUI.Table.mount(host, { columns: [{ key: 'name', label: '名称' }], rows: [{ key: 'a', name: '条目' }], rowKey: 'key', sort: true })",
+      "dependencies": [
+        "core"
+      ],
+      "limitations": [
+        "只排列宿主已给的数据，不发起远程请求、不做筛选或分页。",
+        "排序比较文本/数字并使用稳定次序；DOM 单元格按 textContent 参与排序，null/空串置后。",
+        "getTarget(rowKey) 依据 rowKey 选项或 row.key/索引解析，重复行键只保留最后一项；行键建议唯一。",
+        "宽表在局部滚动区中查看，不压缩到不可读；宽度提示仅在真实溢出时显示。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": [
+        "K02",
+        "K09",
+        "K11",
+        "K13"
+      ],
+      "docs": "docs/ui-content.md#C06",
+      "notes": "onSort(info, event) 的 info 含 key、direction、column、rows；只在用户点击表头时触发。列可额外传 sortable:false。"
+    },
+    {
+      "id": "C07",
+      "name": "NoteUI.CodeBlock",
+      "cn": "代码块",
+      "category": "文字与知识内容",
+      "purpose": "以纯文本保留代码原始格式，提供语言、标题、行号、指定行强调、复制反馈与局部滚动。",
+      "inputs": [
+        "code",
+        "language",
+        "title",
+        "lineNumbers",
+        "highlight",
+        "copy",
+        "maxHeight"
+      ],
+      "customizable": [
+        "代码与标题/语言",
+        "行号开关",
+        "行/范围强调",
+        "复制按钮开关",
+        "最大高度",
+        "内容替换"
+      ],
+      "states": [
+        "带行号代码",
+        "关闭行号",
+        "指定行/范围高亮",
+        "超长行横向滚动",
+        "高代码纵向滚动",
+        "复制成功",
+        "复制失败可选文本回退",
+        "空代码"
+      ],
+      "usage": "NoteUI.CodeBlock.mount(host, { code: 'const x = 1;', language: 'js', title: '示例', lineNumbers: true, highlight: '1' })",
+      "dependencies": [
+        "core"
+      ],
+      "limitations": [
+        "代码只作为纯文本显示，不执行、不解析 HTML，也不提供语法着色。",
+        "highlight 支持数字、字符串（如 '2,4-6'）、{start,end} 与嵌套数组；超出实际行号会被忽略。",
+        "复制使用 NoteCore.copy；自动复制失败时展示可选择的只读 textarea，不静默失败。",
+        "构建的 ui-content 模块包含 marked/KaTeX，但 C07 自身只依赖 NoteCore.copy，不解析这些库。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": [
+        "K02",
+        "K09",
+        "K11",
+        "K13"
+      ],
+      "docs": "docs/ui-content.md#C07",
+      "notes": "复制按钮使用原生 button 和自有样式，不依赖旧 NoteUI.Button。"
+    },
+    {
+      "id": "C08",
+      "name": "NoteUI.Figure",
+      "cn": "图片与图注",
+      "category": "文字与知识内容",
+      "purpose": "组合本地图片、必填替代文本、图注和来源，并在加载失败时保留可读说明。",
+      "inputs": [
+        "src",
+        "alt",
+        "caption",
+        "source",
+        "sourceHref",
+        "ratio",
+        "lazy"
+      ],
+      "customizable": [
+        "本地图片地址",
+        "替代文本",
+        "图注与来源",
+        "16/9 或自适应比例",
+        "懒加载"
+      ],
+      "states": [
+        "正常本地图片",
+        "自适应比例",
+        "加载失败显示 alt",
+        "非法 src 失败",
+        "无图注",
+        "来源链接"
+      ],
+      "usage": "NoteUI.Figure.mount(host, { src: './assets/example.svg', alt: '流程示意图', caption: '三步流程', ratio: '16 / 9' })",
+      "dependencies": [
+        "core"
+      ],
+      "limitations": [
+        "alt 必填且必须是非空文本；没有装饰性图片模式。",
+        "src 只接受相对/根相对本地路径或 data:image；拒绝 http(s)、file、javascript、协议相对地址等。",
+        "加载失败会隐藏破损图，显示 alt、错误原因和原图注；图注不会随失败一起消失。",
+        "lazy 依赖浏览器 loading 属性；不保证所有光标以下图片都会延迟请求。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": [
+        "K02",
+        "K09",
+        "K11",
+        "K13"
+      ],
+      "docs": "docs/ui-content.md#C08",
+      "notes": "示例图保存在 examples/assets/content-sample.svg；Gallery 演示为单文件分发把该 SVG 内联成 data URI，普通宿主本地用法见文档。"
+    },
+    {
+      "id": "C09",
+      "name": "NoteUI.Math",
+      "cn": "公式",
+      "category": "文字与知识内容",
+      "purpose": "用本地 KaTeX 渲染行内或块级公式，支持替换 TeX，并在错误时给出原因和原始公式。",
+      "inputs": [
+        "tex",
+        "display",
+        "label",
+        "ariaLabel"
+      ],
+      "customizable": [
+        "TeX 源字符串",
+        "行内/块级",
+        "宿主可读名称",
+        "内容更新"
+      ],
+      "states": [
+        "行内公式",
+        "块级公式",
+        "块级横向滚动",
+        "KaTeX 解析错误",
+        "依赖缺失错误",
+        "错误后更新为正常"
+      ],
+      "usage": "NoteUI.Math.mount(host, { tex: 'a^2 + b^2 = c^2', display: false, label: '勾股定理' })",
+      "dependencies": [
+        "core"
+      ],
+      "limitations": [
+        "依赖本地 vendor/katex/katex.min.js 与 KaTeX CSS；构建版由 ui-content 内嵌脚本和字体样式提供，源码直接运行需先加载这两项。",
+        "KaTeX 以 throwOnError: true 调用并被组件捕获；错误状态才显示原因与原始 TeX，正常状态不显示原始 TeX。",
+        "无 label 时依赖 KaTeX 生成的 MathML 语义；有 label 时成功根元素使用 role=math 与 aria-label，错误根元素改为 role=group 并保留可见错误文本。复杂公式建议宿主提供可读说明。",
+        "块级公式自身局部横向滚动；不负责生成公式图片或远程渲染。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": [
+        "K02",
+        "K09",
+        "K11",
+        "K13"
+      ],
+      "docs": "docs/ui-content.md#C09",
+      "notes": "构建把 KaTeX CSS 字体转换为内嵌 data URI；组件 CSS 不发起网络字体请求。"
+    },
+    {
+      "id": "C10",
+      "name": "NoteUI.Markdown",
+      "cn": "Markdown 内容",
+      "category": "文字与知识内容",
+      "purpose": "在本地把常用 Markdown 解析为标题、列表、引用、表格和围栏代码，并复用 C06/C07 的表现；原始 HTML 不作为标记执行。",
+      "inputs": [
+        "markdown"
+      ],
+      "customizable": [
+        "Markdown 源字符串",
+        "内容更新"
+      ],
+      "states": [
+        "标题/列表/引用",
+        "表格",
+        "围栏代码",
+        "原始 HTML 转义为文本",
+        "javascript: 链接移除",
+        "onerror 不执行",
+        "解析错误提示"
+      ],
+      "usage": "NoteUI.Markdown.mount(host, { markdown: '## 标题\\n\\n正文\\n\\n| A | B |\\n| --- | --- |\\n| 1 | 2 |' })",
+      "dependencies": [
+        "core"
+      ],
+      "limitations": [
+        "依赖本地 vendor/marked/marked.umd.js；围栏代码复用 C07，表格复用 C06（均在本模块内，无需额外模块）。",
+        "原始 HTML token 先转义为可见文本，再对生成 DOM 做白名单净化；script/iframe/object/style/事件属性/危险协议等被移除或禁用。",
+        "只支持 CommonMark/GFM 常用结构；图片语法不嵌入外部图片，而是显示“图片未嵌入”的文本占位，需用 C08 Figure。",
+        "不执行脚本、不执行用户代码、不请求远程数据；Markdown 的解析范围以组件实现为准。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": [
+        "K02",
+        "K09",
+        "K11",
+        "K13"
+      ],
+      "docs": "docs/ui-content.md#C10",
+      "notes": "构建会把 marked/KaTeX 打包进 ui-content 模块；源码直接运行时 marked/katex 必须早于 content.js 加载。"
+    },
+    {
+      "id": "C11",
+      "name": "NoteUI.DefinitionList",
+      "cn": "术语与属性说明",
+      "category": "文字与知识内容",
+      "purpose": "用 dl/dt/dd 组织术语解释或键值说明，支持长键名、长值、DOM 值和窄容器堆叠。",
+      "inputs": [
+        "items",
+        "layout",
+        "dividers",
+        "empty"
+      ],
+      "customizable": [
+        "term/description/value 内容",
+        "stacked 或 inline 布局",
+        "分隔线开关",
+        "空态"
+      ],
+      "states": [
+        "堆叠布局",
+        "inline 双列",
+        "窄容器自动堆叠",
+        "长键名",
+        "长值/DOM 值",
+        "无条目"
+      ],
+      "usage": "NoteUI.DefinitionList.mount(host, { layout: 'inline', items: [{ term: '术语', description: '解释' }] })",
+      "dependencies": [
+        "core"
+      ],
+      "limitations": [
+        "布局切换、分隔线和 items 可在 update 中替换；不支持一个术语对应多值或多术语合并单元格。",
+        "inline 布局在容器宽度低于 30rem 或视口不宽于 520px 时改为上下堆叠；不支持任意列数。",
+        "items 字符串只作为术语，解释为空；说明型并列解释请使用 C05 List 的 description 变体。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": [
+        "K02",
+        "K09",
+        "K11",
+        "K13"
+      ],
+      "docs": "docs/ui-content.md#C11",
+      "notes": "使用 container query 响应窄容器，并提供 520px 媒体查询回退。"
+    },
+    {
+      "id": "C12",
+      "name": "NoteUI.Metric",
+      "cn": "指标读数",
+      "category": "文字与知识内容",
+      "purpose": "呈现宿主提供的标签、数值、单位、辅助解释与变化方向，用等宽数字和稳定布局支持程序更新。",
+      "inputs": [
+        "label",
+        "value",
+        "unit",
+        "caption",
+        "change",
+        "announce"
+      ],
+      "customizable": [
+        "指标标签",
+        "数值与单位",
+        "辅助解释",
+        "宿主给的 up/down/flat 方向与文字",
+        "aria-live 开关"
+      ],
+      "states": [
+        "上升",
+        "下降",
+        "持平",
+        "长数值",
+        "窄容器换行",
+        "程序更新",
+        "announce 关闭/开启"
+      ],
+      "usage": "NoteUI.Metric.mount(host, { label: '活跃设备', value: '12,480', unit: '台', change: { direction: 'up', label: '较上周 +120 台' } })",
+      "dependencies": [
+        "core"
+      ],
+      "limitations": [
+        "方向和变化说明完全由宿主提供；组件不推断趋势、不计算涨跌，也不对红绿含义作业务判断。",
+        "数值使用 tabular-nums 与最小宽度；极长无分隔文本仍可能换行。",
+        "aria-live 默认关闭；announce:true 时根节点使用 polite + atomic，频繁更新可能造成播报噪声，由宿主决定。",
+        "无用户事件，程序 update 不触发 onChange/onInput。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": [
+        "K02",
+        "K09",
+        "K11",
+        "K13"
+      ],
+      "docs": "docs/ui-content.md#C12",
+      "notes": "变化提示同时有箭头、方向文字和宿主标签，不只依赖颜色。"
+    },
+    {
+      "id": "C13",
+      "name": "NoteUI.Expression",
+      "cn": "表达式项",
+      "category": "文字与知识内容",
+      "purpose": "用稳定 id 组织一段可更新的数学表达式：文本项和完整 TeX 项各有身份，静态组件只负责排版与查询，过渡由公共层负责。",
+      "inputs": [
+        "parts",
+        "focus",
+        "changed",
+        "label"
+      ],
+      "customizable": [
+        "稳定项 id 与顺序",
+        "text 或 tex 项",
+        "整体可读名称",
+        "focus/changed 项提示",
+        "程序更新"
+      ],
+      "states": [
+        "文本项",
+        "TeX 项",
+        "新增项",
+        "项内容变化",
+        "focus/changed",
+        "空表达式",
+        "窄容器"
+      ],
+      "usage": "NoteUI.Expression.mount(host, { parts: [{ id: 'p1', text: '4' }, { id: 'plus', text: '+' }, { id: 'total', text: '5' }], label: '累计和' })",
+      "dependencies": [
+        "core"
+      ],
+      "limitations": [
+        "不解析公式语义、不做符号自动配对、不推理代数关系；TeX 只作为完整项交给 C09 Math 排版。",
+        "不自动播放进入、交换或强调动画；动画属于 NoteDemo scene 适配层。",
+        "每一项的 text 与 tex 二选一；需要完整公式替换时把整段 TeX 作为一个项。",
+        "项较多时保持单行横向排布，不自动换行成多条知识结构；宿主负责容器宽度。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": [
+        "K02",
+        "K09",
+        "K11",
+        "K13"
+      ],
+      "docs": "docs/ui-content.md#C13",
+      "notes": "本组件放在 ui-content 模块，复用 C09 NoteUI.Math，不新增运行时依赖模块。"
+    }
+  ]
+}

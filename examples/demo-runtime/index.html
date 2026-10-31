@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NoteDemo 公共编排层示例 · demo-runtime</title>
+  <link rel="stylesheet" href="../../dist/note-library.css">
+  <link rel="stylesheet" href="./demo-runtime.css">
+</head>
+<body class="demo-runtime">
+  <header class="demo-runtime__head">
+    <p class="demo-runtime__kicker">NoteDemo · demo-runtime</p>
+    <h1>公共编排层 · 示例宿主</h1>
+    <p class="demo-runtime__lede">页面默认静止，不自动播放。每个示例都由 NoteDemo.mount 提供的默认控件（上一步 / 下一步 / 重看 / 重来）推进；字幕在动作期间保持稳定，标记跟随组件真实状态重新定位。所有场景只调用 NoteDemo 公共 API 与现有组件公开 API。</p>
+  </header>
+
+  <main class="demo-runtime__main" id="demo-runtime-main">
+    <section class="demo-runtime__scenario" data-demo-scenario="matrix" aria-labelledby="scenario-matrix-title">
+      <header class="demo-runtime__scenario-head">
+        <h2 id="scenario-matrix-title">静态矩阵与 DOM 文本</h2>
+        <p>矩阵和文字说明是两个常驻 Binding。没有动作定义，下一步直接恢复目标停点；关注、变化与范围标记在稳定状态显示。</p>
+      </header>
+      <div class="demo-runtime__stage" data-demo-host></div>
+      <p class="demo-runtime__readout" data-demo-readout aria-live="polite">正在加载场景…</p>
+    </section>
+
+    <section class="demo-runtime__scenario" data-demo-scenario="sequence-edit" aria-labelledby="scenario-sequence-edit-title">
+      <header class="demo-runtime__scenario-head">
+        <h2 id="scenario-sequence-edit-title">M01 删除与交换（真实过渡）</h2>
+        <p>删除和交换会播放组件真实位移与 ghost 收尾；动作进行中可按“上一步”打断，公共层会取消动画并恢复来源停点。</p>
+      </header>
+      <div class="demo-runtime__stage" data-demo-host></div>
+      <p class="demo-runtime__readout" data-demo-readout aria-live="polite">正在加载场景…</p>
+    </section>
+
+    <section class="demo-runtime__scenario" data-demo-scenario="sequence-insert" aria-labelledby="scenario-sequence-insert-title">
+      <header class="demo-runtime__scenario-head">
+        <h2 id="scenario-sequence-insert-title">R10 插入与还原</h2>
+        <p>插入会重建卡片 DOM；逻辑引用（源卡 / 新卡 / 待插入卡）在重建后重新标记。第四、第五步演示“已在目标”的同目标动作也能正常结算。</p>
+      </header>
+      <div class="demo-runtime__stage" data-demo-host></div>
+      <p class="demo-runtime__readout" data-demo-readout aria-live="polite">正在加载场景…</p>
+    </section>
+
+    <section class="demo-runtime__scenario" data-demo-scenario="linked" aria-labelledby="scenario-linked-title">
+      <header class="demo-runtime__scenario-head">
+        <h2 id="scenario-linked-title">多 Binding 联动</h2>
+        <p>同一步里同时执行序列删除、序列插入和自定义 Adapter 的结论动作，DOM 文本也随目标停点恢复。播放、核对与提示全部走 NoteDemo 公共层，示例页面不另写播放器。</p>
+      </header>
+      <div class="demo-runtime__stage" data-demo-host></div>
+      <p class="demo-runtime__readout" data-demo-readout aria-live="polite">正在加载场景…</p>
+    </section>
+
+    <section class="demo-runtime__scenario" data-demo-scenario="custom" aria-labelledby="scenario-custom-title">
+      <header class="demo-runtime__scenario-head">
+        <h2 id="scenario-custom-title">最小自定义 Adapter</h2>
+        <p>本页内置一个最小 Adapter：实现 normalizeView / validateAction / mount / restore / readView / target / perform，用纯 DOM 渲染结论卡。它是扩展入口的真实用法，不需要改核心。</p>
+      </header>
+      <div class="demo-runtime__stage" data-demo-host></div>
+      <p class="demo-runtime__readout" data-demo-readout aria-live="polite">正在加载场景…</p>
+    </section>
+  </main>
+
+  <footer class="demo-runtime__foot">
+    <p>本页只加载分发的 note-library 资源与共享场景脚本；index.html 与 standalone.html 使用同一 scenarios.js 场景工厂。</p>
+    <p>技术候选预览；示例默认静止，请用每个场景内的默认控件推进阅读。</p>
+  </footer>
+
+  <script src="../../dist/note-library.js"></script>
+  <script src="./scenarios.js"></script>
+  <script src="./standalone.js"></script>
+</body>
+</html>

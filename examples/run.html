@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>组件最小示例 · HTML 笔记组件库</title>
+  <link rel="stylesheet" href="../dist/note-library.css">
+  <link rel="stylesheet" href="./example.css">
+</head>
+<body class="ex-page">
+  <a class="ex-skip" href="#ex-main">跳到示例内容</a>
+  <header class="ex-topbar">
+    <a class="ex-back" href="../gallery/index.html">← 返回组件预览</a>
+    <span class="ex-topbar__context">examples/run.html · 最小示例宿主</span>
+  </header>
+
+  <main class="ex-main" id="ex-main">
+    <header class="ex-head">
+      <div class="ex-head__text">
+        <p class="ex-kicker">不加载 gallery 外壳 · 只挂载选中条目</p>
+        <div class="ex-idline">
+          <span class="ex-id" id="ex-id">—</span>
+          <span class="ex-category" id="ex-category">正在读取清单</span>
+        </div>
+        <h1 class="ex-title" id="ex-title">组件最小示例</h1>
+        <code class="ex-public" id="ex-public"></code>
+        <p class="ex-purpose" id="ex-purpose">正在等待 registry 与演示脚本。</p>
+        <div class="ex-statuses" id="ex-statuses"></div>
+      </div>
+      <div class="ex-picker">
+        <label class="ex-picker__label" for="ex-select">选择组件 ID</label>
+        <select class="ex-select" id="ex-select" aria-describedby="ex-select-hint">
+          <option value="">正在读取清单…</option>
+        </select>
+        <p class="ex-picker__hint" id="ex-select-hint">切换时销毁上一个演示；也可直接打开 <code>?id=L01</code>。</p>
+        <a class="ex-picker__link" id="ex-gallery-link" href="../gallery/index.html">在完整预览中查看</a>
+      </div>
+    </header>
+
+    <div class="ex-notice" id="ex-notice" role="alert" hidden></div>
+
+    <section class="ex-card" aria-labelledby="ex-demo-title">
+      <div class="ex-card__head">
+        <h2 id="ex-demo-title">实际运行</h2>
+        <p>默认静止；由演示内控件触发内容或状态变化。演示只调用公开 API。</p>
+      </div>
+      <div class="ex-demo-frame">
+        <div class="ex-demo" id="example-demo" data-example-demo role="region" aria-label="组件演示"></div>
+      </div>
+      <div class="ex-demo-error" id="ex-demo-error" role="alert" hidden></div>
+    </section>
+
+    <div class="ex-sections">
+      <section class="ex-section" aria-labelledby="ex-states-title">
+        <h2 id="ex-states-title">代表状态与可替换内容</h2>
+        <div class="ex-facts">
+          <div>
+            <h3>试这些状态</h3>
+            <ul class="ex-list" id="ex-states"><li class="ex-muted">正在读取。</li></ul>
+          </div>
+          <div>
+            <h3>可替换内容</h3>
+            <ul class="ex-list" id="ex-customizable"><li class="ex-muted">正在读取。</li></ul>
+            <p class="ex-inputs" id="ex-inputs" hidden></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="ex-section" aria-labelledby="ex-usage-title">
+        <h2 id="ex-usage-title">最小用法</h2>
+        <div class="ex-usage">
+          <div class="ex-usage__bar">
+            <span>JavaScript · 公开 API</span>
+            <button class="ex-copy" type="button" id="ex-copy">复制用法</button>
+          </div>
+          <pre><code id="ex-usage">// 正在读取。</code></pre>
+          <p class="ex-copy-status" id="ex-copy-status" role="status" aria-live="polite"></p>
+          <textarea class="ex-manual" id="ex-manual" readonly hidden aria-label="可手动复制的用法代码"></textarea>
+        </div>
+      </section>
+
+      <section class="ex-section" aria-labelledby="ex-limits-title">
+        <h2 id="ex-limits-title">支持范围与限制</h2>
+        <ul class="ex-list" id="ex-limits"><li class="ex-muted">正在读取。</li></ul>
+        <p class="ex-deps" id="ex-deps" hidden></p>
+      </section>
+
+      <section class="ex-section" aria-labelledby="ex-source-title">
+        <h2 id="ex-source-title">源文件与分发</h2>
+        <dl class="ex-paths" id="ex-source"></dl>
+        <ul class="ex-inline-links">
+          <li><a id="ex-docs-link" href="#" hidden>模块文档</a></li>
+          <li><a id="ex-gallery-deep" href="../gallery/index.html">完整预览中的这一项</a></li>
+          <li><a href="../gallery/index.html">返回 gallery</a></li>
+        </ul>
+      </section>
+
+      <section class="ex-section" aria-labelledby="ex-review-title">
+        <h2 id="ex-review-title">技术状态与用户评价</h2>
+        <p class="ex-review" id="ex-review"></p>
+        <p class="ex-note">技术核验（verified）不等于用户认可；新增组件保持“候选 · 未评价”。评价范围不因技术状态扩大。</p>
+        <ul class="ex-verification" id="ex-verification" hidden></ul>
+      </section>
+    </div>
+
+    <footer class="ex-footer">
+      <p>这是按 ID 打开的最小宿主，只加载分发代码、registry 与共享演示脚本；页面样式与 gallery 外壳独立。</p>
+      <p>技术候选预览；新增组件未获用户审美评价。评价范围见上方及完整预览各条目。</p>
+    </footer>
+  </main>
+
+  <script src="../dist/note-library.js"></script>
+  <script src="../dist/registry.js"></script>
+  <script src="../gallery/demos/legacy.js"></script>
+  <script src="../gallery/demos/core.js"></script>
+  <script src="../gallery/demos/ui-layout.js"></script>
+  <script src="../gallery/demos/ui-actions.js"></script>
+  <script src="../gallery/demos/ui-content.js"></script>
+  <script src="../gallery/demos/ui-navigation.js"></script>
+  <script src="../gallery/demos/ui-forms-basic.js"></script>
+  <script src="../gallery/demos/ui-forms-advanced.js"></script>
+  <script src="../gallery/demos/ui-overlay.js"></script>
+  <script src="../gallery/demos/ui-feedback.js"></script>
+  <script src="../gallery/demos/ui-extended.js"></script>
+  <script src="../gallery/demos/viz-objects.js"></script>
+  <script src="../gallery/demos/viz-mechanisms.js"></script>
+  <script src="../gallery/demos/viz-chart.js"></script>
+  <script src="../gallery/demos/blocks-stage.js"></script>
+  <script src="../gallery/demos/blocks-explain.js"></script>
+  <script src="../gallery/demos/demo-runtime.js"></script>
+  <script>
+    (function (global) {
+      'use strict';
+
+      var doc = global.document;
+      var registry = global.NOTE_LIBRARY_REGISTRY || null;
+      var statusLabels = {
+        planned: '计划中',
+        implemented: '已实现 · 待技术验收',
+        verified: '技术已核验',
+        blocked: '受阻'
+      };
+      var reviewLabels = {
+        'not-reviewed': '候选 · 未评价',
+        'positive-with-scope': '有范围的正向评价',
+        rejected: '已拒绝'
+      };
+      var statusKinds = ['planned', 'implemented', 'verified', 'blocked'];
+      var reviewKinds = ['not-reviewed', 'positive-with-scope', 'rejected'];
+
+      var els = {
+        select: doc.getElementById('ex-select'),
+        galleryLink: doc.getElementById('ex-gallery-link'),
+        galleryDeep: doc.getElementById('ex-gallery-deep'),
+        id: doc.getElementById('ex-id'),
+        category: doc.getElementById('ex-category'),
+        title: doc.getElementById('ex-title'),
+        publicName: doc.getElementById('ex-public'),
+        purpose: doc.getElementById('ex-purpose'),
+        statuses: doc.getElementById('ex-statuses'),
+        notice: doc.getElementById('ex-notice'),
+        host: doc.getElementById('example-demo'),
+        demoError: doc.getElementById('ex-demo-error'),
+        states: doc.getElementById('ex-states'),
+        customizable: doc.getElementById('ex-customizable'),
+        inputs: doc.getElementById('ex-inputs'),
+        usage: doc.getElementById('ex-usage'),
+        copy: doc.getElementById('ex-copy'),
+        copyStatus: doc.getElementById('ex-copy-status'),
+        manual: doc.getElementById('ex-manual'),
+        limits: doc.getElementById('ex-limits'),
+        deps: doc.getElementById('ex-deps'),
+        source: doc.getElementById('ex-source'),
+        docsLink: doc.getElementById('ex-docs-link'),
+        review: doc.getElementById('ex-review'),
+        verification: doc.getElementById('ex-verification')
+      };
+
+      var state = {
+        currentId: null,
+        cleanup: null,
+        token: 0,
+        bodySnapshot: null,
+        bodyStyle: null
+      };
+
+      function str(value) {
+        return value === null || value === undefined ? '' : String(value);
+      }
+
+      function textValue(value) {
+        if (value === null || value === undefined) return '';
+        if (Array.isArray(value)) return value.map(textValue).filter(Boolean).join(' / ');
+        if (typeof value === 'object') {
+          try { return JSON.stringify(value); } catch (error) { return String(value); }
+        }
+        return String(value).trim();
+      }
+
+      function asList(value) {
+        var out = [];
+        function push(item) {
+          if (item === null || item === undefined) return;
+          if (Array.isArray(item)) { item.forEach(push); return; }
+          if (typeof item === 'object') {
+            var parts = [];
+            Object.keys(item).forEach(function (key) {
+              var child = item[key];
+              if (child === null || child === undefined || child === '') return;
+              if (Array.isArray(child)) child = child.map(textValue).filter(Boolean).join(', ');
+              else if (typeof child === 'object') child = textValue(child);
+              parts.push(key + ': ' + child);
+            });
+            if (parts.length) out.push(parts.join(' · '));
+            return;
+          }
+          var text = String(item).trim();
+          if (text) out.push(text);
+        }
+        push(value);
+        return out;
+      }
+
+      function normalizeId(value) {
+        var id = str(value).trim();
+        if (id.charAt(0) === '#') id = id.slice(1);
+        return id.toUpperCase();
+      }
+
+      function normalizeEntry(raw) {
+        var id = normalizeId(raw.id);
+        if (!id) return null;
+        return {
+          raw: raw,
+          id: id,
+          name: str(raw.name),
+          cn: str(raw.cn) || str(raw.name) || id,
+          category: str(raw.category) || '未分类',
+          purpose: str(raw.purpose),
+          inputs: asList(raw.inputs),
+          customizable: asList(raw.customizable),
+          states: asList(raw.states),
+          usage: str(raw.usage),
+          dependencies: asList(raw.dependencies),
+          source: raw.source,
+          dist: raw.dist,
+          preview: raw.preview,
+          example: raw.example,
+          limitations: asList(raw.limitations),
+          status: str(raw.status).toLowerCase() || 'planned',
+          verification: raw.verification,
+          userReview: str(raw.userReview).toLowerCase() || 'not-reviewed',
+          reviewScope: str(raw.reviewScope),
+          consensus: asList(raw.consensus),
+          docs: raw.docs,
+          notes: str(raw.notes)
+        };
+      }
+
+      var entries = [];
+      if (registry && Array.isArray(registry.entries)) {
+        registry.entries.forEach(function (raw) {
+          var entry = raw && typeof raw === 'object' ? normalizeEntry(raw) : null;
+          if (entry) entries.push(entry);
+        });
+      }
+      var byId = Object.create(null);
+      entries.forEach(function (entry) {
+        if (!byId[entry.id]) byId[entry.id] = entry;
+      });
+
+      function h(tag, className, text) {
+        var node = doc.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined && text !== null) node.textContent = String(text);
+        return node;
+      }
+
+      function clear(node) {
+        if (!node) return;
+        while (node.firstChild) node.removeChild(node.firstChild);
+      }
+
+      function fillList(list, items, emptyText) {
+        clear(list);
+        if (!items || !items.length) {
+          list.appendChild(h('li', 'ex-muted', emptyText));
+          return;
+        }
+        items.forEach(function (item) {
+          list.appendChild(h('li', '', item));
+        });
+      }
+
+      function normalizeStatus(value) {
+        return statusKinds.indexOf(value) >= 0 ? value : '';
+      }
+
+      function normalizeReview(value) {
+        return reviewKinds.indexOf(value) >= 0 ? value : '';
+      }
+
+      function badge(label, kind, extra) {
+        var node = h('span', 'ex-badge ' + extra + (kind ? ' ex-badge--' + kind : ''), label);
+        return node;
+      }
+
+      function safeMessage(error) {
+        if (!error) return '未知错误';
+        return error.message ? String(error.message) : String(error);
+      }
+
+      function localHref(path) {
+        var value = str(path).trim();
+        if (!value) return null;
+        if (/^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(value)) return null;
+        if (value.charAt(0) === '#' || value.charAt(0) === '?') return null;
+        var clean = value.replace(/^\.\//, '');
+        if (clean.charAt(0) === '/') return null;
+        // registry 路径以库根为基准；examples/ 也在库根下一层。
+        return '../' + clean;
+      }
+
+      function pathEntries(value) {
+        var out = [];
+        function push(item, label) {
+          if (item === null || item === undefined) return;
+          if (Array.isArray(item)) { item.forEach(function (child) { push(child, label); }); return; }
+          if (typeof item === 'object') {
+            Object.keys(item).forEach(function (key) { push(item[key], label ? label + '.' + key : key); });
+            return;
+          }
+          var path = String(item).trim();
+          if (path) out.push({ label: label || '', path: path });
+        }
+        push(value, '');
+        return out;
+      }
+
+      function fillPaths(dl, label, value, emptyText) {
+        var row = h('div', 'ex-path-row');
+        row.appendChild(h('dt', '', label));
+        var dd = h('dd');
+        var paths = pathEntries(value);
+        if (!paths.length) {
+          dd.appendChild(h('span', 'ex-muted', emptyText));
+        } else {
+          var list = h('ul');
+          paths.forEach(function (item) {
+            var li = h('li');
+            if (item.label) li.appendChild(h('span', 'ex-muted', item.label + ': '));
+            var href = localHref(item.path);
+            if (href) {
+              var link = h('a', 'ex-path', item.path);
+              link.href = href;
+              link.target = '_blank';
+              link.rel = 'noopener';
+              li.appendChild(link);
+            } else {
+              li.appendChild(h('code', 'ex-path', item.path));
+            }
+            list.appendChild(li);
+          });
+          dd.appendChild(list);
+        }
+        row.appendChild(dd);
+        dl.appendChild(row);
+      }
+
+      function recordLines(value) {
+        var out = [];
+        function push(item) {
+          if (item === null || item === undefined) return;
+          if (Array.isArray(item)) { item.forEach(push); return; }
+          if (typeof item === 'object') {
+            var parts = [];
+            Object.keys(item).forEach(function (key) {
+              var child = item[key];
+              if (child === null || child === undefined || child === '') return;
+              if (Array.isArray(child)) child = child.map(textValue).filter(Boolean).join(', ');
+              else if (typeof child === 'object') child = textValue(child);
+              parts.push(key + '：' + child);
+            });
+            if (parts.length) out.push(parts.join(' · '));
+            return;
+          }
+          var text = String(item).trim();
+          if (text) out.push(text);
+        }
+        push(value);
+        return out;
+      }
+
+      function showNotice(title, lines) {
+        clear(els.notice);
+        els.notice.appendChild(h('strong', '', title));
+        (lines || []).forEach(function (line) {
+          els.notice.appendChild(h('p', '', line));
+        });
+        els.notice.hidden = false;
+      }
+
+      function hideNotice() {
+        els.notice.hidden = true;
+        clear(els.notice);
+      }
+
+      function snapshotBody() {
+        var snapshot = new Set();
+        if (!doc.body) return snapshot;
+        Array.prototype.forEach.call(doc.body.children, function (node) { snapshot.add(node); });
+        return snapshot;
+      }
+
+      function cleanupBody(snapshot, styleSnapshot) {
+        var selector = '.hnv-floating,.hnv-floating__backdrop,.nui-toast-region,.nui-toast,.nui-toast-viewport,.nx-focus,.nx-range,.nx-link';
+        if (doc.body && snapshot) {
+          Array.prototype.slice.call(doc.body.children).forEach(function (node) {
+            if (snapshot.has(node) || !node.matches) return;
+            try { if (node.matches(selector)) node.remove(); } catch (error) { /* no-op */ }
+          });
+        }
+        if (doc.body && styleSnapshot) {
+          try {
+            if (doc.body.style.overflow !== styleSnapshot.overflow) doc.body.style.overflow = styleSnapshot.overflow;
+            if (doc.body.style.paddingRight !== styleSnapshot.paddingRight) doc.body.style.paddingRight = styleSnapshot.paddingRight;
+          } catch (error) { /* no-op */ }
+        }
+      }
+
+      function normalizeCleanup(result) {
+        if (!result) return null;
+        if (typeof result === 'function') return result;
+        if (typeof result.destroy === 'function') return function () { result.destroy(); };
+        if (typeof result.cleanup === 'function') return function () { result.cleanup(); };
+        return null;
+      }
+
+      function teardownDemo() {
+        state.token += 1;
+        var cleanup = state.cleanup;
+        state.cleanup = null;
+        if (cleanup) {
+          try { cleanup(); } catch (error) {
+            global.console.error('NoteExampleRun: demo cleanup failed', error);
+          }
+        }
+        cleanupBody(state.bodySnapshot, state.bodyStyle);
+        state.bodySnapshot = null;
+        state.bodyStyle = null;
+        if (els.host) clear(els.host);
+        if (els.demoError) {
+          els.demoError.hidden = true;
+          clear(els.demoError);
+        }
+      }
+
+      function renderDemoError(entry, error, token) {
+        if (token !== state.token) return;
+        global.console.error('NoteExampleRun: demo ' + entry.id + ' failed', error);
+        if (els.host) clear(els.host);
+        if (els.demoError) {
+          clear(els.demoError);
+          els.demoError.appendChild(h('strong', '', '演示运行出错（' + entry.id + '）'));
+          els.demoError.appendChild(h('span', '', safeMessage(error)));
+          els.demoError.appendChild(h('p', '', '页面仍可使用：可切换 ID 或刷新重试。错误已输出到控制台。'));
+          els.demoError.hidden = false;
+        }
+      }
+
+      function mountDemo(entry) {
+        if (!els.host) return;
+        var token = state.token;
+        state.bodySnapshot = snapshotBody();
+        state.bodyStyle = {
+          overflow: doc.body ? doc.body.style.overflow : '',
+          paddingRight: doc.body ? doc.body.style.paddingRight : ''
+        };
+        var demos = global.NoteGalleryDemos;
+        var factory = demos && typeof demos[entry.id] === 'function' ? demos[entry.id] : null;
+        if (!factory) {
+          global.console.warn('NoteExampleRun: no demo registered for ' + entry.id);
+          var missing = h('div', 'ex-demo-missing');
+          missing.appendChild(h('strong', '', '尚未提供演示：' + entry.id));
+          missing.appendChild(h('p', '', '共享演示脚本没有为该 ID 注册函数。本页不会用静态图或另写 DOM 冒充组件。'));
+          missing.appendChild(h('p', '', '缺失演示是交付缺口，需要对应模块负责人补齐；完整预览也会显示同样提示。'));
+          els.host.appendChild(missing);
+          return;
+        }
+        var result;
+        try {
+          result = factory(els.host);
+        } catch (error) {
+          renderDemoError(entry, error, token);
+          return;
+        }
+        if (result && typeof result.then === 'function') {
+          result.then(function (cleanup) {
+            if (token !== state.token) {
+              var late = normalizeCleanup(cleanup);
+              if (late) {
+                try { late(); } catch (error) {
+                  global.console.error('NoteExampleRun: late cleanup failed for ' + entry.id, error);
+                }
+              }
+              return;
+            }
+            state.cleanup = normalizeCleanup(cleanup);
+          }, function (error) {
+            if (token === state.token) renderDemoError(entry, error, token);
+            else global.console.error('NoteExampleRun: async demo ' + entry.id + ' failed after switch', error);
+          });
+        } else {
+          state.cleanup = normalizeCleanup(result);
+        }
+      }
+
+      function renderMeta(entry) {
+        els.id.textContent = entry.id;
+        els.category.textContent = entry.category;
+        els.title.textContent = entry.cn || entry.name || entry.id;
+        els.publicName.textContent = entry.name || '公开名未记录';
+        els.purpose.textContent = entry.purpose || '尚未记录用途。';
+        doc.title = entry.id + ' · ' + (entry.cn || entry.id) + ' · 组件最小示例';
+
+        clear(els.statuses);
+        var status = normalizeStatus(entry.status);
+        var review = normalizeReview(entry.userReview);
+        els.statuses.appendChild(h('span', 'ex-status-label', '技术状态'));
+        els.statuses.appendChild(badge(statusLabels[status] || '状态未记录', status, 'ex-badge--status'));
+        els.statuses.appendChild(h('span', 'ex-status-label', '用户评价'));
+        els.statuses.appendChild(badge(reviewLabels[review] || '评价未记录', review, 'ex-badge--review'));
+
+        fillList(els.states, entry.states, '尚未记录代表状态。');
+        fillList(els.customizable, entry.customizable, '尚未记录可替换内容。');
+        if (entry.inputs.length) {
+          els.inputs.hidden = false;
+          els.inputs.textContent = '接口参数：' + entry.inputs.join(' · ');
+        } else {
+          els.inputs.hidden = true;
+          els.inputs.textContent = '';
+        }
+
+        els.usage.textContent = entry.usage || '// 尚未记录最小用法';
+        els.copy.disabled = !entry.usage;
+        els.copy.textContent = '复制用法';
+        els.copyStatus.textContent = '';
+        els.manual.hidden = true;
+        els.manual.value = '';
+
+        fillList(els.limits, entry.limitations, '尚未记录已知限制；这不等于没有限制。');
+        if (entry.dependencies.length) {
+          els.deps.hidden = false;
+          els.deps.textContent = '依赖：' + entry.dependencies.join(' · ');
+        } else {
+          els.deps.hidden = true;
+        }
+
+        clear(els.source);
+        fillPaths(els.source, '维护源码', entry.source, '尚未记录维护源码路径。');
+        fillPaths(els.source, '分发文件', entry.dist, '尚未记录分发文件路径；完整包见 dist/note-library.js。');
+        fillPaths(els.source, '模块文档', entry.docs, '尚未记录模块文档。');
+        if (pathEntries(entry.preview).length) {
+          fillPaths(els.source, '预览记录', entry.preview, '');
+        }
+
+        var docs = pathEntries(entry.docs)[0];
+        var docsHref = docs ? localHref(docs.path) : null;
+        if (docsHref) {
+          els.docsLink.hidden = false;
+          els.docsLink.href = docsHref;
+          els.docsLink.textContent = '模块文档：' + docs.path;
+          els.docsLink.target = '_blank';
+          els.docsLink.rel = 'noopener';
+        } else {
+          els.docsLink.hidden = true;
+        }
+
+        var deep = entry.id;
+        els.galleryDeep.href = '../gallery/index.html#' + encodeURIComponent(deep);
+        els.galleryLink.href = '../gallery/index.html#' + encodeURIComponent(deep);
+
+        var reviewScope = entry.reviewScope;
+        if (!reviewScope) {
+          if (review === 'not-reviewed') reviewScope = '本轮新增候选，未获用户评价。';
+          else if (review === 'positive-with-scope') reviewScope = '有范围的正向评价；未覆盖的参数不视为冻结。';
+          else if (review === 'rejected') reviewScope = '评价为拒绝；保留为候选或修复参考。';
+          else reviewScope = '未记录评价范围。';
+        }
+        els.review.textContent = '用户评价：' + (reviewLabels[review] || '评价未记录') + '。' + reviewScope;
+
+        var verification = recordLines(entry.verification);
+        clear(els.verification);
+        if (verification.length) {
+          verification.forEach(function (line) {
+            els.verification.appendChild(h('li', '', line));
+          });
+          els.verification.hidden = false;
+        } else {
+          els.verification.hidden = true;
+        }
+      }
+
+      function clearMetaForError() {
+        els.id.textContent = '—';
+        els.category.textContent = '未找到';
+        els.title.textContent = '未找到组件';
+        els.publicName.textContent = '';
+        els.purpose.textContent = '本页没有显示其他组件来冒充目标 ID。请从上方选择器或完整预览重新选择。';
+        clear(els.statuses);
+        fillList(els.states, [], '未加载。');
+        fillList(els.customizable, [], '未加载。');
+        fillList(els.limits, [], '未加载。');
+        clear(els.source);
+        els.review.textContent = '未加载。';
+        clear(els.verification);
+        els.verification.hidden = true;
+        els.usage.textContent = '// 未加载';
+        els.copy.disabled = true;
+        els.copyStatus.textContent = '';
+        els.manual.hidden = true;
+        els.manual.value = '';
+        doc.title = '未找到组件 · 最小示例';
+      }
+
+      function showNotFound(id, requested) {
+        teardownDemo();
+        state.currentId = null;
+        clearMetaForError();
+        if (requested !== false) {
+          showNotice('没有找到组件 ID “' + id + '”', [
+            'registry 中没有这个条目，因此没有挂载任何演示。',
+            '选择器仍可使用；也可返回完整预览查看全部 100 项。'
+          ]);
+        }
+        if (els.host) {
+          clear(els.host);
+          var box = h('div', 'ex-demo-missing');
+          box.appendChild(h('strong', '', '无法加载演示'));
+          box.appendChild(h('p', '', '请求的 ID “' + id + '” 不在 registry 中。'));
+          els.host.appendChild(box);
+        }
+        if (els.purpose) els.purpose.textContent = '本页没有伪造目标条目。请从选择器选择有效 ID。';
+      }
+
+      function setSelectValue(id) {
+        if (!els.select) return;
+        els.select.value = id || '';
+      }
+
+      function updateUrl(id) {
+        try {
+          if (global.history && typeof global.history.replaceState === 'function') {
+            global.history.replaceState(null, '', '?id=' + encodeURIComponent(id));
+          }
+        } catch (error) { /* file:// may restrict; in-page switch still works */ }
+      }
+
+      function selectEntry(value, options) {
+        var id = normalizeId(value);
+        var opts = options || {};
+        var entry = id ? byId[id] : null;
+        if (!entry) {
+          showNotFound(id || str(value), true);
+          if (els.select) els.select.value = '';
+          if (opts.updateUrl) updateUrl(id || '');
+          return false;
+        }
+        hideNotice();
+        teardownDemo();
+        state.currentId = id;
+        setSelectValue(id);
+        renderMeta(entry);
+        if (opts.updateUrl !== false) updateUrl(id);
+        mountDemo(entry);
+        return true;
+      }
+
+      function buildSelect() {
+        if (!els.select) return;
+        clear(els.select);
+        if (!entries.length) {
+          var emptyOption = h('option', '', '构建清单尚未生成');
+          emptyOption.value = '';
+          els.select.appendChild(emptyOption);
+          els.select.disabled = true;
+          return;
+        }
+        var groups = [];
+        var groupMap = Object.create(null);
+        entries.forEach(function (entry) {
+          var group = groupMap[entry.category];
+          if (!group) {
+            group = doc.createElement('optgroup');
+            group.label = entry.category;
+            groupMap[entry.category] = group;
+            groups.push(group);
+          }
+          var option = h('option', '', entry.id + ' · ' + entry.cn);
+          option.value = entry.id;
+          group.appendChild(option);
+        });
+        groups.forEach(function (group) { els.select.appendChild(group); });
+        els.select.disabled = false;
+      }
+
+      function copyUsage() {
+        var text = els.usage ? els.usage.textContent : '';
+        function manual(reason) {
+          if (!els.manual) return;
+          els.manual.value = text;
+          els.manual.hidden = false;
+          try { els.manual.focus(); els.manual.select(); } catch (error) { /* no-op */ }
+          if (els.copyStatus) els.copyStatus.textContent = reason + '。已展开可手动选择的文本。';
+          if (els.copy) els.copy.textContent = '复制用法';
+        }
+        if (!text) return;
+        var api = global.NoteCore && typeof global.NoteCore.copy === 'function' ? global.NoteCore.copy : null;
+        if (!api) {
+          manual('当前构建未提供 NoteCore.copy');
+          return;
+        }
+        els.copy.disabled = true;
+        Promise.resolve(api(text)).then(function (result) {
+          els.copy.disabled = false;
+          if (result && result.ok) {
+            if (els.manual) els.manual.hidden = true;
+            if (els.copyStatus) els.copyStatus.textContent = '已复制最小用法' + (result.method === 'exec' ? '（兼容方式）' : '') + '。';
+            if (els.copy) els.copy.textContent = '已复制';
+            global.setTimeout(function () {
+              if (els.copy) els.copy.textContent = '复制用法';
+            }, 1400);
+          } else {
+            manual('浏览器未允许自动复制');
+          }
+        }).catch(function (error) {
+          els.copy.disabled = false;
+          manual('复制失败（' + safeMessage(error) + '）');
+        });
+      }
+
+      function bindEvents() {
+        if (els.select) {
+          els.select.addEventListener('change', function () {
+            selectEntry(els.select.value, { updateUrl: true });
+          });
+        }
+        if (els.copy) {
+          els.copy.addEventListener('click', copyUsage);
+        }
+        global.addEventListener('pagehide', function (event) {
+          if (!event || !event.persisted) teardownDemo();
+        });
+      }
+
+      function init() {
+        bindEvents();
+        buildSelect();
+        if (!registry) {
+          showNotice('尚未构建：没有组件清单', [
+            '没有读到 window.NOTE_LIBRARY_REGISTRY，因此本页不会列出或加载任何虚构组件。',
+            '请在库根目录运行 node scripts/build.mjs，确认 dist/registry.js 与 dist/note-library.js 可用后刷新。'
+          ]);
+          clearMetaForError();
+          els.category.textContent = '尚未构建';
+          els.title.textContent = '尚未构建';
+          els.purpose.textContent = '构建清单未生成，无法按 ID 加载最小示例。';
+          if (els.host) {
+            clear(els.host);
+            var box = h('div', 'ex-demo-missing');
+            box.appendChild(h('strong', '', '构建清单缺失'));
+            box.appendChild(h('p', '', '没有 registry 就没有可验证的 ID 与文件路径；本页不会伪造演示。'));
+            els.host.appendChild(box);
+          }
+          return;
+        }
+        if (!entries.length) {
+          showNotice('构建清单为空', ['registry 已加载但 entries 为空，无法加载演示。']);
+          clearMetaForError();
+          els.category.textContent = '空清单';
+          els.title.textContent = '构建清单为空';
+          els.purpose.textContent = '请检查 scripts/build.mjs 的 manifest 合并结果。';
+          if (els.host) {
+            clear(els.host);
+            var emptyBox = h('div', 'ex-demo-missing');
+            emptyBox.appendChild(h('strong', '', '无法加载演示'));
+            emptyBox.appendChild(h('p', '', 'registry 的 entries 为空，本页不会伪造组件或演示。'));
+            els.host.appendChild(emptyBox);
+          }
+          return;
+        }
+
+        var requested = '';
+        try {
+          var params = new URLSearchParams(global.location.search || '');
+          requested = normalizeId(params.get('id') || '');
+        } catch (error) {
+          requested = normalizeId((global.location.search || '').replace(/^\?id=/, ''));
+        }
+        if (!requested) requested = 'L01';
+        if (!byId[requested]) {
+          showNotFound(requested, true);
+          setSelectValue('');
+          return;
+        }
+        selectEntry(requested, { updateUrl: false });
+      }
+
+      global.NoteExampleRun = {
+        select: function (id) { return selectEntry(id, { updateUrl: true }); },
+        current: function () { return state.currentId; },
+        list: function () { return entries.map(function (entry) { return entry.id; }); }
+      };
+
+      init();
+    })(window);
+  </script>
+</body>
+</html>

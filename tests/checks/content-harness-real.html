@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Content module checks — real NoteCore</title>
+<link rel="stylesheet" href="../../src/core/tokens.css">
+<link rel="stylesheet" href="../../src/core/base.css">
+<link rel="stylesheet" href="../../vendor/katex/katex.min.css">
+<link rel="stylesheet" href="../../src/ui/content.css">
+<style>
+  body { margin: 0; padding: 16px; font-family: "Segoe UI", "Microsoft YaHei", sans-serif; background: var(--hnv-color-page); }
+  #fixture { max-width: 900px; }
+  .test-narrow { width: 300px; max-width: 100%; }
+</style>
+</head>
+<body>
+<div id="fixture"></div>
+<script src="../../src/core/core.js"></script>
+<script src="../../vendor/marked/marked.umd.js"></script>
+<script src="../../vendor/katex/katex.min.js"></script>
+<script src="../../src/ui/content.js"></script>
+<script src="content-browser-checks.js"></script>
+</body>
+</html>

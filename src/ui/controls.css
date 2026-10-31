@@ -1,0 +1,49 @@
+/* NoteUI controls: component padding belongs here; external gaps belong to the host. */
+.nui-button,.nui-segmented,.nui-segment{box-sizing:border-box;font-family:var(--hnv-font-family,"Microsoft YaHei",sans-serif)}
+.nui-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;max-width:100%;padding:9px 16px;border:var(--hnv-border-width,1px) solid var(--hnv-color-border,#dce2ea);border-radius:var(--hnv-radius-control,8px);background:var(--hnv-color-surface,#fff);color:var(--hnv-color-ink,#202938);font-size:var(--hnv-font-size-label,14px);font-weight:600;line-height:1.45;text-align:center;white-space:normal;overflow-wrap:anywhere;cursor:pointer;touch-action:manipulation;transition:background-color var(--hnv-motion-ui,160ms) var(--hnv-motion-ease-ui,ease),border-color var(--hnv-motion-ui,160ms) var(--hnv-motion-ease-ui,ease),color var(--hnv-motion-ui,160ms) var(--hnv-motion-ease-ui,ease)}
+.nui-button:not(:disabled):not([aria-disabled="true"]):hover{background:var(--hnv-color-page,#f4f6f9);border-color:var(--hnv-color-attention,#6f82b7)}
+.nui-button--primary{background:var(--hnv-color-accent,#315cda);border-color:var(--hnv-color-accent,#315cda);color:#fff}
+.nui-button--primary:not(:disabled):not([aria-disabled="true"]):hover{background:color-mix(in srgb,var(--hnv-color-accent,#315cda) 88%,#000);border-color:color-mix(in srgb,var(--hnv-color-accent,#315cda) 88%,#000)}
+.nui-button--quiet{background:transparent;border-color:transparent;color:var(--hnv-color-muted,#5c6879)}
+.nui-button--quiet:not(:disabled):not([aria-disabled="true"]):hover{background:var(--hnv-color-accent-soft,#eef2ff);border-color:transparent;color:var(--hnv-color-accent,#315cda)}
+.nui-button:focus-visible,.nui-segment:focus-visible{outline:3px solid color-mix(in srgb,var(--hnv-color-accent,#315cda) 50%,#fff);outline-offset:3px}
+/* 统一禁用态：中性灰底/边框/文字，明显区别于可用主按钮；可聚焦禁用与原生禁用同观感。
+   禁用切换不做颜色过渡，点击后立即呈现执行中状态。 */
+.nui-button:disabled,
+.nui-button.is-disabled,
+.nui-button[aria-disabled="true"]{
+  background:color-mix(in srgb,var(--hnv-color-muted,#5c6879) 11%,var(--hnv-color-surface,#fff));
+  border-color:color-mix(in srgb,var(--hnv-color-muted,#5c6879) 24%,var(--hnv-color-border,#dce2ea));
+  color:color-mix(in srgb,var(--hnv-color-muted,#5c6879) 88%,var(--hnv-color-surface,#fff));
+  box-shadow:none;
+  opacity:1;
+  cursor:not-allowed;
+  transition:none;
+  transform:none;
+  filter:none;
+}
+.nui-button:disabled .nui-button__icon,
+.nui-button.is-disabled .nui-button__icon,
+.nui-button[aria-disabled="true"] .nui-button__icon{opacity:.75}
+.nui-button[aria-disabled="true"]{pointer-events:auto}
+/* R01 additions: icon, icon-only, compact and loading variants. Base md button visuals are unchanged. */
+.nui-button__label{min-width:0;overflow-wrap:anywhere}
+.nui-button__icon{display:inline-flex;flex:0 0 auto;align-items:center;justify-content:center;width:18px;height:18px;line-height:0}
+.nui-button__icon>svg{display:block;width:100%;height:100%}
+.nui-button--sm{min-height:32px;padding:5px 12px;font-size:13px;line-height:1.4}
+.nui-button--sm .nui-button__icon{width:15px;height:15px}
+.nui-button--icon-only{width:40px;min-width:40px;height:40px;min-height:40px;padding:0}
+.nui-button--sm.nui-button--icon-only{width:32px;min-width:32px;height:32px;min-height:32px;padding:0}
+.nui-button.is-loading .nui-button__icon{display:none}
+.nui-button[data-loading="true"]{cursor:progress}
+.nui-button__spinner{display:block;flex:0 0 auto;width:16px;height:16px;border:2px solid color-mix(in srgb,currentColor 28%,transparent);border-top-color:currentColor;border-radius:50%;animation:nui-button-spin .72s linear infinite}
+.nui-button--sm .nui-button__spinner{width:14px;height:14px}
+@keyframes nui-button-spin{to{transform:rotate(1turn)}}
+.nui-segmented{display:inline-flex;flex-wrap:wrap;align-items:stretch;gap:3px;max-width:100%;min-width:0;padding:4px;border:var(--hnv-border-width,1px) solid var(--hnv-color-border,#dce2ea);border-radius:var(--hnv-radius-control,8px);background:var(--hnv-color-page,#f4f6f9)}
+.nui-segment{flex:1 1 auto;min-width:0;max-width:100%;min-height:35px;padding:7px 13px;border:0;border-radius:calc(var(--hnv-radius-control,8px) - 3px);background:transparent;color:var(--hnv-color-muted,#5c6879);font-size:var(--hnv-font-size-label,14px);font-weight:500;line-height:1.5;text-align:center;white-space:normal;overflow-wrap:anywhere;cursor:pointer;touch-action:manipulation;transition:color var(--hnv-motion-ui,160ms),background-color var(--hnv-motion-ui,160ms),box-shadow var(--hnv-motion-ui,160ms)}
+.nui-segment:not(:disabled):hover{color:var(--hnv-color-ink,#202938);background:color-mix(in srgb,var(--hnv-color-surface,#fff) 70%,transparent)}
+.nui-segment[aria-checked="true"]{background:var(--hnv-color-surface,#fff);color:var(--hnv-color-accent,#315cda);font-weight:650;box-shadow:0 1px 4px #273d651a}
+.nui-segment:disabled{opacity:.4;cursor:default}
+.nui-stack{display:flex;flex-direction:column;gap:var(--nui-gap,var(--hnv-space-object-gap,14px));min-width:0}
+.nui-inline{display:flex;flex-wrap:wrap;align-items:center;gap:var(--nui-gap,var(--hnv-space-object-gap,14px));min-width:0}
+@media(prefers-reduced-motion:reduce){.nui-button,.nui-segment{transition:none}.nui-button__spinner{animation:none;border-top-color:currentColor;border-right-color:currentColor}}

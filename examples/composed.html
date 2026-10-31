@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>组合示例 · 缓存键替换与校验</title>
+  <link rel="stylesheet" href="../dist/note-library.css">
+  <link rel="stylesheet" href="./example.css">
+</head>
+<body class="comp-page">
+  <a class="ex-skip" href="#comp-main">跳到组合示例</a>
+  <header class="ex-topbar">
+    <a class="ex-back" href="../gallery/index.html">← 返回组件预览</a>
+    <span class="ex-topbar__context">examples/composed.html · 组合示例宿主（不是组件预览）</span>
+  </header>
+
+  <main class="comp-main" id="comp-main">
+    <header class="comp-hero">
+      <div class="comp-hero__text">
+        <p class="ex-kicker">组合示例 · 缓存键替换与校验</p>
+        <h1 class="comp-title">把一个请求片段变成可校验的缓存键</h1>
+        <p class="comp-lede">同一页里组合布局、状态对象、局部标记、序列/图表与组合块：先替换版本段，再校验归一化键，最后落到本地分片。内容与组件预览不同，只演示真实调用与协作边界。</p>
+        <p class="comp-scope">默认静止；用停点或按钮推进，一次一个理解停点。所有数据为本地静态示例，不代表缓存服务实现。</p>
+      </div>
+      <aside class="comp-hero__aside" aria-label="页面说明">
+        <p class="comp-hero__note"><strong>这是组合示例，不是 100 项组件清单。</strong>画面、字幕与当前对象由同一状态快照驱动；没有自动串播。</p>
+        <p class="comp-inventory">实际取用：NoteUI 的 Container / Panel / Stack / Inline / Badge / Notice / DataObject / Table / Tabs；NoteExpr 的 Focus / Range / Link；NoteViz 的 Sequence / Chart；NoteBlocks 的 DemoStage / RuleCompare。</p>
+        <p class="comp-hero__links"><a href="../gallery/index.html">打开完整预览</a><span aria-hidden="true">·</span><a href="../examples/run.html?id=B01">DemoStage 最小示例</a><span aria-hidden="true">·</span><a href="../examples/run.html?id=B03">RuleCompare 最小示例</a></p>
+      </aside>
+    </header>
+
+    <div id="comp-container-host"></div>
+
+    <div class="comp-error" id="comp-error" role="alert" hidden></div>
+
+    <footer class="ex-footer comp-footer">
+      <p>本页是组合示例，不是完整课程笔记，也不替代组件预览或条目文档。组件仍为技术候选；新增组件未获用户审美评价。</p>
+      <p>标记层（NoteExpr）对屏幕阅读器隐藏；相同的当前关注与本步变化已在字幕、状态对象和表格文字中表达。技术状态与用户评价范围见完整预览各条目。</p>
+      <p><a href="../gallery/index.html">返回组件预览</a> · <a href="../docs/预览与示例.md" target="_blank" rel="noopener">预览与示例说明</a> · <span id="comp-build">构建信息未加载</span></p>
+    </footer>
+  </main>
+
+  <script src="../dist/note-library.js"></script>
+  <script src="../dist/registry.js"></script>
+  <script>
+    (function (global) {
+      'use strict';
+
+      var doc = global.document;
+      var BUCKET_LABELS = ['槽 0', '槽 1', '槽 2', '槽 3', '槽 4', '槽 5', '槽 6', '槽 7'];
+      var BUCKET_VALUES = [3, 1, 0, 2, 5, 0, 1, 4];
+      var BUCKET_INDEX = 3;
+      var NORMALIZED_BASE = 'note:u42:docs:zh-CN:';
+      var RAW_KEY = 'note|42|docs|zh-CN|v1';
+
+      var steps = [
+        {
+          id: 'collect',
+          chip: '收集片段',
+          caption: '收集请求片段：命名空间、用户、范围、语言和版本。此时版本仍是 v1，键还没有校验。',
+          schema: 'v1',
+          validated: false,
+          routed: false,
+          status: { label: '版本待替换', tone: 'warning' },
+          focus: 'raw'
+        },
+        {
+          id: 'replace',
+          chip: '替换版本',
+          caption: '只替换版本段 v1 → v2；用户、范围与语言不重排，键的身份可以继续追踪。',
+          schema: 'v2',
+          validated: false,
+          routed: false,
+          status: { label: '版本已替换', tone: 'accent' },
+          focus: 'schema'
+        },
+        {
+          id: 'validate',
+          chip: '校验通过',
+          caption: '校验归一化键：字符集允许、长度 22 ≤ 64、版本前缀与 v2 匹配；三项全部通过。',
+          schema: 'v2',
+          validated: true,
+          routed: false,
+          status: { label: '校验通过', tone: 'accent' },
+          focus: 'validation'
+        },
+        {
+          id: 'route',
+          chip: '落到分片',
+          caption: '按本地静态规则落到 3 号槽；该槽已有 2 条键，本步显示为“命中”。',
+          schema: 'v2',
+          validated: true,
+          routed: true,
+          status: { label: '命中 · 槽 3', tone: 'accent' },
+          focus: 'bucket'
+        }
+      ];
+
+      var state = {
+        index: 0,
+        readyOpen: true,
+        readyResolve: null,
+        readyPromise: null,
+        annotationTimer: 0,
+        destroyed: false
+      };
+
+      var refs = {};
+      var tracked = [];
+
+      function h(tag, className, text) {
+        var node = doc.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined && text !== null) node.textContent = String(text);
+        return node;
+      }
+
+      function clear(node) {
+        if (!node) return;
+        while (node.firstChild) node.removeChild(node.firstChild);
+      }
+
+      function track(instance) {
+        if (instance) tracked.push(instance);
+        return instance;
+      }
+
+      function nextFrame(callback) {
+        if (typeof global.requestAnimationFrame === 'function') global.requestAnimationFrame(callback);
+        else global.setTimeout(callback, 16);
+      }
+
+      function safeMessage(error) {
+        if (!error) return '未知错误';
+        return error.message ? String(error.message) : String(error);
+      }
+
+      function showError(title, detail) {
+        var box = doc.getElementById('comp-error');
+        if (!box) {
+          global.console.error('NoteComposed: ' + title, detail);
+          return;
+        }
+        clear(box);
+        box.appendChild(h('strong', '', title));
+        box.appendChild(h('p', '', detail || ''));
+        box.hidden = false;
+      }
+
+      function armReady() {
+        state.readyPromise = new Promise(function (resolve) { state.readyResolve = resolve; });
+        state.readyOpen = true;
+      }
+
+      function settleReady() {
+        nextFrame(function () {
+          nextFrame(function () {
+            if (!state.readyOpen || !state.readyResolve) return;
+            state.readyOpen = false;
+            var resolve = state.readyResolve;
+            state.readyResolve = null;
+            resolve({ index: state.index, id: steps[state.index].id });
+          });
+        });
+      }
+
+      function isReducedMotion() {
+        try {
+          return Boolean(global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches);
+        } catch (error) {
+          return false;
+        }
+      }
+
+      armReady();
+
+      /* ------------------------------------------------------------------ *
+       * 页面骨架
+       * ------------------------------------------------------------------ */
+
+      function buildStageDom() {
+        var root = h('div', 'comp-stage');
+        refs.stageRoot = root;
+        var head = h('div', 'comp-stage__head');
+        var heading = h('div', 'comp-stage__heading');
+        var stepNo = h('span', 'comp-step-no');
+        stepNo.appendChild(h('span', '', '停点'));
+        refs.stepNumber = h('strong', '', '1');
+        stepNo.appendChild(refs.stepNumber);
+        stepNo.appendChild(h('span', '', '/ 4'));
+        heading.appendChild(stepNo);
+        heading.appendChild(h('h2', '', '键片段与校验'));
+        head.appendChild(heading);
+        refs.statusHost = h('div', 'comp-stage__status');
+        head.appendChild(refs.statusHost);
+        root.appendChild(head);
+
+        var keyRow = h('div', 'comp-keyrow');
+        keyRow.appendChild(h('span', 'comp-keyrow__label', '归一化键'));
+        refs.keyEl = h('code', 'comp-key', NORMALIZED_BASE + 'v1');
+        refs.keyEl.id = 'comp-key-value';
+        keyRow.appendChild(refs.keyEl);
+        root.appendChild(keyRow);
+
+        var grid = h('div', 'comp-stage__grid');
+
+        var seqPane = h('section', 'comp-pane');
+        var seqHead = h('div', 'comp-pane__head');
+        seqHead.appendChild(h('h3', '', '键片段（顺序即身份）'));
+        seqHead.appendChild(h('span', 'comp-pane__hint', '对象 ID 不随步骤改变'));
+        seqPane.appendChild(seqHead);
+        refs.seqHost = h('div', 'comp-seq');
+        seqPane.appendChild(refs.seqHost);
+        refs.invariantsHost = h('div', 'comp-invariants');
+        seqPane.appendChild(refs.invariantsHost);
+        seqPane.appendChild(h('p', 'comp-hint', '用户、范围与语言在版本替换时保持原值；版本段是这一步唯一的改动。'));
+        grid.appendChild(seqPane);
+
+        var factPane = h('section', 'comp-pane');
+        var factHead = h('div', 'comp-pane__head');
+        factHead.appendChild(h('h3', '', '本步对象与变化'));
+        factHead.appendChild(h('span', 'comp-pane__hint', '身份 / 关注 / 变化分开表达'));
+        factPane.appendChild(factHead);
+        refs.dataHost = h('div', 'comp-dataobjects');
+        factPane.appendChild(refs.dataHost);
+        var bucketRow = h('div', 'comp-bucket-row');
+        bucketRow.appendChild(h('span', 'comp-bucket-row__label', '槽位'));
+        refs.bucketHost = h('div', 'comp-bucket-row__badge');
+        bucketRow.appendChild(refs.bucketHost);
+        factPane.appendChild(bucketRow);
+        grid.appendChild(factPane);
+
+        root.appendChild(grid);
+
+        var vizPane = h('section', 'comp-pane comp-pane--viz');
+        var vizHead = h('div', 'comp-pane__head');
+        vizHead.appendChild(h('h3', '', '分片视图'));
+        vizHead.appendChild(h('span', 'comp-pane__hint', '图表与槽位表来自同一静态数据'));
+        vizPane.appendChild(vizHead);
+        refs.tabsHost = h('div', 'comp-tabs');
+        vizPane.appendChild(refs.tabsHost);
+        root.appendChild(vizPane);
+
+        return root;
+      }
+
+      function buildStepChips(host) {
+        clear(host);
+        steps.forEach(function (step, index) {
+          var button = h('button', 'comp-stepchip');
+          button.type = 'button';
+          button.setAttribute('data-step', String(index));
+          button.appendChild(h('span', 'comp-stepchip__index', String(index + 1)));
+          button.appendChild(h('span', 'comp-stepchip__label', step.chip));
+          button.addEventListener('click', function () { go(index); });
+          host.appendChild(button);
+        });
+      }
+
+      function updateStepChips() {
+        if (!refs.stepChips) return;
+        Array.prototype.forEach.call(refs.stepChips.querySelectorAll('[data-step]'), function (button) {
+          var active = Number(button.getAttribute('data-step')) === state.index;
+          if (active) button.setAttribute('aria-current', 'step');
+          else button.removeAttribute('aria-current');
+        });
+        if (refs.stepNumber) refs.stepNumber.textContent = String(state.index + 1);
+        if (refs.live) {
+          refs.live.textContent = '停点 ' + (state.index + 1) + ' / ' + steps.length + ' · ' + steps[state.index].chip + '。用按钮或停点切换；不会自动播放。';
+        }
+      }
+
+      /* ------------------------------------------------------------------ *
+       * 组件挂载
+       * ------------------------------------------------------------------ */
+
+      function mountComposition() {
+        var UI = global.NoteUI;
+        var Expr = global.NoteExpr;
+        var Viz = global.NoteViz;
+        var Blocks = global.NoteBlocks;
+        var missing = [];
+        if (!UI) missing.push('NoteUI');
+        if (!Expr) missing.push('NoteExpr');
+        if (!Viz) missing.push('NoteViz');
+        if (!Blocks || !Blocks.DemoStage || !Blocks.RuleCompare) missing.push('NoteBlocks.DemoStage / RuleCompare');
+        if (missing.length) {
+          throw new Error('缺少公开组件：' + missing.join('、') + '。请先运行构建并确认 dist/note-library.js 已加载。');
+        }
+
+        var containerHost = doc.getElementById('comp-container-host');
+        var workbench = h('div', 'comp-workbench');
+        var stageWrap = h('section', 'comp-stage-wrap');
+        stageWrap.setAttribute('aria-label', '组合演示区');
+        var stageMount = h('div', 'comp-stage-mount');
+        stageWrap.appendChild(stageMount);
+
+        var controlbar = h('div', 'comp-controlbar');
+        var chips = h('div', 'comp-stepchips');
+        chips.setAttribute('role', 'group');
+        chips.setAttribute('aria-label', '理解停点');
+        refs.stepChips = chips;
+        buildStepChips(chips);
+        var controlRight = h('div', 'comp-controlbar__right');
+        refs.controlsHost = h('div', 'comp-controls');
+        refs.live = h('p', 'comp-live');
+        controlRight.appendChild(refs.controlsHost);
+        controlRight.appendChild(refs.live);
+        controlbar.appendChild(chips);
+        controlbar.appendChild(controlRight);
+        stageWrap.appendChild(controlbar);
+        workbench.appendChild(stageWrap);
+
+        var secondary = h('div', 'comp-secondary');
+        var rulesHost = h('div', 'comp-secondary__panel');
+        var readHost = h('div', 'comp-secondary__panel');
+        secondary.appendChild(rulesHost);
+        secondary.appendChild(readHost);
+        workbench.appendChild(secondary);
+
+        track(UI.Container.mount(containerHost, {
+          maxWidth: '1160px',
+          padding: 'none',
+          align: 'center',
+          content: workbench
+        }));
+
+        var stageDom = buildStageDom();
+        refs.demoStage = track(Blocks.DemoStage.mount(stageMount, {
+          title: '联动视图',
+          caption: steps[0].caption,
+          maxWidth: '100%',
+          minStageHeight: '0px',
+          label: '缓存键替换与校验组合演示'
+        }));
+        if (refs.demoStage && typeof refs.demoStage.setStage === 'function') {
+          refs.demoStage.setStage(stageDom);
+        } else {
+          stageMount.appendChild(stageDom);
+        }
+
+        refs.sequence = track(Viz.Sequence.mount(refs.seqHost, {
+          items: sequenceItems('v1'),
+          variant: 'boxes',
+          index: true,
+          focus: 'schema',
+          changed: null,
+          label: '缓存键片段，顺序即对象身份'
+        }));
+
+        var invInline = track(UI.Inline.mount(refs.invariantsHost, { gap: 'sm', align: 'center' }));
+        refs.invariantBadges = [
+          track(UI.Badge.mount(invInline.el, { label: '用户 · u42', tone: 'neutral' })),
+          track(UI.Badge.mount(invInline.el, { label: '范围 · docs', tone: 'neutral' })),
+          track(UI.Badge.mount(invInline.el, { label: '语言 · zh-CN', tone: 'neutral' }))
+        ];
+
+        var dataStack = track(UI.Stack.mount(refs.dataHost, { gap: 'sm', align: 'stretch' }));
+        refs.rawObject = track(UI.DataObject.mount(dataStack.el, {
+          label: '请求片段',
+          value: RAW_KEY,
+          caption: '未归一化的输入；只作为来源线索。'
+        }));
+        refs.schemaObject = track(UI.DataObject.mount(dataStack.el, {
+          label: '版本段',
+          value: 'v1',
+          caption: '本页唯一被替换的片段。',
+          attention: true
+        }));
+        refs.validationObject = track(UI.DataObject.mount(dataStack.el, {
+          label: '校验结果',
+          value: '未校验',
+          caption: '字符集、长度与版本前缀。'
+        }));
+        refs.bucketObject = track(UI.DataObject.mount(dataStack.el, {
+          label: '目标槽位',
+          value: '—',
+          caption: '本地静态映射，不是真实哈希。'
+        }));
+
+        refs.statusBadge = track(UI.Badge.mount(refs.statusHost, {
+          label: steps[0].status.label,
+          tone: steps[0].status.tone
+        }));
+        refs.bucketBadge = track(UI.Badge.mount(refs.bucketHost, { label: '槽位未定', tone: 'neutral' }));
+
+        var chartHost = h('div', 'comp-tabview');
+        var tableHost = h('div', 'comp-tabview');
+        refs.tabs = track(UI.Tabs.mount(refs.tabsHost, {
+          items: [
+            { id: 'chart', label: '分片分布', content: chartHost },
+            { id: 'table', label: '槽位明细', content: tableHost }
+          ],
+          value: 'chart',
+          keepMounted: true,
+          label: '分片视图切换',
+          onChange: function () {
+            nextFrame(refreshAnnotations);
+            if (refs.chart) {
+              refs.chart.update({
+                focus: chartFocus(state.index),
+                changed: chartChanged(state.index)
+              });
+            }
+            if (refs.slotTable) {
+              refs.slotTable.update({
+                rows: slotRows(state.index),
+                emphasis: state.index === 3 ? { row: String(BUCKET_INDEX) } : null
+              });
+            }
+          }
+        }));
+
+        refs.chart = track(Viz.Chart.mount(chartHost, {
+          type: 'bar',
+          labels: BUCKET_LABELS.slice(),
+          series: [{ key: 'entries', label: '已有键数', values: BUCKET_VALUES.slice() }],
+          focus: null,
+          changed: null,
+          colors: ['#315cda'],
+          height: 230,
+          unit: '条',
+          table: true,
+          label: '本地静态分片槽位分布',
+          animate: true
+        }));
+
+        refs.slotTable = track(UI.Table.mount(tableHost, {
+          columns: [
+            { key: 'bucket', label: '槽位', width: '64px' },
+            { key: 'entries', label: '已有键', align: 'end', width: '72px' },
+            { key: 'sample', label: '键 / 内容' },
+            { key: 'state', label: '状态', width: '92px' }
+          ],
+          rows: slotRows(0),
+          rowKey: 'bucket',
+          caption: '本地静态槽位数据，用于组合演示；不是真实缓存。',
+          empty: '暂无槽位数据。',
+          maxHeight: '15rem',
+          dense: true
+        }));
+
+        refs.rulesPanel = track(UI.Panel.mount(rulesHost, {
+          title: '校验规则',
+          description: 'RuleCompare 组合规则表格与就近说明；结果与字幕使用同一停点状态。',
+          tone: 'plain',
+          padding: 'md'
+        }));
+        refs.rulesBlock = track(Blocks.RuleCompare.mount(refs.rulesPanel.body, {
+          columns: [
+            { key: 'rule', label: '规则' },
+            { key: 'condition', label: '要求' },
+            { key: 'result', label: '本步结果', width: '92px' }
+          ],
+          rules: ruleRows(0),
+          caption: '校验只检查本地字符串；不执行输入内容，不发起网络请求。',
+          emphasize: { row: [], column: [] },
+          note: '结果由本地字符串比较得出，不代表真实缓存服务行为。',
+          label: '缓存键校验规则'
+        }));
+
+        refs.readPanel = track(UI.Panel.mount(readHost, {
+          title: '如何读这个组合示例',
+          description: '先看当前关注，再对照字幕与本步变化；对象身份通过稳定 ID 与颜色/文字共同表达。',
+          tone: 'plain',
+          padding: 'md'
+        }));
+        var readStack = track(UI.Stack.mount(refs.readPanel.body, { gap: 'sm', align: 'stretch' }));
+        track(UI.Notice.mount(readStack.el, {
+          title: '组合示例，不是完整课程笔记',
+          content: '此页只验证组件能在真实宿主里协作。数据、规则和分片均为本地静态示例；默认不自动播放。',
+          tone: 'accent'
+        }));
+        var readList = h('ul', 'comp-read-list');
+        [
+          '对象身份：片段使用稳定 ID，替换版本不重排其他片段。',
+          '当前关注：焦点框、范围括线和连线表达“现在看这里”，并在步骤切换时更新。',
+          '本步变化：版本段、校验结果与槽位分别标注 changed / attention，不用颜色作为唯一信号。',
+          '标记层是视觉层，对屏幕阅读器隐藏；相同信息在上方状态对象、表格和字幕中可读。'
+        ].forEach(function (text) {
+          readList.appendChild(h('li', '', text));
+        });
+        readStack.append(readList);
+        var stateNote = h('p', 'comp-read-note', '减少动效时，注释与图表直接落在当前停点；重看本步仍可用。');
+        readStack.append(stateNote);
+
+        var controlsInline = track(UI.Inline.mount(refs.controlsHost, { gap: 'sm', justify: 'end', wrap: true }));
+        refs.prevButton = track(UI.Button.mount(controlsInline.el, {
+          label: '上一步',
+          variant: 'secondary',
+          onClick: prev
+        }));
+        refs.nextButton = track(UI.Button.mount(controlsInline.el, {
+          label: '下一步',
+          variant: 'primary',
+          onClick: next
+        }));
+        refs.replayButton = track(UI.Button.mount(controlsInline.el, {
+          label: '重看本步',
+          variant: 'quiet',
+          onClick: replay
+        }));
+        refs.resetButton = track(UI.Button.mount(controlsInline.el, {
+          label: '从头开始',
+          variant: 'quiet',
+          onClick: reset
+        }));
+
+        mountAnnotations();
+        updateStepChips();
+        updateControls();
+      }
+
+      function sequenceItems(schema) {
+        return [
+          { id: 'namespace', label: '命名空间', value: 'note' },
+          { id: 'user', label: '用户', value: 'u42' },
+          { id: 'scope', label: '范围', value: 'docs' },
+          { id: 'locale', label: '语言', value: 'zh-CN' },
+          { id: 'schema', label: '版本', value: schema }
+        ];
+      }
+
+      function slotRows(index) {
+        return BUCKET_LABELS.map(function (label, i) {
+          var count = BUCKET_VALUES[i];
+          var stateText;
+          if (i === BUCKET_INDEX && index >= 3) stateText = '命中（演示）';
+          else if (count === 0) stateText = '空';
+          else stateText = '已有 ' + count + ' 条';
+          return {
+            bucket: String(i),
+            entries: String(count),
+            sample: i === BUCKET_INDEX ? 'note:u42:docs:zh-CN:v2' : '—',
+            state: stateText
+          };
+        });
+      }
+
+      function ruleRows(index) {
+        var result = index >= 2 ? '通过' : '未校验';
+        return [
+          { id: 'charset', label: '允许字符', condition: '仅 a-z 0-9 : . -', result: result },
+          { id: 'length', label: '长度', condition: '≤ 64 字符', result: result },
+          {
+            id: 'prefix',
+            label: '版本前缀',
+            condition: '与 schema v2 一致',
+            result: result,
+            note: '版本前缀必须与当前 schema 对齐；本页只比较本地字符串。'
+          }
+        ];
+      }
+
+      function chartFocus(index) {
+        return index >= 3 ? { series: 'entries', index: BUCKET_INDEX } : null;
+      }
+
+      function chartChanged(index) {
+        return index >= 3 ? { series: 'entries', index: BUCKET_INDEX } : null;
+      }
+
+      function updateControls() {
+        if (refs.prevButton) refs.prevButton.update({ disabled: state.index === 0 });
+        if (refs.nextButton) refs.nextButton.update({ disabled: state.index === steps.length - 1 });
+        if (refs.resetButton) refs.resetButton.update({ disabled: state.index === 0 });
+        if (refs.replayButton) refs.replayButton.update({ disabled: false });
+        updateStepChips();
+      }
+
+      /* ------------------------------------------------------------------ *
+       * 状态应用
+       * ------------------------------------------------------------------ */
+
+      function applyStep(index, options) {
+        var opts = options || {};
+        var step = steps[index];
+        if (!step || state.destroyed) return false;
+        state.index = index;
+
+        if (refs.stageRoot) {
+          refs.stageRoot.setAttribute('data-step', step.id);
+          refs.stageRoot.classList.toggle('has-invariant-range', index <= 1);
+        }
+        refs.keyEl.textContent = NORMALIZED_BASE + step.schema;
+        refs.keyEl.classList.toggle('is-changed', index === 1);
+        refs.keyEl.setAttribute('data-step', step.id);
+
+        refs.statusBadge.update({ label: step.status.label, tone: step.status.tone });
+        refs.bucketBadge.update({
+          label: index >= 3 ? '命中 · 槽 ' + BUCKET_INDEX : '槽位未定',
+          tone: index >= 3 ? 'accent' : 'neutral'
+        });
+
+        refs.schemaObject.update({
+          value: step.schema,
+          changed: index === 1,
+          attention: index <= 1
+        });
+        refs.validationObject.update({
+          value: step.validated ? '已通过' : '未校验',
+          changed: index === 2,
+          attention: index === 2
+        });
+        refs.bucketObject.update({
+          value: step.routed ? String(BUCKET_INDEX) : '—',
+          changed: index === 3,
+          attention: index === 3
+        });
+        refs.rawObject.update({ attention: index === 0 });
+
+        refs.sequence.update({
+          items: sequenceItems(step.schema),
+          focus: index <= 1 ? 'schema' : null,
+          changed: index === 1 ? 'schema' : null
+        });
+
+        if (refs.slotTable) {
+          refs.slotTable.update({
+            rows: slotRows(index),
+            emphasis: index === 3 ? { row: String(BUCKET_INDEX) } : null
+          });
+        }
+        if (refs.rulesBlock) {
+          refs.rulesBlock.update({
+            rules: ruleRows(index),
+            emphasize: index >= 2 ? { row: ['prefix'], column: ['result'] } : { row: [], column: [] }
+          });
+        }
+        if (refs.chart) {
+          var chartPatch = { focus: chartFocus(index), changed: chartChanged(index) };
+          if (opts.replay) {
+            chartPatch.labels = BUCKET_LABELS.slice();
+            chartPatch.series = [{ key: 'entries', label: '已有键数', values: BUCKET_VALUES.slice() }];
+          }
+          refs.chart.update(chartPatch);
+        }
+
+        if (refs.demoStage && typeof refs.demoStage.setCaption === 'function') {
+          refs.demoStage.setCaption(step.caption);
+        }
+        updateControls();
+
+        if (opts.replay) {
+          hideAnnotations();
+          clearTimeout(state.annotationTimer);
+          state.annotationTimer = global.setTimeout(function () {
+            state.annotationTimer = 0;
+            showAnnotations(index);
+          }, isReducedMotion() ? 0 : 180);
+        } else {
+          nextFrame(function () { showAnnotations(index); });
+        }
+        return true;
+      }
+
+      function go(index) {
+        if (state.destroyed) return false;
+        var nextIndex = Math.max(0, Math.min(steps.length - 1, Number(index) || 0));
+        return applyStep(nextIndex, {});
+      }
+
+      function next() {
+        return go(state.index + 1);
+      }
+
+      function prev() {
+        return go(state.index - 1);
+      }
+
+      function replay() {
+        if (state.destroyed) return false;
+        return applyStep(state.index, { replay: true });
+      }
+
+      function reset() {
+        return go(0);
+      }
+
+      /* ------------------------------------------------------------------ *
+       * NoteExpr 叠加标记
+       * ------------------------------------------------------------------ */
+
+      function mountAnnotations() {
+        var Expr = global.NoteExpr;
+        if (!Expr || !Expr.Focus || !Expr.Range || !Expr.Link) {
+          showError('标记组件不可用', 'NoteExpr.Focus / Range / Link 未加载；组合页仍可显示静态内容，但不会绘制页面内标记。');
+          return;
+        }
+        try {
+          refs.focus = Expr.Focus.mount({ motion: 'auto' });
+          refs.range = Expr.Range.mount({ motion: 'auto' });
+          refs.link = Expr.Link.mount({ motion: 'auto' });
+        } catch (error) {
+          global.console.error('NoteComposed: annotation mount failed', error);
+          showError('标记组件挂载失败', safeMessage(error));
+        }
+      }
+
+      function focusTargetFor(index) {
+        if (index === 0) return refs.rawObject && refs.rawObject.el;
+        if (index === 1) return refs.schemaObject && refs.schemaObject.el;
+        if (index === 2) return refs.validationObject && refs.validationObject.el;
+        return refs.bucketBadge && refs.bucketBadge.el;
+      }
+
+      function showAnnotations(index) {
+        if (!refs.focus) return;
+        var target = focusTargetFor(index);
+        if (target) {
+          try { refs.focus.show(target); } catch (error) {
+            global.console.error('NoteComposed: focus show failed', error);
+          }
+        }
+
+        if (index <= 1 && refs.range && refs.invariantBadges) {
+          var targets = refs.invariantBadges.map(function (badge) { return badge.el; });
+          try {
+            refs.range.show({
+              targets: targets,
+              text: index === 0 ? '这三段先按原值保留' : '替换版本段时，这三段保持不变'
+            });
+          } catch (error) {
+            global.console.error('NoteComposed: range show failed', error);
+          }
+        } else if (refs.range) {
+          refs.range.hide();
+        }
+
+        if (refs.link) {
+          try {
+            if (index === 1) {
+              var from = refs.sequence.getTarget('schema');
+              var to = refs.schemaObject && refs.schemaObject.el;
+              if (from && to) refs.link.show({ from: from, to: to, label: 'v1 → v2', arrow: true });
+              else refs.link.hide();
+            } else if (index === 3) {
+              var keyEl = refs.keyEl;
+              var bucketEl = refs.bucketBadge && refs.bucketBadge.el;
+              if (keyEl && bucketEl) refs.link.show({ from: keyEl, to: bucketEl, label: '落到 3 号槽', arrow: true });
+              else refs.link.hide();
+            } else {
+              refs.link.hide();
+            }
+          } catch (error) {
+            global.console.error('NoteComposed: link show failed', error);
+            refs.link.hide();
+          }
+        }
+      }
+
+      function hideAnnotations() {
+        if (refs.focus) { try { refs.focus.hide(); } catch (error) { /* no-op */ } }
+        if (refs.range) { try { refs.range.hide(); } catch (error) { /* no-op */ } }
+        if (refs.link) { try { refs.link.hide(); } catch (error) { /* no-op */ } }
+      }
+
+      function refreshAnnotations() {
+        if (!refs.focus) return;
+        try {
+          refs.focus.refresh();
+          if (refs.range) refs.range.refresh();
+          if (refs.link) refs.link.refresh();
+        } catch (error) {
+          global.console.error('NoteComposed: annotation refresh failed', error);
+        }
+      }
+
+      /* ------------------------------------------------------------------ *
+       * 清理与对外接口
+       * ------------------------------------------------------------------ */
+
+      function cleanup() {
+        if (state.destroyed) return;
+        state.destroyed = true;
+        if (state.annotationTimer) {
+          clearTimeout(state.annotationTimer);
+          state.annotationTimer = 0;
+        }
+        if (refs.focus) { try { refs.focus.destroy(); } catch (error) { /* no-op */ } }
+        if (refs.range) { try { refs.range.destroy(); } catch (error) { /* no-op */ } }
+        if (refs.link) { try { refs.link.destroy(); } catch (error) { /* no-op */ } }
+        refs.focus = refs.range = refs.link = null;
+        for (var i = tracked.length - 1; i >= 0; i -= 1) {
+          try {
+            if (tracked[i] && typeof tracked[i].destroy === 'function') tracked[i].destroy();
+          } catch (error) {
+            global.console.error('NoteComposed: component destroy failed', error);
+          }
+        }
+        tracked = [];
+        var stale = doc.querySelectorAll('body > .hnv-floating, body > .hnv-floating__backdrop, body > .nui-toast-region, body > .nx-focus, body > .nx-range, body > .nx-link');
+        Array.prototype.forEach.call(stale, function (node) { node.remove(); });
+      }
+
+      function current() {
+        return { index: state.index, id: steps[state.index] ? steps[state.index].id : null, caption: steps[state.index] ? steps[state.index].caption : '' };
+      }
+
+      function armBuildInfo() {
+        var registry = global.NOTE_LIBRARY_REGISTRY;
+        var target = doc.getElementById('comp-build');
+        if (!target) return;
+        if (!registry) {
+          target.textContent = 'registry 未加载';
+          return;
+        }
+        var counts = registry.counts || {};
+        var bits = [];
+        if (counts.total !== undefined) bits.push('registry ' + counts.total + ' 项');
+        if (registry.build && registry.build.mode) bits.push('build ' + registry.build.mode);
+        target.textContent = bits.length ? bits.join(' · ') : 'registry 已加载';
+      }
+
+      function init() {
+        armBuildInfo();
+        try {
+          mountComposition();
+          applyStep(0, {});
+          settleReady();
+        } catch (error) {
+          global.console.error('NoteComposed: init failed', error);
+          showError('组合示例未能初始化', safeMessage(error));
+          if (state.readyOpen && state.readyResolve) {
+            state.readyOpen = false;
+            var resolve = state.readyResolve;
+            state.readyResolve = null;
+            resolve({ index: 0, id: null, error: safeMessage(error) });
+          }
+        }
+      }
+
+      global.NoteComposed = {
+        go: go,
+        next: next,
+        prev: prev,
+        replay: replay,
+        reset: reset,
+        current: current,
+        ready: function () { return state.readyPromise || Promise.resolve(current()); },
+        cleanup: cleanup
+      };
+
+      global.addEventListener('pagehide', function (event) {
+        if (!event || !event.persisted) cleanup();
+      });
+      init();
+    })(window);
+  </script>
+</body>
+</html>

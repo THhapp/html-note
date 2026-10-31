@@ -1,0 +1,81 @@
+/*!
+ * 对象关系连线 · NoteExpr.Link 样式 v1.0.0
+ * 作用域：全部选择器以 .nx-link 为前缀；不写全局选择器 / :root / @import / 外链。
+ * 宿主可在实例根（link.el.style）上覆盖 --nx-* 与 --nx-z。
+ */
+
+.nx-link {
+  --nx-ink: #1b2430;
+  --nx-ink-soft: #4f5a6a;
+  --nx-hair: #aab4c3;
+  --nx-label-bg: rgba(255, 255, 255, .92);
+  --nx-font: "Segoe UI", system-ui, -apple-system, "Microsoft YaHei", "PingFang SC", sans-serif;
+
+  position: fixed;
+  inset: 0;
+  z-index: var(--nx-z, 1200);
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.nx-link__svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.nx-link__path,
+.nx-link__ghost {
+  fill: none;
+  stroke: var(--nx-hair);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.nx-link__arrow,
+.nx-link__ghost--arrow {
+  fill: var(--nx-hair);
+  stroke: none;
+  pointer-events: none;
+}
+
+.nx-link__dot,
+.nx-link__ghost--dot {
+  fill: var(--nx-hair);
+  stroke: none;
+  pointer-events: none;
+}
+
+.nx-link__label,
+.nx-link__ghost-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  box-sizing: border-box;
+  max-width: 220px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--nx-label-bg);
+  color: var(--nx-ink);
+  font-family: var(--nx-font);
+  font-size: 12px;
+  line-height: 1.4;
+  letter-spacing: .01em;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  text-align: center;
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+}

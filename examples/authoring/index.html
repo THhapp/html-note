@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>作者装配与聚焦 · NoteDemo</title>
+  <link rel="stylesheet" href="../../dist/note-library.css">
+  <link rel="stylesheet" href="authoring.css">
+</head>
+<body>
+  <main class="authoring-page">
+    <header class="authoring-head">
+      <p class="authoring-kicker">NOTE DEMO · AUTHORING ENTRY</p>
+      <h1 class="authoring-title">作者装配与聚焦</h1>
+      <p class="authoring-lede">
+        两个内容都从同一个普通 JavaScript 配方 <code>NoteDemoRecipes.focusWorkbench</code> 进入。
+        作者给出内容视图、场景参与者和按顺序的关注意图；运行层负责焦点框交接、推进、回退、取消与减少动效。
+      </p>
+      <p class="authoring-entry">var demo = NoteDemoRecipes.focusWorkbench({ bindings, initial, steps, sources, process, readout, result });<br>
+        NoteDemo.mount(host, demo);</p>
+    </header>
+
+    <section class="authoring-demo">
+      <div class="authoring-demo-head">
+        <p class="authoring-demo-note">两个矩阵仍是稳定参照；焦点框按 A 单元 → B 单元 → 乘积 → 累计值交接。</p>
+      </div>
+      <div data-demo-host data-author-demo="matrix"></div>
+    </section>
+
+    <section class="authoring-demo">
+      <div class="authoring-demo-head">
+        <p class="authoring-demo-note">同一配方、单行来源；没有矩阵坐标和专用 CSS，焦点顺序改由数据声明。</p>
+      </div>
+      <div data-demo-host data-author-demo="sequence"></div>
+    </section>
+
+    <footer class="authoring-foot">
+      <p>画面默认静止；请使用演示下方控件推进。离线单文件与开发入口使用同一份作者入口（整库 JS/CSS）。</p>
+      <p>完整 Definition 仍是高级入口；例如可将 <code>demo.definition</code> 交给 <code>NoteDemo.create</code> 或保存后检查。字幕和操作位置由公共舞台维护。</p>
+    </footer>
+  </main>
+
+  <script src="../../dist/note-library.js"></script>
+  <script src="data.js"></script>
+  <script src="boot.js"></script>
+</body>
+</html>

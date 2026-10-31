@@ -1,0 +1,37 @@
+{
+  "module": "viz-chart",
+  "title": "基础统计图",
+  "js": ["src/viz/chart.js"],
+  "css": ["src/viz/chart.css"],
+  "demos": ["gallery/demos/viz-chart.js"],
+  "dependencies": ["core"],
+  "entries": [
+    {
+      "id": "V01",
+      "name": "NoteViz.Chart",
+      "cn": "基础图表",
+      "category": "基础统计图",
+      "purpose": "用同一组件的 type 变体呈现柱状、折线、散点与饼图，支持数据/标签/图例替换、系列或点强调、本步变化与可读数据表。",
+      "inputs": ["type", "data", "labels", "series", "focus", "changed", "colors", "height", "valueFormat", "table", "label", "unit", "xLabel", "yLabel", "animate"],
+      "customizable": ["数据与系列", "类别标签与系列标签/图例", "focus 与 changed 强调", "高度", "颜色序列与系列颜色", "valueFormat 数值格式", "数据表开关", "标题、单位与散点轴名"],
+      "states": ["柱状图（含负值与 0 基线）", "折线图（缺失值断开）", "散点图（两维 x/y）", "饼图（图例+数值+占比）", "多系列", "单系列/单点", "空数据", "长中文/长英文标签", "窄容器", "focus/changed 合成", "数据表展开/收起", "高图局部滚动", "减少动效"],
+      "usage": "NoteViz.Chart.mount(host, { type: 'bar', data: [{ label: 'Q1', value: 42 }], label: '季度销量', unit: '万件', table: true })",
+      "dependencies": ["core"],
+      "limitations": [
+        "不做缩放、平移、拖拽、实时数据推送、自动步进或自动轮播。",
+        "不做堆叠柱/面积图、趋势线、回归、移动平均等统计派生；不伪造趋势或完成率。",
+        "饼图只使用一个系列，且只用正值计算角度；0/负值不画扇区，仍保留在图例与数据表。",
+        "多系列时 getTarget('point:<index>') 返回首个包含该索引标记系列的代表元素，不是跨系列唯一对象；饼图该 id 返回 null。",
+        "不提供自定义 tooltip/crosshair、表格排序筛选、暗色主题专项适配或大数据抽样/虚拟化。",
+        "建议系列 ≤8、散点 ≤3（严格 CVD all-pairs）、饼图 ≤6 扇区；超出时由宿主拆图/分面/折叠为“其他”，组件不自动聚合；第 9 个系列起默认颜色循环。",
+        "默认颜色按当前系列顺序分配；宿主若会过滤或重排系列，应传 series[].color（饼图 data[].color）固定实体颜色。",
+        "animate 只做一次整体显示过渡，仅在宿主 update 更换数据/系列/类型/标签时触发；不做对象级移动或数值滚动。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "新增候选，未获用户评价",
+      "consensus": ["K03", "K06", "K07", "K12"],
+      "docs": "docs/viz-chart.md#V01",
+      "notes": "纯 SVG 自写，无外部图表库。默认 8 色序列经白底 CVD/对比度校验，多系列还叠加形状/线型/纹理与图例；单系列不显示冗余图例。table 默认 false，gallery 演示开启并展开。unit/xLabel/yLabel 为可选增补键，不改变冻结接口已有键。自检见 tests/checks/viz-chart-*。"
+    }
+  ]
+}

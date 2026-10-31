@@ -1,0 +1,602 @@
+{
+  "positioning": "研究记录（非现行 API）；现行接口见 docs/公共编排层.md 与 docs/架构与接口.md",
+  "date": "2026-10-29",
+  "scope": "源码研究；未安装、未接入工程、未作浏览器播放验收",
+  "note": "固定提交与行号是研究时的源码入口，不表示当前依赖、当前行为契约或必须采用。",
+  "sources": [
+    {
+      "id": "anime",
+      "name": "Anime.js",
+      "repo": "juliangarnier/anime",
+      "ref": "2c9cf8ea00329f6768c7d7902252ed977d75ce42",
+      "version": "4.5.0",
+      "license": "MIT",
+      "adoption": "直接依赖候选：HTML 布局过渡、时间轴；需取消包装，SVG 另路",
+      "files": [
+        {
+          "path": "src/layout/layout.js",
+          "line": 948,
+          "purpose": "AutoLayout / record / animate / update",
+          "url": "https://github.com/juliangarnier/anime/blob/2c9cf8ea00329f6768c7d7902252ed977d75ce42/src/layout/layout.js#L948"
+        },
+        {
+          "path": "src/layout/layout.js",
+          "line": 1600,
+          "purpose": "同步 update 回调；不等待 Promise",
+          "url": "https://github.com/juliangarnier/anime/blob/2c9cf8ea00329f6768c7d7902252ed977d75ce42/src/layout/layout.js#L1600"
+        },
+        {
+          "path": "src/timer/timer.js",
+          "line": 450,
+          "purpose": "Timer.cancel",
+          "url": "https://github.com/juliangarnier/anime/blob/2c9cf8ea00329f6768c7d7902252ed977d75ce42/src/timer/timer.js#L450"
+        },
+        {
+          "path": "src/timer/timer.js",
+          "line": 507,
+          "purpose": "Timer.then",
+          "url": "https://github.com/juliangarnier/anime/blob/2c9cf8ea00329f6768c7d7902252ed977d75ce42/src/timer/timer.js#L507"
+        },
+        {
+          "path": "package.json",
+          "line": 1,
+          "purpose": "exports 与经典 UMD 分发",
+          "url": "https://github.com/juliangarnier/anime/blob/2c9cf8ea00329f6768c7d7902252ed977d75ce42/package.json#L1"
+        },
+        {
+          "path": "LICENSE.md",
+          "line": 1,
+          "purpose": "许可",
+          "url": "https://github.com/juliangarnier/anime/blob/2c9cf8ea00329f6768c7d7902252ed977d75ce42/LICENSE.md#L1"
+        }
+      ],
+      "repositoryUrl": "https://github.com/juliangarnier/anime"
+    },
+    {
+      "id": "motion",
+      "name": "Motion",
+      "repo": "motiondivision/motion",
+      "ref": "9ba8846b6819172cb829e65a9f46433a4de377ab",
+      "version": "14.7.1",
+      "license": "MIT",
+      "adoption": "直接依赖候选：vanilla animateLayout；ready / finished 分开，需取消包装",
+      "files": [
+        {
+          "path": "packages/motion-dom/src/layout/animate-layout.ts",
+          "line": 19,
+          "purpose": "原生 DOM 布局入口",
+          "url": "https://github.com/motiondivision/motion/blob/9ba8846b6819172cb829e65a9f46433a4de377ab/packages/motion-dom/src/layout/animate-layout.ts#L19"
+        },
+        {
+          "path": "packages/motion-dom/src/layout/LayoutAnimationBuilder.ts",
+          "line": 227,
+          "purpose": "跨 builder 批量捕获、提交和完成",
+          "url": "https://github.com/motiondivision/motion/blob/9ba8846b6819172cb829e65a9f46433a4de377ab/packages/motion-dom/src/layout/LayoutAnimationBuilder.ts#L227"
+        },
+        {
+          "path": "packages/motion-dom/src/layout/LayoutAnimationBuilder.ts",
+          "line": 336,
+          "purpose": "ready thenable",
+          "url": "https://github.com/motiondivision/motion/blob/9ba8846b6819172cb829e65a9f46433a4de377ab/packages/motion-dom/src/layout/LayoutAnimationBuilder.ts#L336"
+        },
+        {
+          "path": "packages/motion-dom/src/animation/NativeAnimation.ts",
+          "line": 98,
+          "purpose": "自然完成与取消",
+          "url": "https://github.com/motiondivision/motion/blob/9ba8846b6819172cb829e65a9f46433a4de377ab/packages/motion-dom/src/animation/NativeAnimation.ts#L98"
+        },
+        {
+          "path": "packages/motion-dom/src/animation/JSAnimation.ts",
+          "line": 1,
+          "purpose": "布局动画的 JS 驱动句柄",
+          "url": "https://github.com/motiondivision/motion/blob/9ba8846b6819172cb829e65a9f46433a4de377ab/packages/motion-dom/src/animation/JSAnimation.ts#L1"
+        },
+        {
+          "path": "packages/motion-dom/src/animation/utils/WithPromise.ts",
+          "line": 14,
+          "purpose": "finished 结算",
+          "url": "https://github.com/motiondivision/motion/blob/9ba8846b6819172cb829e65a9f46433a4de377ab/packages/motion-dom/src/animation/utils/WithPromise.ts#L14"
+        },
+        {
+          "path": "packages/motion-dom/src/projection/node/create-projection-node.ts",
+          "line": 631,
+          "purpose": "布局减少动效路径",
+          "url": "https://github.com/motiondivision/motion/blob/9ba8846b6819172cb829e65a9f46433a4de377ab/packages/motion-dom/src/projection/node/create-projection-node.ts#L631"
+        },
+        {
+          "path": "packages/motion-dom/src/index.ts",
+          "line": 326,
+          "purpose": "发布导出链",
+          "url": "https://github.com/motiondivision/motion/blob/9ba8846b6819172cb829e65a9f46433a4de377ab/packages/motion-dom/src/index.ts#L326"
+        },
+        {
+          "path": "LICENSE.md",
+          "line": 1,
+          "purpose": "许可",
+          "url": "https://github.com/motiondivision/motion/blob/9ba8846b6819172cb829e65a9f46433a4de377ab/LICENSE.md#L1"
+        },
+        {
+          "path": "packages/framer-motion/src/animation/sequence/create.ts",
+          "line": 45,
+          "purpose": "属性时间轴、标签与相对位置",
+          "url": "https://github.com/motiondivision/motion/blob/9ba8846b6819172cb829e65a9f46433a4de377ab/packages/framer-motion/src/animation/sequence/create.ts#L45"
+        }
+      ],
+      "repositoryUrl": "https://github.com/motiondivision/motion"
+    },
+    {
+      "id": "gsap",
+      "name": "GSAP / Flip",
+      "repo": "greensock/GSAP",
+      "ref": "13e2b790546426a1a2e0e9b409f3f8dc6d6611f2",
+      "version": "3.15.0（所读源码版本）",
+      "license": "GSAP Standard No Charge License；自定义许可",
+      "adoption": "技术能力强的第三依赖候选；许可边界需保留",
+      "files": [
+        {
+          "path": "src/Flip.js",
+          "line": 185,
+          "purpose": "data-flip-id",
+          "url": "https://github.com/greensock/GSAP/blob/13e2b790546426a1a2e0e9b409f3f8dc6d6611f2/src/Flip.js#L185"
+        },
+        {
+          "path": "src/Flip.js",
+          "line": 325,
+          "purpose": "_fromTo",
+          "url": "https://github.com/greensock/GSAP/blob/13e2b790546426a1a2e0e9b409f3f8dc6d6611f2/src/Flip.js#L325"
+        },
+        {
+          "path": "src/Flip.js",
+          "line": 627,
+          "purpose": "FlipState.compare",
+          "url": "https://github.com/greensock/GSAP/blob/13e2b790546426a1a2e0e9b409f3f8dc6d6611f2/src/Flip.js#L627"
+        },
+        {
+          "path": "src/Flip.js",
+          "line": 793,
+          "purpose": "FlipBatch",
+          "url": "https://github.com/greensock/GSAP/blob/13e2b790546426a1a2e0e9b409f3f8dc6d6611f2/src/Flip.js#L793"
+        },
+        {
+          "path": "src/gsap-core.js",
+          "line": 390,
+          "purpose": "时间轴相对位置",
+          "url": "https://github.com/greensock/GSAP/blob/13e2b790546426a1a2e0e9b409f3f8dc6d6611f2/src/gsap-core.js#L390"
+        },
+        {
+          "path": "src/gsap-core.js",
+          "line": 646,
+          "purpose": "kill 不结算 then",
+          "url": "https://github.com/greensock/GSAP/blob/13e2b790546426a1a2e0e9b409f3f8dc6d6611f2/src/gsap-core.js#L646"
+        },
+        {
+          "path": "src/gsap-core.js",
+          "line": 1420,
+          "purpose": "多个 then 的链式结算",
+          "url": "https://github.com/greensock/GSAP/blob/13e2b790546426a1a2e0e9b409f3f8dc6d6611f2/src/gsap-core.js#L1420"
+        },
+        {
+          "path": "src/utils/matrix.js",
+          "line": 286,
+          "purpose": "全局坐标矩阵",
+          "url": "https://github.com/greensock/GSAP/blob/13e2b790546426a1a2e0e9b409f3f8dc6d6611f2/src/utils/matrix.js#L286"
+        }
+      ],
+      "repositoryUrl": "https://github.com/greensock/GSAP"
+    },
+    {
+      "id": "autoanimate",
+      "name": "AutoAnimate",
+      "repo": "formkit/auto-animate",
+      "ref": "b6a6feebf75c198dd85f280c549bc0303f9e7aa8",
+      "version": "0.10.0",
+      "license": "MIT",
+      "adoption": "适合自动布局增强；不作为公共步骤执行器",
+      "files": [
+        {
+          "path": "src/index.ts",
+          "line": 1,
+          "purpose": "WeakMap 身份、MutationObserver、位置缓存与 add/remain/remove",
+          "url": "https://github.com/formkit/auto-animate/blob/b6a6feebf75c198dd85f280c549bc0303f9e7aa8/src/index.ts#L1"
+        },
+        {
+          "path": "LICENSE",
+          "line": 1,
+          "purpose": "许可",
+          "url": "https://github.com/formkit/auto-animate/blob/b6a6feebf75c198dd85f280c549bc0303f9e7aa8/LICENSE#L1"
+        }
+      ],
+      "repositoryUrl": "https://github.com/formkit/auto-animate"
+    },
+    {
+      "id": "svelte",
+      "name": "Svelte",
+      "repo": "sveltejs/svelte",
+      "ref": "23bb146306ff02cc5041bca0c5de9f8bd086e4a3",
+      "version": "5.57.3",
+      "license": "MIT",
+      "adoption": "局部移植 flip 几何、keyed crossfade、测量/执行分阶段；不引入整个框架",
+      "files": [
+        {
+          "path": "packages/svelte/src/animate/index.js",
+          "line": 1,
+          "purpose": "flip",
+          "url": "https://github.com/sveltejs/svelte/blob/23bb146306ff02cc5041bca0c5de9f8bd086e4a3/packages/svelte/src/animate/index.js#L1"
+        },
+        {
+          "path": "packages/svelte/src/transition/index.js",
+          "line": 1,
+          "purpose": "crossfade",
+          "url": "https://github.com/sveltejs/svelte/blob/23bb146306ff02cc5041bca0c5de9f8bd086e4a3/packages/svelte/src/transition/index.js#L1"
+        },
+        {
+          "path": "packages/svelte/src/internal/client/dom/blocks/each.js",
+          "line": 1,
+          "purpose": "keyed each 布局更新",
+          "url": "https://github.com/sveltejs/svelte/blob/23bb146306ff02cc5041bca0c5de9f8bd086e4a3/packages/svelte/src/internal/client/dom/blocks/each.js#L1"
+        },
+        {
+          "path": "packages/svelte/src/internal/client/dom/elements/transitions.js",
+          "line": 1,
+          "purpose": "measure / fix / apply 与清理",
+          "url": "https://github.com/sveltejs/svelte/blob/23bb146306ff02cc5041bca0c5de9f8bd086e4a3/packages/svelte/src/internal/client/dom/elements/transitions.js#L1"
+        }
+      ],
+      "repositoryUrl": "https://github.com/sveltejs/svelte"
+    },
+    {
+      "id": "reveal",
+      "name": "Reveal.js",
+      "repo": "hakimel/reveal.js",
+      "ref": "e240e175232fa2de660a02bc0d7bf5f655b159bb",
+      "version": "6.0.2（所读源码版本）",
+      "license": "MIT",
+      "adoption": "局部移植对象配对、文字缩放保护、属性归属；整套可作另一宿主选项",
+      "files": [
+        {
+          "path": "js/controllers/autoanimate.js",
+          "line": 24,
+          "purpose": "run 与 reset",
+          "url": "https://github.com/hakimel/reveal.js/blob/e240e175232fa2de660a02bc0d7bf5f655b159bb/js/controllers/autoanimate.js#L24"
+        },
+        {
+          "path": "js/controllers/autoanimate.js",
+          "line": 160,
+          "purpose": "配对后计算反向变换",
+          "url": "https://github.com/hakimel/reveal.js/blob/e240e175232fa2de660a02bc0d7bf5f655b159bb/js/controllers/autoanimate.js#L160"
+        },
+        {
+          "path": "js/controllers/autoanimate.js",
+          "line": 418,
+          "purpose": "匹配规则与显式 ID",
+          "url": "https://github.com/hakimel/reveal.js/blob/e240e175232fa2de660a02bc0d7bf5f655b159bb/js/controllers/autoanimate.js#L418"
+        },
+        {
+          "path": "js/controllers/fragments.js",
+          "line": 99,
+          "purpose": "同次点击分组",
+          "url": "https://github.com/hakimel/reveal.js/blob/e240e175232fa2de660a02bc0d7bf5f655b159bb/js/controllers/fragments.js#L99"
+        },
+        {
+          "path": "js/reveal.js",
+          "line": 2283,
+          "purpose": "getState / setState 的范围",
+          "url": "https://github.com/hakimel/reveal.js/blob/e240e175232fa2de660a02bc0d7bf5f655b159bb/js/reveal.js#L2283"
+        }
+      ],
+      "repositoryUrl": "https://github.com/hakimel/reveal.js"
+    },
+    {
+      "id": "slidev",
+      "name": "Slidev",
+      "repo": "slidevjs/slidev",
+      "ref": "a42aff28dd75f26eb5abbf3d616ea022c3d08924",
+      "version": "53.0.0（所读源码版本）",
+      "license": "MIT",
+      "adoption": "借用完整目标重算、停点分组、构建时预编译；整套改变宿主技术栈",
+      "files": [
+        {
+          "path": "packages/client/composables/useClicks.ts",
+          "line": 31,
+          "purpose": "点击范围规范化",
+          "url": "https://github.com/slidevjs/slidev/blob/a42aff28dd75f26eb5abbf3d616ea022c3d08924/packages/client/composables/useClicks.ts#L31"
+        },
+        {
+          "path": "packages/client/modules/v-click.ts",
+          "line": 28,
+          "purpose": "v-after +0 分组语义",
+          "url": "https://github.com/slidevjs/slidev/blob/a42aff28dd75f26eb5abbf3d616ea022c3d08924/packages/client/modules/v-click.ts#L28"
+        },
+        {
+          "path": "packages/client/modules/v-motion.ts",
+          "line": 58,
+          "purpose": "完整目标合成",
+          "url": "https://github.com/slidevjs/slidev/blob/a42aff28dd75f26eb5abbf3d616ea022c3d08924/packages/client/modules/v-motion.ts#L58"
+        },
+        {
+          "path": "packages/slidev/node/syntax/codeblock/magic-move.ts",
+          "line": 44,
+          "purpose": "预编译 keyed tokens",
+          "url": "https://github.com/slidevjs/slidev/blob/a42aff28dd75f26eb5abbf3d616ea022c3d08924/packages/slidev/node/syntax/codeblock/magic-move.ts#L44"
+        },
+        {
+          "path": "packages/client/builtin/ShikiMagicMove.vue",
+          "line": 99,
+          "purpose": "异步过期保护与重新测量",
+          "url": "https://github.com/slidevjs/slidev/blob/a42aff28dd75f26eb5abbf3d616ea022c3d08924/packages/client/builtin/ShikiMagicMove.vue#L99"
+        },
+        {
+          "path": "packages/slidev/node/commands/build.ts",
+          "line": 12,
+          "purpose": "Vite 静态应用构建",
+          "url": "https://github.com/slidevjs/slidev/blob/a42aff28dd75f26eb5abbf3d616ea022c3d08924/packages/slidev/node/commands/build.ts#L12"
+        }
+      ],
+      "repositoryUrl": "https://github.com/slidevjs/slidev"
+    },
+    {
+      "id": "shiki",
+      "name": "Shiki Magic Move",
+      "repo": "shikijs/shiki",
+      "ref": "f7d0167873fd676fe4e190bc9b53832fba9ee01d",
+      "version": "@shikijs/magic-move 4.5.0（所读源码版本）",
+      "license": "MIT",
+      "adoption": "代码变更可直接使用独立 renderer；通用图形只能局部移植几何流程",
+      "files": [
+        {
+          "path": "packages/magic-move/src/core.ts",
+          "line": 230,
+          "purpose": "syncTokenKeys",
+          "url": "https://github.com/shikijs/shiki/blob/f7d0167873fd676fe4e190bc9b53832fba9ee01d/packages/magic-move/src/core.ts#L230"
+        },
+        {
+          "path": "packages/magic-move/src/renderer.ts",
+          "line": 118,
+          "purpose": "真实动画完成聚合",
+          "url": "https://github.com/shikijs/shiki/blob/f7d0167873fd676fe4e190bc9b53832fba9ee01d/packages/magic-move/src/renderer.ts#L118"
+        },
+        {
+          "path": "packages/magic-move/src/renderer.ts",
+          "line": 155,
+          "purpose": "replace / render / ghost / FLIP / reflow",
+          "url": "https://github.com/shikijs/shiki/blob/f7d0167873fd676fe4e190bc9b53832fba9ee01d/packages/magic-move/src/renderer.ts#L155"
+        },
+        {
+          "path": "packages/magic-move/src/style.css",
+          "line": 25,
+          "purpose": "相对 delay 与 stagger",
+          "url": "https://github.com/shikijs/shiki/blob/f7d0167873fd676fe4e190bc9b53832fba9ee01d/packages/magic-move/src/style.css#L25"
+        },
+        {
+          "path": "packages/magic-move/package.json",
+          "line": 1,
+          "purpose": "renderer 独立导出",
+          "url": "https://github.com/shikijs/shiki/blob/f7d0167873fd676fe4e190bc9b53832fba9ee01d/packages/magic-move/package.json#L1"
+        }
+      ],
+      "repositoryUrl": "https://github.com/shikijs/shiki"
+    },
+    {
+      "id": "motioncanvas",
+      "name": "Motion Canvas",
+      "repo": "motion-canvas/motion-canvas",
+      "ref": "7b91435c301d530351dcf5ebb91dd139c002e405",
+      "version": "core / player 3.17.2（所读源码版本）",
+      "license": "core / player MIT；FFmpeg 包 GPLv3，不作为本次复用候选",
+      "adoption": "借用 all / chain / sequence 与 generator 调度；不采用 Canvas 工程宿主",
+      "files": [
+        {
+          "path": "packages/core/src/flow/all.ts",
+          "line": 1,
+          "purpose": "同时启动并 join",
+          "url": "https://github.com/motion-canvas/motion-canvas/blob/7b91435c301d530351dcf5ebb91dd139c002e405/packages/core/src/flow/all.ts#L1"
+        },
+        {
+          "path": "packages/core/src/flow/chain.ts",
+          "line": 1,
+          "purpose": "完整串行",
+          "url": "https://github.com/motion-canvas/motion-canvas/blob/7b91435c301d530351dcf5ebb91dd139c002e405/packages/core/src/flow/chain.ts#L1"
+        },
+        {
+          "path": "packages/core/src/flow/sequence.ts",
+          "line": 1,
+          "purpose": "按间隔启动、允许重叠",
+          "url": "https://github.com/motion-canvas/motion-canvas/blob/7b91435c301d530351dcf5ebb91dd139c002e405/packages/core/src/flow/sequence.ts#L1"
+        },
+        {
+          "path": "packages/core/src/flow/scheduling.ts",
+          "line": 48,
+          "purpose": "逻辑时钟与帧时钟",
+          "url": "https://github.com/motion-canvas/motion-canvas/blob/7b91435c301d530351dcf5ebb91dd139c002e405/packages/core/src/flow/scheduling.ts#L48"
+        },
+        {
+          "path": "packages/core/src/threading/Thread.ts",
+          "line": 18,
+          "purpose": "父子线程与取消所有权",
+          "url": "https://github.com/motion-canvas/motion-canvas/blob/7b91435c301d530351dcf5ebb91dd139c002e405/packages/core/src/threading/Thread.ts#L18"
+        },
+        {
+          "path": "packages/core/src/utils/beginSlide.ts",
+          "line": 1,
+          "purpose": "手动停点",
+          "url": "https://github.com/motion-canvas/motion-canvas/blob/7b91435c301d530351dcf5ebb91dd139c002e405/packages/core/src/utils/beginSlide.ts#L1"
+        },
+        {
+          "path": "packages/core/src/app/PlaybackManager.ts",
+          "line": 83,
+          "purpose": "reset + 重放实现向后 seek",
+          "url": "https://github.com/motion-canvas/motion-canvas/blob/7b91435c301d530351dcf5ebb91dd139c002e405/packages/core/src/app/PlaybackManager.ts#L83"
+        },
+        {
+          "path": "packages/2d/src/lib/components/Node.ts",
+          "line": 1795,
+          "purpose": "状态保存和并行恢复",
+          "url": "https://github.com/motion-canvas/motion-canvas/blob/7b91435c301d530351dcf5ebb91dd139c002e405/packages/2d/src/lib/components/Node.ts#L1795"
+        },
+        {
+          "path": "packages/core/package.json",
+          "line": 1,
+          "purpose": "core 许可和依赖",
+          "url": "https://github.com/motion-canvas/motion-canvas/blob/7b91435c301d530351dcf5ebb91dd139c002e405/packages/core/package.json#L1"
+        },
+        {
+          "path": "packages/ffmpeg/package.json",
+          "line": 1,
+          "purpose": "FFmpeg 包的 GPLv3 边界",
+          "url": "https://github.com/motion-canvas/motion-canvas/blob/7b91435c301d530351dcf5ebb91dd139c002e405/packages/ffmpeg/package.json#L1"
+        }
+      ],
+      "repositoryUrl": "https://github.com/motion-canvas/motion-canvas"
+    },
+    {
+      "id": "visualexplainer",
+      "name": "visual-explainer",
+      "repo": "nicobailon/visual-explainer",
+      "ref": "5f378868e0ea745a6284b51e710c390f0c76f72c",
+      "version": "固定提交",
+      "license": "MIT（项目自有代码）",
+      "adoption": "直接竞争形态参考：小型 runtime＋构建编译器；按需复用 data 标记和 SVG 生成",
+      "files": [
+        {
+          "path": "plugins/visual-explainer/kit/kit.js",
+          "line": 5,
+          "purpose": "data-ref 联动",
+          "url": "https://github.com/nicobailon/visual-explainer/blob/5f378868e0ea745a6284b51e710c390f0c76f72c/plugins/visual-explainer/kit/kit.js#L5"
+        },
+        {
+          "path": "plugins/visual-explainer/kit/kit.js",
+          "line": 21,
+          "purpose": "stepper",
+          "url": "https://github.com/nicobailon/visual-explainer/blob/5f378868e0ea745a6284b51e710c390f0c76f72c/plugins/visual-explainer/kit/kit.js#L21"
+        },
+        {
+          "path": "plugins/visual-explainer/kit/render.mjs",
+          "line": 52,
+          "purpose": "构建时展开与内联",
+          "url": "https://github.com/nicobailon/visual-explainer/blob/5f378868e0ea745a6284b51e710c390f0c76f72c/plugins/visual-explainer/kit/render.mjs#L52"
+        },
+        {
+          "path": "plugins/visual-explainer/kit/flow.mjs",
+          "line": 13,
+          "purpose": "数据生成 SVG",
+          "url": "https://github.com/nicobailon/visual-explainer/blob/5f378868e0ea745a6284b51e710c390f0c76f72c/plugins/visual-explainer/kit/flow.mjs#L13"
+        },
+        {
+          "path": "LICENSE",
+          "line": 1,
+          "purpose": "许可",
+          "url": "https://github.com/nicobailon/visual-explainer/blob/5f378868e0ea745a6284b51e710c390f0c76f72c/LICENSE#L1"
+        }
+      ],
+      "repositoryUrl": "https://github.com/nicobailon/visual-explainer"
+    },
+    {
+      "id": "openmaic",
+      "name": "OpenMAIC",
+      "repo": "THU-MAIC/OpenMAIC",
+      "ref": "3618238dd515d2e3e4b7e282b0d9669c450e4522",
+      "version": "固定提交",
+      "license": "MIT",
+      "adoption": "选择性复用 ports / PauseGate / 共享时间规格 / 离线装配，不搬课堂应用",
+      "files": [
+        {
+          "path": "lib/standalone-player/playback/sequencer.ts",
+          "line": 95,
+          "purpose": "可取消串行器与 ports",
+          "url": "https://github.com/THU-MAIC/OpenMAIC/blob/3618238dd515d2e3e4b7e282b0d9669c450e4522/lib/standalone-player/playback/sequencer.ts#L95"
+        },
+        {
+          "path": "lib/standalone-player/playback/pause-gate.ts",
+          "line": 9,
+          "purpose": "暂停/恢复/取消延时",
+          "url": "https://github.com/THU-MAIC/OpenMAIC/blob/3618238dd515d2e3e4b7e282b0d9669c450e4522/lib/standalone-player/playback/pause-gate.ts#L9"
+        },
+        {
+          "path": "lib/choreography/timeline.ts",
+          "line": 128,
+          "purpose": "视觉时长与推进时间分离",
+          "url": "https://github.com/THU-MAIC/OpenMAIC/blob/3618238dd515d2e3e4b7e282b0d9669c450e4522/lib/choreography/timeline.ts#L128"
+        },
+        {
+          "path": "lib/choreography/timing.ts",
+          "line": 1,
+          "purpose": "在线与导出共享时序",
+          "url": "https://github.com/THU-MAIC/OpenMAIC/blob/3618238dd515d2e3e4b7e282b0d9669c450e4522/lib/choreography/timing.ts#L1"
+        },
+        {
+          "path": "scripts/build-standalone-player.mjs",
+          "line": 71,
+          "purpose": "预构建 IIFE",
+          "url": "https://github.com/THU-MAIC/OpenMAIC/blob/3618238dd515d2e3e4b7e282b0d9669c450e4522/scripts/build-standalone-player.mjs#L71"
+        },
+        {
+          "path": "lib/export/standalone-html/assemble.ts",
+          "line": 207,
+          "purpose": "离线 HTML 装配",
+          "url": "https://github.com/THU-MAIC/OpenMAIC/blob/3618238dd515d2e3e4b7e282b0d9669c450e4522/lib/export/standalone-html/assemble.ts#L207"
+        },
+        {
+          "path": "lib/playback/engine.ts",
+          "line": 1,
+          "purpose": "实际播放引擎",
+          "url": "https://github.com/THU-MAIC/OpenMAIC/blob/3618238dd515d2e3e4b7e282b0d9669c450e4522/lib/playback/engine.ts#L1"
+        },
+        {
+          "path": "LICENSE",
+          "line": 1,
+          "purpose": "许可",
+          "url": "https://github.com/THU-MAIC/OpenMAIC/blob/3618238dd515d2e3e4b7e282b0d9669c450e4522/LICENSE#L1"
+        }
+      ],
+      "repositoryUrl": "https://github.com/THU-MAIC/OpenMAIC"
+    },
+    {
+      "id": "remotion",
+      "name": "Remotion",
+      "repo": "remotion-dev/remotion",
+      "ref": "cadb7d84b4ed887e274b16b0abc1f6f67dc93357",
+      "version": "core 4.0.539（所读源码版本）",
+      "license": "Remotion License；源码可读，非 MIT 类宽松许可",
+      "adoption": "帧驱动时间域和确定性定位的比较对象；不建议直接复制或迁入 React 视频宿主",
+      "files": [
+        {
+          "path": "packages/core/src/Sequence.tsx",
+          "line": 1,
+          "purpose": "局部帧与嵌套时间域",
+          "url": "https://github.com/remotion-dev/remotion/blob/cadb7d84b4ed887e274b16b0abc1f6f67dc93357/packages/core/src/Sequence.tsx#L1"
+        },
+        {
+          "path": "packages/core/src/use-current-frame.ts",
+          "line": 30,
+          "purpose": "从全局帧求局部帧",
+          "url": "https://github.com/remotion-dev/remotion/blob/cadb7d84b4ed887e274b16b0abc1f6f67dc93357/packages/core/src/use-current-frame.ts#L30"
+        },
+        {
+          "path": "packages/core/src/series/index.tsx",
+          "line": 1,
+          "purpose": "间隔、重叠与序列累计",
+          "url": "https://github.com/remotion-dev/remotion/blob/cadb7d84b4ed887e274b16b0abc1f6f67dc93357/packages/core/src/series/index.tsx#L1"
+        },
+        {
+          "path": "packages/transitions/src/TransitionSeries.tsx",
+          "line": 1,
+          "purpose": "跨场景重叠",
+          "url": "https://github.com/remotion-dev/remotion/blob/cadb7d84b4ed887e274b16b0abc1f6f67dc93357/packages/transitions/src/TransitionSeries.tsx#L1"
+        },
+        {
+          "path": "packages/player/src/calculate-next-frame.ts",
+          "line": 1,
+          "purpose": "播放器帧推进",
+          "url": "https://github.com/remotion-dev/remotion/blob/cadb7d84b4ed887e274b16b0abc1f6f67dc93357/packages/player/src/calculate-next-frame.ts#L1"
+        },
+        {
+          "path": "LICENSE.md",
+          "line": 1,
+          "purpose": "许可范围",
+          "url": "https://github.com/remotion-dev/remotion/blob/cadb7d84b4ed887e274b16b0abc1f6f67dc93357/LICENSE.md#L1"
+        }
+      ],
+      "repositoryUrl": "https://github.com/remotion-dev/remotion"
+    }
+  ]
+}

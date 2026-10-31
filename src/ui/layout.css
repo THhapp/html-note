@@ -1,0 +1,391 @@
+/* NoteUI layout components — L01–L08.
+ * Owned classes: .nui-container, .nui-vstack, .nui-hstack, .nui-grid,
+ * .nui-panel, .nui-divider, .nui-scroll-area, .nui-split.
+ * Uses shared --hnv-* tokens only. No global element/body selectors.
+ * External distances belong to the host; component roots add no block margins.
+ */
+
+.nui-container,
+.nui-vstack,
+.nui-hstack,
+.nui-grid,
+.nui-panel,
+.nui-divider,
+.nui-scroll-area,
+.nui-split {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  color: var(--hnv-color-ink, #202938);
+  font-family: var(--hnv-font-family, "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif);
+  overflow-wrap: anywhere;
+}
+
+/* L01 — readable width and padding. Centering uses auto inline margins
+ * because a block container cannot centre itself without them. */
+.nui-container {
+  width: 100%;
+  margin-block: 0;
+  margin-inline: 0;
+  font-size: var(--hnv-font-size-reading, 16px);
+  line-height: var(--hnv-font-line-reading, 1.65);
+}
+.nui-container[data-align="center"] {
+  margin-inline: auto;
+}
+.nui-container[data-padding="none"] { padding: 0; }
+.nui-container[data-padding="sm"] { padding: var(--hnv-space-3, 12px); }
+.nui-container[data-padding="md"] { padding: var(--hnv-space-object-inner, 20px); }
+.nui-container[data-padding="lg"] { padding: var(--hnv-space-group, 28px); }
+
+/* L02 — vertical flow. Deliberately not the legacy .nui-stack class. */
+.nui-vstack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hnv-space-object-gap, 14px);
+  align-items: stretch;
+}
+.nui-vstack > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* L03 — wrapping inline flow. Direct items keep their intrinsic width and
+ * may wrap internally, rather than being squeezed into unreadable slips. */
+.nui-hstack {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hnv-space-object-gap, 14px);
+}
+.nui-hstack > * {
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+.nui-hstack[data-wrap="false"] {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.nui-hstack[data-wrap="false"] > * {
+  flex-shrink: 0;
+}
+
+/* L04 — container-responsive grid. The inline template chooses either fixed
+ * equal columns or repeat(auto-fit, minmax(min(100%, width), 1fr)). */
+.nui-grid {
+  display: grid;
+  gap: var(--hnv-space-object-gap, 14px);
+  align-items: stretch;
+}
+.nui-grid > * {
+  min-width: 0;
+  max-width: 100%;
+}
+.nui-grid > [data-nui-span="2"] { grid-column: span 2; }
+.nui-grid > [data-nui-span="3"] { grid-column: span 3; }
+.nui-grid > [data-nui-span="4"] { grid-column: span 4; }
+.nui-grid > [data-nui-span="5"] { grid-column: span 5; }
+.nui-grid > [data-nui-span="6"] { grid-column: span 6; }
+.nui-grid > [data-nui-span="7"] { grid-column: span 7; }
+.nui-grid > [data-nui-span="8"] { grid-column: span 8; }
+.nui-grid > [data-nui-span="9"] { grid-column: span 9; }
+.nui-grid > [data-nui-span="10"] { grid-column: span 10; }
+.nui-grid > [data-nui-span="11"] { grid-column: span 11; }
+.nui-grid > [data-nui-span="12"] { grid-column: span 12; }
+.nui-grid > [data-nui-span="full"],
+.nui-grid > [data-nui-span="all"] { grid-column: 1 / -1; }
+
+/* L05 — local panel. Tones decorate the local surface only; the component
+ * does not install a page theme. */
+.nui-panel {
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-object, 10px);
+  background: var(--hnv-color-surface, #ffffff);
+}
+.nui-panel[data-border="none"] {
+  border-width: 0;
+}
+.nui-panel[data-tone="plain"] {
+  background: var(--hnv-color-surface, #ffffff);
+}
+.nui-panel[data-tone="raised"] {
+  background: var(--hnv-color-surface, #ffffff);
+  box-shadow: var(--hnv-shadow-object, 0 4px 16px rgba(32, 41, 56, 0.09));
+}
+.nui-panel[data-tone="accent"] {
+  border-color: var(--hnv-color-attention, #6f82b7);
+  border-inline-start: 4px solid var(--hnv-color-accent, #315cda);
+  background: var(--hnv-color-accent-soft, #eef2ff);
+}
+.nui-panel[data-border="none"][data-tone="accent"] {
+  border-width: 0;
+}
+.nui-panel__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--hnv-space-object-gap, 14px);
+  border-bottom: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+}
+.nui-panel[data-padding="none"] .nui-panel__header,
+.nui-panel[data-padding="none"] .nui-panel__body,
+.nui-panel[data-padding="none"] .nui-panel__footer { padding: 0; }
+.nui-panel[data-padding="sm"] .nui-panel__header,
+.nui-panel[data-padding="sm"] .nui-panel__body,
+.nui-panel[data-padding="sm"] .nui-panel__footer { padding: var(--hnv-space-3, 12px); }
+.nui-panel[data-padding="md"] .nui-panel__header,
+.nui-panel[data-padding="md"] .nui-panel__body,
+.nui-panel[data-padding="md"] .nui-panel__footer { padding: var(--hnv-space-object-inner, 20px); }
+.nui-panel[data-padding="lg"] .nui-panel__header,
+.nui-panel[data-padding="lg"] .nui-panel__body,
+.nui-panel[data-padding="lg"] .nui-panel__footer { padding: var(--hnv-space-group, 28px); }
+.nui-panel__heading {
+  display: flex;
+  flex: 1 1 16rem;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.nui-panel__title {
+  font-size: var(--hnv-font-size-heading, 20px);
+  font-weight: 650;
+  line-height: 1.42;
+  overflow-wrap: anywhere;
+}
+.nui-panel__description {
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-reading, 16px);
+  line-height: var(--hnv-font-line-reading, 1.65);
+  overflow-wrap: anywhere;
+}
+.nui-panel__actions {
+  display: flex;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--hnv-space-2, 8px);
+  max-width: 100%;
+}
+.nui-panel__body {
+  min-width: 0;
+  font-size: var(--hnv-font-size-reading, 16px);
+  line-height: var(--hnv-font-line-reading, 1.65);
+  overflow-wrap: anywhere;
+}
+.nui-panel__body > :first-child { margin-top: 0; }
+.nui-panel__body > :last-child { margin-bottom: 0; }
+.nui-panel__footer {
+  border-top: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-label, 14px);
+  line-height: var(--hnv-font-line-reading, 1.65);
+  overflow-wrap: anywhere;
+}
+.nui-panel [hidden] { display: none; }
+
+/* L06 — semantic separator. Spacing is internal padding so the root has no
+ * block margin. Vertical dividers stretch and keep a usable minimum height. */
+.nui-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--hnv-space-2, 8px);
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-label, 14px);
+}
+.nui-divider[data-orientation="horizontal"] {
+  width: 100%;
+}
+.nui-divider__line {
+  flex: 1 1 auto;
+  min-width: 1rem;
+  height: var(--hnv-border-width, 1px);
+  background: var(--hnv-color-border, #dce2ea);
+}
+.nui-divider__label {
+  flex: 0 1 auto;
+  max-width: 100%;
+  line-height: 1.45;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.nui-divider[data-orientation="vertical"] {
+  display: inline-flex;
+  flex-direction: column;
+  align-self: stretch;
+  justify-content: center;
+  width: max-content;
+  min-height: 4rem;
+}
+.nui-divider[data-orientation="vertical"] .nui-divider__line {
+  width: var(--hnv-border-width, 1px);
+  min-width: 0;
+  min-height: 1rem;
+  height: auto;
+}
+.nui-divider[data-orientation="vertical"] .nui-divider__label {
+  flex: 0 1 auto;
+  max-height: 100%;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+.nui-divider [hidden] { display: none; }
+
+/* L07 — local scroll viewport. The viewport remains an ordinary native
+ * scroll container; wheel and touch scrolling are never cancelled. */
+.nui-scroll-area {
+  position: relative;
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-control, 8px);
+  background: var(--hnv-color-surface, #ffffff);
+}
+.nui-scroll-area__viewport {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  scrollbar-gutter: stable;
+}
+.nui-scroll-area__viewport:focus-visible {
+  outline: 3px solid var(--hnv-color-focus, #315cda);
+  outline-offset: 3px;
+}
+.nui-scroll-area__content {
+  min-width: 0;
+  padding: var(--hnv-space-object-inner, 20px);
+  font-size: var(--hnv-font-size-reading, 16px);
+  line-height: var(--hnv-font-line-reading, 1.65);
+  overflow-wrap: anywhere;
+}
+.nui-scroll-area[data-overflow-top="true"] .nui-scroll-area__viewport {
+  box-shadow: inset 0 14px 12px -14px color-mix(in srgb, var(--hnv-color-ink, #202938) 18%, transparent);
+}
+.nui-scroll-area[data-overflow-bottom="true"] .nui-scroll-area__viewport {
+  box-shadow: inset 0 -14px 12px -14px color-mix(in srgb, var(--hnv-color-ink, #202938) 18%, transparent);
+}
+.nui-scroll-area[data-overflow-top="true"][data-overflow-bottom="true"] .nui-scroll-area__viewport {
+  box-shadow:
+    inset 0 14px 12px -14px color-mix(in srgb, var(--hnv-color-ink, #202938) 18%, transparent),
+    inset 0 -14px 12px -14px color-mix(in srgb, var(--hnv-color-ink, #202938) 18%, transparent);
+}
+.nui-scroll-area__hint {
+  position: absolute;
+  z-index: 1;
+  padding: 2px 8px;
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-control, 8px);
+  background: var(--hnv-color-surface, #ffffff);
+  box-shadow: var(--hnv-shadow-object, 0 2px 8px rgba(32, 41, 56, 0.10));
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-label, 14px);
+  line-height: 1.45;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.nui-scroll-area__hint--top {
+  top: 6px;
+  right: 22px;
+}
+.nui-scroll-area__hint--bottom {
+  right: 22px;
+  bottom: 6px;
+}
+.nui-scroll-area__hint--left {
+  top: 50%;
+  left: 6px;
+  transform: translateY(-50%);
+}
+.nui-scroll-area__hint--right {
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+}
+.nui-scroll-area__hint[hidden] { display: none; }
+
+/* L08 — draggable split. JS stores a ratio and converts it to pixel tracks
+ * after applying minStart/minEnd. Vertical split needs a usable height. */
+.nui-split {
+  position: relative;
+  display: grid;
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-object, 10px);
+  background: var(--hnv-color-surface, #ffffff);
+  isolation: isolate;
+}
+.nui-split[data-orientation="vertical"] {
+  height: 22rem;
+}
+.nui-split__pane {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  background: transparent;
+  overflow-wrap: anywhere;
+}
+.nui-split__separator {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  background: var(--hnv-color-page, #f4f6f9);
+  color: var(--hnv-color-muted, #5c6879);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.nui-split[data-orientation="horizontal"] .nui-split__separator {
+  inline-size: 14px;
+  border-inline: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  cursor: col-resize;
+}
+.nui-split[data-orientation="vertical"] .nui-split__separator {
+  block-size: 14px;
+  border-block: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  cursor: row-resize;
+}
+.nui-split__separator:focus-visible {
+  outline: 3px solid var(--hnv-color-focus, #315cda);
+  outline-offset: 2px;
+}
+.nui-split__grip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  border-radius: var(--hnv-radius-pill, 999px);
+  background: var(--hnv-color-surface, #ffffff);
+  box-shadow: var(--hnv-shadow-object, 0 1px 2px rgba(32, 41, 56, 0.06));
+  color: var(--hnv-color-muted, #5c6879);
+  line-height: 1;
+  pointer-events: none;
+}
+.nui-split[data-orientation="horizontal"] .nui-split__grip {
+  padding-block: 6px;
+}
+.nui-split[data-orientation="vertical"] .nui-split__grip {
+  padding-inline: 6px;
+}
+.nui-split__separator:hover .nui-split__grip,
+.nui-split__separator:focus-visible .nui-split__grip {
+  color: var(--hnv-color-accent, #315cda);
+}
+.nui-split[data-dragging="true"] {
+  user-select: none;
+  -webkit-user-select: none;
+}
+.nui-split[data-dragging="true"] .nui-split__separator {
+  background: var(--hnv-color-accent-soft, #eef2ff);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nui-split__separator {
+    transition: none;
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "module": "ui-overlay",
+  "title": "浮层与弹出界面",
+  "js": ["src/ui/overlay.js"],
+  "css": ["src/ui/overlay.css"],
+  "demos": ["gallery/demos/ui-overlay.js"],
+  "dependencies": ["core", "legacy"],
+  "entries": [
+    {
+      "id": "O01",
+      "name": "NoteUI.Tooltip",
+      "cn": "轻提示",
+      "category": "浮层与弹出界面",
+      "purpose": "为可聚焦控件补充简短的辅助说明，悬停或键盘聚焦时出现，不承载必要信息或交互。",
+      "inputs": ["content", "anchor", "label", "placement", "delay", "focusDelay", "hideDelay", "disabled", "maxWidth", "onShow", "onHide"],
+      "customizable": ["说明文本或节点", "触发器或外部锚点", "方位", "显示/隐藏延迟", "最大宽度", "禁用", "显示/隐藏回调"],
+      "states": ["默认悬停", "键盘聚焦", "视口边缘翻转/夹紧", "禁用", "外部锚点", "滚动/失焦/Esc 关闭"],
+      "usage": "NoteUI.Tooltip.mount(host, { anchor: button, content: '辅助说明', placement: 'top' })",
+      "dependencies": ["core"],
+      "limitations": [
+        "内容必须不可交互，仅放辅助信息；必要解释应放在正文、图注或字幕中。",
+        "外部 anchor 需是已在文档中的可聚焦控件；本组件不改写其标签和键盘语义。",
+        "省略 anchor 时新建触发器随 disabled 设置原生 disabled；外部 anchor 的禁用外观由宿主负责。",
+        "滚动、点击外部、失焦、锚点移除与 Esc 的关闭由 NoteCore.floating 与触发器监听协作完成。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "新增候选，未获用户评价",
+      "consensus": ["K03", "K09", "K11"],
+      "docs": "docs/ui-overlay.md#O01",
+      "notes": ""
+    },
+    {
+      "id": "O02",
+      "name": "NoteUI.Popover",
+      "cn": "弹出说明",
+      "category": "浮层与弹出界面",
+      "purpose": "点击打开的说明面板，可承载按钮、表单等交互内容，关闭后焦点回到触发点。",
+      "inputs": ["triggerLabel", "content", "placement", "anchor", "open", "label", "disabled", "maxWidth", "onOpen", "onClose"],
+      "customizable": ["触发标签", "交互内容", "方位", "外部锚点", "初始开合", "面板名称", "禁用", "最大宽度"],
+      "states": ["点击打开", "可交互内容", "外部锚点", "焦点返回", "Esc/外点关闭", "程序 update 开合"],
+      "usage": "var p = NoteUI.Popover.mount(host, { triggerLabel: '筛选', content: formNode }); p.open(); p.close();",
+      "dependencies": ["core"],
+      "limitations": [
+        "不自动把焦点移入内容；内容需要焦点时由宿主自行聚焦。",
+        "关闭后按 I04 策略恢复焦点：焦点在面板内（含 Esc/面板内操作）时回到触发器；外部点击目标可能保留自身焦点。",
+        "关闭父层不会隐式关闭仍打开的嵌套子层；应先关闭子层，或使用 NoteCore.floating.closeAll()。",
+        "外部 anchor 需自行保证点击与键盘激活行为；新建触发器时使用原生 button，并随 disabled 原生禁用。",
+        "I04 仅对最上层应用 Tab 陷阱；Popover 作为最上层期间，下层模态的 Tab 循环会暂停（与 Tooltip 相同的 core 边界）。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "新增候选，未获用户评价",
+      "consensus": ["K03", "K09", "K11"],
+      "docs": "docs/ui-overlay.md#O02",
+      "notes": "与 Tooltip 区分：Popover 点击触发、内容可交互；Tooltip 只放辅助信息。"
+    },
+    {
+      "id": "O03",
+      "name": "NoteUI.Dialog",
+      "cn": "对话框",
+      "category": "浮层与弹出界面",
+      "purpose": "承载需要用户集中处理的内容与操作；默认模态焦点陷阱、背景遮罩和滚动锁，确认框为其变体。",
+      "inputs": ["open", "title", "content", "actions", "size", "onClose", "onOpen", "modal", "closeOnOutside", "closeOnEsc", "label", "showClose", "describeContent", "className"],
+      "customizable": ["标题与内容", "动作按钮或宿主 DOM", "尺寸", "模态/遮罩/滚动锁", "外点与 Esc 策略", "关闭回调"],
+      "states": ["模态默认", "非模态", "长内容滚动", "焦点陷阱", "Esc/外点策略", "确认框 Promise", "程序 update"],
+      "usage": "var d = NoteUI.Dialog.mount(host, { open: true, title: '设置', content: node, actions: [{ label: '保存', variant: 'primary', close: true }] }); d.close();",
+      "dependencies": ["core", "legacy"],
+      "limitations": [
+        "默认动作按钮在 legacy NoteUI.Button 存在时复用它；未加载 legacy 时回退为原生按钮，宿主也可直接传 DOM actions。",
+        "modal、closeOnEsc、closeOnOutside 的变更在再次打开时应用；打开期间只更新标题、内容、动作、尺寸与可访问名称。",
+        "非模态对话框不创建遮罩、不锁滚动，也不默认启用焦点陷阱。",
+        "setActionsDisabled(false) 会保留动作配置里初始的 disabled；legacy Button 重建 className 后由浮层模块补回动作类与 ariaLabel/title。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "新增候选，未获用户评价",
+      "consensus": ["K03", "K09", "K11"],
+      "docs": "docs/ui-overlay.md#O03",
+      "notes": "确认框 NoteUI.Dialog.confirm 返回 Promise<boolean>，是 Dialog 变体，不新增浮层内核。"
+    },
+    {
+      "id": "O04",
+      "name": "NoteUI.Drawer",
+      "cn": "侧边抽屉",
+      "category": "浮层与弹出界面",
+      "purpose": "从左侧或右侧滑入的模态侧栏，承载标题、可滚动内容、操作与页脚，复用 Dialog 同一套浮层与焦点基础。",
+      "inputs": ["side", "open", "title", "content", "actions", "footer", "size", "closeOnEsc", "closeOnOutside", "onClose", "onOpen", "label", "showClose", "className"],
+      "customizable": ["左右侧", "宽度", "标题/内容/操作/页脚", "Esc 与外点策略", "关闭回调"],
+      "states": ["右侧", "左侧", "窄屏近全宽", "长内容局部滚动", "背景滚动锁与恢复", "焦点陷阱/返回"],
+      "usage": "var d = NoteUI.Drawer.mount(host, { side: 'right', title: '详情', content: node, actions: [{ label: '关闭', close: true }] }); d.open(); d.close();",
+      "dependencies": ["core", "legacy"],
+      "limitations": [
+        "默认不响应外点关闭；可通过 closeOnOutside: true 显式开启。",
+        "side 变更在下次打开时应用；打开期间保持当前侧边以免内容跳动。",
+        "面板高度为视口高度减 I04 的 16px 安全边距，左右上下保留 8px；需要完全贴边全高抽屉时须由 core 提供边距/贴边选项。",
+        "内容区独立滚动；背景滚动由 NoteCore.floating 引用计数锁定与恢复。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "新增候选，未获用户评价",
+      "consensus": ["K03", "K09", "K11"],
+      "docs": "docs/ui-overlay.md#O04",
+      "notes": "复用 NoteCore.floating 的 modal/backdrop/focus trap/lockScroll，不复制 Dialog 内核。"
+    }
+  ]
+}

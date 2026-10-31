@@ -1,0 +1,167 @@
+/* NoteBlocks B09 — HierarchyDetail
+ * Scope: .nblk-hierarchy
+ * Dependencies: core tokens, NoteUI.Panel/TreeView/DataObject/Badge/Notice.
+ * Two local panels: a browsable tree and an independently scrolling detail.
+ * The tree is a directory, not a mechanism diagram. */
+
+.nblk-hierarchy {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  align-items: start;
+  gap: var(--hnv-space-3, 12px);
+  min-width: 0;
+  max-width: 100%;
+  color: var(--hnv-color-ink, #202938);
+  font-family: var(--hnv-font-family, "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif);
+  font-size: var(--hnv-font-size-label, 14px);
+  line-height: 1.6;
+}
+
+.nblk-hierarchy > .nui-panel {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.nblk-hierarchy__tree {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.nblk-hierarchy .nui-tree {
+  box-sizing: border-box;
+  max-height: min(30rem, 66vh);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.nblk-hierarchy__detail-scroll {
+  box-sizing: border-box;
+  max-height: min(34rem, 70vh);
+  min-width: 0;
+  max-width: 100%;
+  padding: var(--hnv-space-1, 4px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--hnv-radius-control, 8px);
+}
+
+.nblk-hierarchy__detail-scroll:focus-visible {
+  outline: var(--hnv-focus-ring-width, 3px) solid var(--hnv-color-focus, #315cda);
+  outline-offset: 2px;
+}
+
+.nblk-hierarchy__detail-title {
+  margin: 0;
+  color: var(--hnv-color-ink, #202938);
+  font-size: var(--hnv-font-size-heading, 20px);
+  font-weight: 650;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.nblk-hierarchy__detail-id {
+  margin: var(--hnv-space-1, 4px) 0 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-small, 13px);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.nblk-hierarchy__fields-section,
+.nblk-hierarchy__content-section {
+  min-width: 0;
+  margin-top: var(--hnv-space-4, 16px);
+}
+
+.nblk-hierarchy__section-title {
+  margin: 0 0 var(--hnv-space-2, 8px);
+  color: var(--hnv-color-ink, #202938);
+  font-size: var(--hnv-font-size-label, 14px);
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.nblk-hierarchy__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  gap: var(--hnv-space-2, 8px);
+  min-width: 0;
+}
+
+.nblk-hierarchy__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hnv-space-1, 4px);
+  min-width: 0;
+}
+
+.nblk-hierarchy__field .nui-data-object {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: var(--hnv-space-3, 12px);
+}
+
+.nblk-hierarchy__field .nui-data-object__value {
+  font-size: var(--hnv-font-size-heading, 20px);
+  line-height: 1.35;
+}
+
+.nblk-hierarchy__value-with-unit {
+  display: inline;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.nblk-hierarchy__unit {
+  color: var(--hnv-color-muted, #5c6879);
+  font-family: var(--hnv-font-family, "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif);
+  font-size: var(--hnv-font-size-label, 14px);
+  font-weight: 500;
+}
+
+.nblk-hierarchy__content {
+  min-width: 0;
+  color: var(--hnv-color-ink, #202938);
+  font-size: var(--hnv-font-size-reading, 16px);
+  line-height: var(--hnv-font-line-reading, 1.65);
+  overflow-wrap: anywhere;
+}
+
+.nblk-hierarchy__content p,
+.nblk-hierarchy__content ul,
+.nblk-hierarchy__content ol {
+  margin-top: 0;
+}
+
+.nblk-hierarchy__content :last-child {
+  margin-bottom: 0;
+}
+
+.nblk-hierarchy__note {
+  min-width: 0;
+  margin-top: var(--hnv-space-4, 16px);
+}
+
+.nblk-hierarchy__note .nui-notice {
+  min-width: 0;
+}
+
+@media (max-width: 720px) {
+  .nblk-hierarchy .nui-tree {
+    max-height: min(22rem, 52vh);
+  }
+
+  .nblk-hierarchy__detail-scroll {
+    max-height: min(30rem, 62vh);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nblk-hierarchy,
+  .nblk-hierarchy * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

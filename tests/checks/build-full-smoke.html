@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>full bundle smoke</title>
+<link rel="stylesheet" href="../../dist/note-library.css">
+</head><body><main id="host"></main>
+<script src="../../dist/note-library.js"></script>
+<script src="../../dist/registry.js"></script>
+<script>
+(function(){
+  'use strict';
+  var host=document.getElementById('host');
+  var panel=NoteUI.Panel.mount(host,{title:'全量包检查',content:'内容模块公式：'});
+  var math=NoteUI.Math.mount(panel.body,{tex:'a^2+b^2=c^2',display:true,ariaLabel:'勾股定理'});
+  var tabs=NoteUI.Tabs.mount(host,{items:[{id:'a',label:'甲',content:'A'},{id:'b',label:'乙',content:'B'}],label:'全量页签'});
+  var progress=NoteUI.Progress.mount(host,{value:42,label:'进度'});
+  window.__fullSmoke={panel:panel,math:math,tabs:tabs,progress:progress,host:host};
+})();
+</script>
+</body></html>

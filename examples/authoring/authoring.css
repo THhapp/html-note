@@ -1,0 +1,217 @@
+/* Authoring entry — page shell and content-specific layout details. */
+:root {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  background: #f3f5f8;
+  color: #202938;
+  font-family: var(--hnv-font-sans, "Segoe UI", "Microsoft YaHei", sans-serif);
+}
+
+.authoring-page {
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 36px 0 54px;
+}
+
+.authoring-head {
+  margin: 0 0 24px;
+}
+
+.authoring-kicker {
+  margin: 0 0 8px;
+  color: #315cda;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.authoring-title {
+  margin: 0 0 8px;
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.authoring-lede {
+  max-width: 72ch;
+  margin: 0;
+  color: #5c6879;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.authoring-entry {
+  margin: 18px 0 0;
+  padding: 12px 14px;
+  border: 1px solid #dce2ea;
+  border-radius: 8px;
+  background: #fff;
+  color: #465266;
+  font-family: var(--hnv-font-mono, Consolas, monospace);
+  font-size: 12px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.authoring-demo {
+  margin: 30px 0 0;
+}
+
+.authoring-demo-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 10px;
+}
+
+.authoring-demo-title {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+.authoring-demo-note {
+  margin: 0;
+  color: #5c6879;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.authoring-demo [data-demo-host] {
+  min-width: 0;
+}
+
+.authoring-demo .nd-recipe {
+  max-width: 100%;
+}
+
+.authoring-demo .nd-recipe__board {
+  padding: 10px 12px;
+}
+
+.authoring-demo .nd-recipe__board .nviz-matrix__table {
+  width: max-content;
+  min-width: 0;
+  margin: 0 auto;
+  font-size: 15px;
+}
+
+.authoring-demo .nd-recipe__board .nviz-matrix__table th,
+.authoring-demo .nd-recipe__board .nviz-matrix__table td {
+  padding: 8px 10px;
+}
+
+.authoring-demo .nd-recipe__board .nviz-matrix__value {
+  font-family: var(--hnv-font-mono, Consolas, monospace);
+  font-size: 17px;
+  font-weight: 650;
+}
+
+.authoring-demo .nd-recipe__process {
+  background: #fff;
+}
+
+.authoring-demo .nd-recipe__process-slot .nviz-sequence {
+  gap: 0;
+}
+
+.authoring-demo .nd-recipe__process-slot .nviz-sequence__viewport {
+  overflow: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.authoring-demo .nd-recipe__process-slot .nviz-sequence__track,
+.authoring-demo .nd-recipe__process-slot .nviz-sequence__cells {
+  gap: 12px;
+}
+
+.authoring-demo .nd-recipe__process-slot .nviz-sequence__cell {
+  min-width: 9.2em;
+  padding: 10px 13px;
+}
+
+.authoring-demo .nd-recipe__process-slot .nviz-sequence__value {
+  font-family: var(--hnv-font-mono, Consolas, monospace);
+  font-size: 16px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.authoring-demo .nd-recipe__process-slot .nviz-sequence__label {
+  color: #5c6879;
+  font-family: var(--hnv-font-mono, Consolas, monospace);
+  font-size: 13px;
+}
+
+.authoring-demo .nd-recipe__readout .note-demo-dom,
+.authoring-demo .nd-recipe__result .note-demo-dom {
+  min-height: 2em;
+  color: #202938;
+  font-family: var(--hnv-font-mono, Consolas, monospace);
+  font-size: 20px;
+  font-weight: 650;
+}
+
+.authoring-demo .nd-recipe__result .note-demo-dom {
+  color: #315cda;
+  font-size: 28px;
+}
+
+.authoring-demo .nd-recipe__readout .nui-expression {
+  gap: 0.28em;
+  color: #202938;
+  font-family: var(--hnv-font-mono, Consolas, monospace);
+  font-size: 19px;
+  font-weight: 650;
+}
+
+.authoring-demo .nd-recipe__process-slot .nui-expression {
+  margin: 0;
+}
+
+.authoring-demo .nd-recipe__process-slot .nui-expression__label {
+  display: none;
+}
+
+.authoring-demo .nd-recipe__process-slot .nviz-sequence__hint {
+  display: none;
+}
+
+.authoring-foot {
+  max-width: 76ch;
+  margin: 34px 0 0;
+  color: #5c6879;
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.authoring-foot p {
+  margin: 0 0 6px;
+}
+
+.authoring-foot code {
+  color: #202938;
+  font-family: var(--hnv-font-mono, Consolas, monospace);
+}
+
+@media (max-width: 700px) {
+  .authoring-page {
+    width: min(100% - 24px, 1120px);
+    padding-top: 24px;
+  }
+
+  .authoring-demo-head {
+    display: block;
+  }
+
+  .authoring-demo-note {
+    margin-top: 4px;
+  }
+}

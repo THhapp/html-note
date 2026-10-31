@@ -1,0 +1,83 @@
+/* NoteCore shared CSS — visually hidden utility and floating layer shell.
+   Scope: .hnv-visually-hidden and .hnv-floating internals only.
+   Dependencies: src/core/tokens.css. No global element selectors. */
+
+.hnv-visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.hnv-floating {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: var(--hnv-z-float, 1000);
+  box-sizing: border-box;
+  width: max-content;
+  max-width: calc(100vw - 16px);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  font-family: var(--hnv-font-family, "Segoe UI","Microsoft YaHei UI","Microsoft YaHei","PingFang SC",sans-serif);
+  color: var(--hnv-color-ink, #202938);
+  pointer-events: none;
+  isolation: isolate;
+}
+
+.hnv-floating *,
+.hnv-floating *::before,
+.hnv-floating *::after {
+  box-sizing: border-box;
+}
+
+.hnv-floating__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: var(--hnv-color-overlay, rgba(20, 29, 43, 0.46));
+  pointer-events: auto;
+}
+
+.hnv-floating__panel {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  max-height: calc(100vh - 16px);
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  color: var(--hnv-color-ink, #202938);
+  font-family: var(--hnv-font-family, "Segoe UI","Microsoft YaHei UI","Microsoft YaHei","PingFang SC",sans-serif);
+  background: var(--hnv-color-surface, #ffffff);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-object, 10px);
+  box-shadow: var(--hnv-shadow-float, 0 12px 32px rgba(20, 29, 43, 0.16), 0 2px 6px rgba(20, 29, 43, 0.08));
+  pointer-events: auto;
+}
+
+.hnv-floating :focus-visible,
+.hnv-floating__panel:focus-visible {
+  outline: var(--hnv-focus-ring-width, 3px) solid var(--hnv-color-focus, #315cda);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hnv-floating,
+  .hnv-floating__backdrop,
+  .hnv-floating__panel {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

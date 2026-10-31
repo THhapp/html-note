@@ -1,0 +1,22 @@
+/* TEST ONLY: host page layout for overlay checks. Tokens/base come from src/core. */
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 2400px;
+  padding: 24px;
+  background: var(--hnv-color-page, #f4f6f9);
+  color: var(--hnv-color-ink, #202938);
+  font-family: var(--hnv-font-family, "Segoe UI", "Microsoft YaHei", sans-serif);
+}
+
+.fixture {
+  margin: 0 0 20px;
+  padding: 12px;
+  border: 1px dashed var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-control, 8px);
+  background: var(--hnv-color-surface, #fff);
+}

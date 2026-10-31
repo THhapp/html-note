@@ -1,0 +1,76 @@
+/* 场景 A 宿主样式：只做页面外壳、外部间距与少量文字层级。
+   不覆盖任何 .nui-* / .nviz-* 内部样式，不改组件尺寸与颜色。 */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--hnv-color-page, #f4f6f9);
+  color: var(--hnv-color-ink, #202938);
+  font-family: var(--hnv-font-family, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif);
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+}
+
+.nd-note {
+  box-sizing: border-box;
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 40px 40px 56px;
+  background: var(--hnv-color-surface, #fff);
+  border-inline: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  min-height: 100vh;
+}
+
+.nd-intro .nui-type-h1 {
+  margin: 0;
+}
+
+.nd-kicker {
+  margin: 0;
+  color: var(--hnv-color-muted, #5c6879);
+  letter-spacing: 0.08em;
+}
+
+.nd-section {
+  min-width: 0;
+}
+
+.nd-dim {
+  margin: 0;
+  color: var(--hnv-color-ink, #202938);
+}
+
+.nd-figure-caption {
+  margin: 0;
+  color: var(--hnv-color-muted, #5c6879);
+}
+
+.nd-example {
+  font-weight: var(--hnv-font-weight-strong, 600);
+}
+
+.nd-switch-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.nd-switch-label {
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-small, 13px);
+}
+
+.nd-foot {
+  color: var(--hnv-color-muted, #5c6879);
+}
+
+@media (max-width: 720px) {
+  .nd-note {
+    padding: 28px 18px 40px;
+    border-inline: 0;
+  }
+}

@@ -1,0 +1,147 @@
+{
+  "module": "ui-feedback",
+  "title": "反馈与状态",
+  "js": ["src/ui/feedback.js"],
+  "css": ["src/ui/feedback.css"],
+  "demos": ["gallery/demos/ui-feedback.js"],
+  "dependencies": ["core"],
+  "entries": [
+    {
+      "id": "S01",
+      "name": "NoteUI.Toast",
+      "cn": "短消息",
+      "category": "反馈与状态",
+      "purpose": "用有界的全局或局部消息区域传达成功、失败、提醒和信息，不遮挡页面操作。",
+      "inputs": ["message", "tone", "duration", "dismissible", "action", "onClose", "max", "label"],
+      "customizable": ["四种 tone", "停留时长", "是否可关闭", "操作按钮或 DOM 操作", "同时显示上限", "全局或局部区域"],
+      "states": ["成功", "失败（默认不自动消失）", "提醒", "信息", "多条堆叠", "队列上限 4", "悬停/焦点暂停计时", "局部区域", "减少动效"],
+      "usage": "NoteUI.Toast.show({ message: '已保存到本地', tone: 'success', duration: 5000 })",
+      "dependencies": ["core"],
+      "limitations": [
+        "全局 show/clear/configure 是唯一不使用 mount(host, options) 形态的例外，文档已说明；局部区域仍用 mount。",
+        "通知只在当前页面生命周期内存在，不做持久化或跨页面传递。",
+        "错误用途只是宿主传入 tone='error' 的视觉与停留策略；组件不推断业务错误，也不阻止重复消息。",
+        "队列达到上限时最早的条目会让位，尚未阅读的消息可能被挤掉。",
+        "动态 aria-live 的实际播报细节依赖浏览器与屏幕阅读器。",
+        "若宿主把全局区域节点移出文档，下一次 show 会先按 destroy 语义关闭旧条目并重建区域，避免迟到计时器与悬挂回调。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "新增候选，未获用户评价",
+      "consensus": ["K09", "K11", "K13"],
+      "docs": "docs/ui-feedback.md#s01-toast",
+      "notes": "错误默认持久，成功/信息默认 5000ms，提醒默认 8000ms；显式 duration 可覆盖。"
+    },
+    {
+      "id": "S02",
+      "name": "NoteUI.Progress",
+      "cn": "进度",
+      "category": "反馈与状态",
+      "purpose": "显示宿主提供的确定进度，或用不伪造百分比的静态/条纹表达不确定进度。",
+      "inputs": ["value", "max", "label", "valueText"],
+      "customizable": ["进度值", "总量", "标签", "可读值文本", "确定/不确定"],
+      "states": ["确定进度", "不确定进度", "0%", "100%", "窄容器", "减少动效"],
+      "usage": "NoteUI.Progress.mount(host, { value: 42, max: 100, label: '整理笔记' })",
+      "dependencies": ["core"],
+      "limitations": [
+        "value 为 null/undefined/非有限数时一律视为不确定，不估计完成比例。",
+        "不驱动或保存异步任务；进度值必须由宿主更新。",
+        "有限数值会钳制在 0–max；负值和超出 max 的值不会作为真实进度显示。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "新增候选，未获用户评价",
+      "consensus": ["K09", "K11", "K13"],
+      "docs": "docs/ui-feedback.md#s02-progress",
+      "notes": "不确定状态移除 aria-valuenow/min/max，仅保留可读的 aria-valuetext。"
+    },
+    {
+      "id": "S03",
+      "name": "NoteUI.Spinner",
+      "cn": "局部加载",
+      "category": "反馈与状态",
+      "purpose": "表达局部内容正在加载，并始终提供可见文字名称。",
+      "inputs": ["label", "size"],
+      "customizable": ["加载名称", "尺寸（sm/md/lg 或 12–64px）"],
+      "states": ["默认加载中", "自定义名称", "小/中/大/数值尺寸", "减少动效静态环"],
+      "usage": "NoteUI.Spinner.mount(host, { label: '正在读取本地内容', size: 'md' })",
+      "dependencies": ["core"],
+      "limitations": [
+        "只表示局部加载，不提供百分比、预计时间或任务完成度。",
+        "静态减少动效状态下仍保留文字名称和断环；旋转不是唯一语义。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "新增候选，未获用户评价",
+      "consensus": ["K09", "K11", "K13"],
+      "docs": "docs/ui-feedback.md#s03-spinner",
+      "notes": "role=status 与可见标签；aria-live=polite，仅用于加载状态。"
+    },
+    {
+      "id": "S04",
+      "name": "NoteUI.Skeleton",
+      "cn": "加载占位",
+      "category": "反馈与状态",
+      "purpose": "用与内容结构相符的静态占位表达加载中，并在加载结束后由宿主销毁替换。",
+      "inputs": ["variant", "lines", "rows", "columns", "width", "height", "label"],
+      "customizable": ["text/card/table 变体", "行数", "表格行列数", "宽高", "屏幕阅读器加载名称"],
+      "states": ["文本骨架", "卡片骨架", "表格骨架", "自定义行数", "减少动效静态", "销毁并替换内容"],
+      "usage": "NoteUI.Skeleton.mount(host, { variant: 'table', rows: 4, columns: 3, label: '表格加载中' })",
+      "dependencies": ["core"],
+      "limitations": [
+        "占位结构由 variant 近似，不能从任意真实 DOM 自动推断布局。",
+        "不会自动替换内容；宿主必须在加载结束时调用 destroy 并放入真实内容。",
+        "本实现不使用闪烁或无限动画；正常与减少动效环境下都是静态占位。",
+        "height 作用于行/单元格/媒体块高度，不等同于整个根元素固定高度。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "新增候选，未获用户评价",
+      "consensus": ["K09", "K11", "K13"],
+      "docs": "docs/ui-feedback.md#s04-skeleton",
+      "notes": "视觉骨架 aria-hidden=true，根元素 role=status 并提供 visually-hidden 加载名称。"
+    },
+    {
+      "id": "S05",
+      "name": "NoteUI.Empty",
+      "cn": "空内容",
+      "category": "反馈与状态",
+      "purpose": "解释没有内容的原因，并给宿主提供可选下一步操作。",
+      "inputs": ["kind", "title", "description", "action"],
+      "customizable": ["empty/no-results/unconfigured 默认文案与标记", "标题", "原因说明", "宿主 DOM 操作"],
+      "states": ["空内容", "无结果", "未配置", "带操作", "无操作", "窄容器"],
+      "usage": "NoteUI.Empty.mount(host, { kind: 'no-results', action: actionNode })",
+      "dependencies": ["core"],
+      "limitations": [
+        "action 必须是宿主提供的 DOM 节点（或节点数组）；组件不生成业务按钮，也不依赖 legacy Button。",
+        "不判断空态原因，也不会根据数据自动切换 kind。",
+        "默认文案只是通用示例，宿主应按实际场景覆盖标题与原因。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "新增候选，未获用户评价",
+      "consensus": ["K09", "K11", "K13"],
+      "docs": "docs/ui-feedback.md#s05-empty",
+      "notes": "三种 kind 各有默认标题、原因说明和标记；说明默认可见。"
+    },
+    {
+      "id": "S06",
+      "name": "NoteUI.Result",
+      "cn": "结果说明",
+      "category": "反馈与状态",
+      "purpose": "呈现由宿主判定的成功、失败、受限或信息结果，并给出原因、可见说明和下一步操作。",
+      "inputs": ["status", "title", "description", "details", "actions", "statusLabel"],
+      "customizable": ["四种宿主 status", "标题", "原因", "可见补充说明", "配置数组或 DOM 操作节点"],
+      "states": ["success", "error", "restricted", "info", "数组操作", "DOM 操作", "无操作", "窄容器"],
+      "usage": "NoteUI.Result.mount(host, { status: 'error', title: '未能保存', description: '请检查必填项后重试', actions: [retryButton] })",
+      "dependencies": ["core"],
+      "limitations": [
+        "status 完全由宿主传入；组件不从数据或其他字段推断业务成功、失败或受限。",
+        "不执行提交、重试、权限检查或跳转；这些由宿主提供的操作节点/回调负责。",
+        "组件内建按钮仅是原生 button 的配置渲染，不依赖 legacy Button；宿主也可以直接传 DOM。",
+        "默认标题、原因和下一步文案是通用占位，宿主应提供准确业务说明。",
+        "不是实时 live region；异步得到结果时的播报或焦点移动由宿主决定。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "新增候选，未获用户评价",
+      "consensus": ["K09", "K11", "K13"],
+      "docs": "docs/ui-feedback.md#s06-result",
+      "notes": "details 默认可见，不折叠。"
+    }
+  ]
+}

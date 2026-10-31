@@ -1,0 +1,1183 @@
+/* NoteUI forms-advanced — F09–F15 advanced form controls.
+   Scope: .nui-switch, .nui-slider, .nui-form, .nui-datepicker,
+   .nui-timepicker, .nui-colorpicker, .nui-fileinput and their __parts.
+   Dependencies: src/core/tokens.css, src/core/base.css (.hnv-floating,
+   .hnv-visually-hidden); forms-basic styles Field rows used by Form. */
+
+.nui-switch,
+.nui-slider,
+.nui-form,
+.nui-datepicker,
+.nui-timepicker,
+.nui-colorpicker,
+.nui-fileinput,
+.nui-datepicker__panel,
+.nui-timepicker__panel {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  font-family: var(--hnv-font-family, "Segoe UI","Microsoft YaHei UI","Microsoft YaHei","PingFang SC",sans-serif);
+  color: var(--hnv-color-ink, #202938);
+}
+
+.nui-switch *,
+.nui-switch *::before,
+.nui-switch *::after,
+.nui-slider *,
+.nui-slider *::before,
+.nui-slider *::after,
+.nui-form *,
+.nui-form *::before,
+.nui-form *::after,
+.nui-datepicker *,
+.nui-datepicker *::before,
+.nui-datepicker *::after,
+.nui-timepicker *,
+.nui-timepicker *::before,
+.nui-timepicker *::after,
+.nui-colorpicker *,
+.nui-colorpicker *::before,
+.nui-colorpicker *::after,
+.nui-fileinput *,
+.nui-fileinput *::before,
+.nui-fileinput *::after,
+.nui-datepicker__panel *,
+.nui-datepicker__panel *::before,
+.nui-datepicker__panel *::after,
+.nui-timepicker__panel *,
+.nui-timepicker__panel *::before,
+.nui-timepicker__panel *::after {
+  box-sizing: border-box;
+}
+
+.nui-switch [hidden],
+.nui-slider [hidden],
+.nui-form [hidden],
+.nui-datepicker [hidden],
+.nui-timepicker [hidden],
+.nui-colorpicker [hidden],
+.nui-fileinput [hidden],
+.nui-datepicker__panel [hidden],
+.nui-timepicker__panel [hidden] {
+  display: none !important;
+}
+
+/* Shared label, hint, error and focus treatment. */
+.nui-switch__head,
+.nui-slider__head,
+.nui-form__field,
+.nui-datepicker__head,
+.nui-timepicker__head,
+.nui-colorpicker__head,
+.nui-fileinput__head {
+  min-width: 0;
+}
+
+.nui-slider__head,
+.nui-datepicker__head,
+.nui-timepicker__head,
+.nui-colorpicker__head,
+.nui-fileinput__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hnv-space-2, 8px);
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.nui-slider__label,
+.nui-datepicker__label,
+.nui-timepicker__label,
+.nui-colorpicker__label,
+.nui-fileinput__label {
+  min-width: 0;
+  color: var(--hnv-color-ink, #202938);
+  font-size: var(--hnv-font-size-label, 14px);
+  font-weight: var(--hnv-font-weight-strong, 600);
+  overflow-wrap: anywhere;
+}
+
+.nui-slider__required,
+.nui-switch__required,
+.nui-datepicker__required,
+.nui-timepicker__required,
+.nui-colorpicker__required,
+.nui-fileinput__required {
+  display: inline-block;
+  margin-inline-start: 4px;
+  padding: 0 5px;
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-pill, 999px);
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+  font-weight: 400;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.nui-switch__hint,
+.nui-slider__hint,
+.nui-datepicker__hint,
+.nui-timepicker__hint,
+.nui-colorpicker__hint,
+.nui-fileinput__hint,
+.nui-datepicker__feedback {
+  margin: 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-small, 13px);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.nui-switch__error,
+.nui-slider__error,
+.nui-datepicker__error,
+.nui-timepicker__error,
+.nui-colorpicker__error {
+  display: block;
+  margin: 0;
+  padding: var(--hnv-space-1, 4px) var(--hnv-space-2, 8px);
+  border-inline-start: 3px solid var(--hnv-color-danger, #b23a45);
+  border-radius: 0 var(--hnv-radius-control, 8px) var(--hnv-radius-control, 8px) 0;
+  background: var(--hnv-color-danger-soft, #fbeef0);
+  color: var(--hnv-color-danger, #b23a45);
+  font-size: var(--hnv-font-size-small, 13px);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.nui-datepicker__feedback {
+  padding: var(--hnv-space-1, 4px) var(--hnv-space-2, 8px);
+  border-inline-start: 3px solid var(--hnv-color-accent, #315cda);
+  border-radius: 0 var(--hnv-radius-control, 8px) var(--hnv-radius-control, 8px) 0;
+  background: var(--hnv-color-accent-soft, #eef2ff);
+  color: var(--hnv-color-ink, #202938);
+}
+
+.nui-switch__button:focus-visible,
+.nui-slider__input:focus-visible,
+.nui-form__summary-link:focus-visible,
+.nui-form__submit:focus-visible,
+.nui-form__reset:focus-visible,
+.nui-datepicker__input:focus-visible,
+.nui-datepicker__trigger:focus-visible,
+.nui-datepicker__clear:focus-visible,
+.nui-datepicker__nav:focus-visible,
+.nui-datepicker__day:focus-visible,
+.nui-timepicker__input:focus-visible,
+.nui-timepicker__trigger:focus-visible,
+.nui-timepicker__clear:focus-visible,
+.nui-timepicker__select:focus-visible,
+.nui-timepicker__done:focus-visible,
+.nui-colorpicker__swatch:focus-visible,
+.nui-colorpicker__input:focus-visible,
+.nui-colorpicker__native:focus-visible,
+.nui-colorpicker__clear:focus-visible,
+.nui-fileinput__drop:focus-visible,
+.nui-fileinput__remove:focus-visible,
+.nui-fileinput__clear-all:focus-visible {
+  outline: var(--hnv-focus-ring-width, 3px) solid var(--hnv-color-focus, #315cda);
+  outline-offset: 2px;
+}
+
+/* F09 Switch */
+.nui-switch {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hnv-space-1, 4px);
+}
+
+.nui-switch__button {
+  display: flex;
+  align-items: center;
+  gap: var(--hnv-space-3, 12px);
+  min-height: var(--hnv-control-height-lg, 44px);
+  width: fit-content;
+  max-width: 100%;
+  padding: var(--hnv-space-2, 8px) var(--hnv-space-3, 12px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-pill, 999px);
+  background: var(--hnv-color-surface, #ffffff);
+  color: var(--hnv-color-ink, #202938);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.nui-switch--checked .nui-switch__button {
+  border-color: var(--hnv-color-accent, #315cda);
+  background: var(--hnv-color-accent-soft, #eef2ff);
+}
+
+.nui-switch__button:disabled {
+  border-color: var(--hnv-color-border, #dce2ea);
+  background: var(--hnv-color-code-bg, #f3f5f8);
+  color: var(--hnv-color-muted, #5c6879);
+  cursor: not-allowed;
+}
+
+.nui-switch__track {
+  position: relative;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 24px;
+  border-radius: var(--hnv-radius-pill, 999px);
+  background: var(--hnv-color-border, #dce2ea);
+  transition: background-color var(--hnv-motion-ui, 160ms) var(--hnv-motion-ease-ui, ease);
+}
+
+.nui-switch--checked .nui-switch__track {
+  background: var(--hnv-color-accent, #315cda);
+}
+
+.nui-switch__thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--hnv-color-surface, #ffffff);
+  box-shadow: 0 1px 2px rgba(20, 29, 43, 0.2);
+  transition: transform var(--hnv-motion-ui, 160ms) var(--hnv-motion-ease-ui, ease);
+}
+
+.nui-switch--checked .nui-switch__thumb {
+  transform: translateX(20px);
+}
+
+.nui-switch__text {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--hnv-space-1, 4px) var(--hnv-space-2, 8px);
+  align-items: baseline;
+  min-width: 0;
+}
+
+.nui-switch__label {
+  min-width: 0;
+  font-size: var(--hnv-font-size-label, 14px);
+  font-weight: var(--hnv-font-weight-strong, 600);
+  overflow-wrap: anywhere;
+}
+
+.nui-switch__state {
+  flex: 0 0 auto;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-small, 13px);
+  white-space: nowrap;
+}
+
+.nui-switch--checked .nui-switch__state {
+  color: var(--hnv-color-accent, #315cda);
+  font-weight: var(--hnv-font-weight-strong, 600);
+}
+
+/* F10 Slider */
+.nui-slider {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hnv-space-1, 4px);
+}
+
+.nui-slider__head {
+  align-items: center;
+}
+
+.nui-slider__readout {
+  flex: 0 0 auto;
+  padding: 1px var(--hnv-space-2, 8px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-control, 8px);
+  background: var(--hnv-color-code-bg, #f3f5f8);
+  color: var(--hnv-color-ink, #202938);
+  font-family: var(--hnv-font-mono, "Cascadia Mono", Consolas, monospace);
+  font-size: var(--hnv-font-size-small, 13px);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.nui-slider__range-track {
+  position: relative;
+  height: 6px;
+  margin: 2px 10px;
+  border-radius: var(--hnv-radius-pill, 999px);
+  background: var(--hnv-color-border, #dce2ea);
+}
+
+.nui-slider__range-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: inherit;
+  background: var(--hnv-color-accent, #315cda);
+}
+
+.nui-slider__controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hnv-space-1, 4px);
+  min-width: 0;
+}
+
+.nui-slider__input {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  accent-color: var(--hnv-color-accent, #315cda);
+  cursor: pointer;
+}
+
+.nui-slider__input:disabled {
+  cursor: not-allowed;
+}
+
+.nui-slider__part {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--hnv-space-2, 8px);
+  align-items: center;
+  min-width: 0;
+}
+
+.nui-slider__part-label {
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-small, 13px);
+  white-space: nowrap;
+}
+
+.nui-slider--disabled .nui-slider__readout {
+  color: var(--hnv-color-muted, #5c6879);
+  background: var(--hnv-color-code-bg, #f3f5f8);
+}
+
+/* F11 Form */
+.nui-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hnv-space-4, 16px);
+}
+
+.nui-form__fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hnv-space-4, 16px);
+  min-width: 0;
+}
+
+.nui-form__field {
+  min-width: 0;
+}
+
+.nui-form__summary {
+  padding: var(--hnv-space-3, 12px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-danger, #b23a45);
+  border-inline-start-width: 4px;
+  border-radius: var(--hnv-radius-control, 8px);
+  background: var(--hnv-color-danger-soft, #fbeef0);
+  color: var(--hnv-color-ink, #202938);
+  font-size: var(--hnv-font-size-small, 13px);
+}
+
+.nui-form__summary-title {
+  margin: 0 0 var(--hnv-space-1, 4px);
+  color: var(--hnv-color-danger, #b23a45);
+  font-weight: var(--hnv-font-weight-strong, 600);
+}
+
+.nui-form__summary-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nui-form__summary-item {
+  margin: 0;
+  padding: 0;
+}
+
+.nui-form__summary-link {
+  display: block;
+  width: 100%;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: var(--hnv-color-danger, #b23a45);
+  font: inherit;
+  text-align: start;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.nui-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hnv-space-2, 8px);
+  align-items: center;
+  padding-top: var(--hnv-space-1, 4px);
+}
+
+.nui-form__submit,
+.nui-form__reset {
+  min-height: var(--hnv-control-height, 36px);
+  padding: var(--hnv-space-2, 8px) var(--hnv-space-4, 16px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-accent, #315cda);
+  border-radius: var(--hnv-radius-control, 8px);
+  font: inherit;
+  font-size: var(--hnv-font-size-label, 14px);
+  cursor: pointer;
+}
+
+.nui-form__submit {
+  background: var(--hnv-color-accent, #315cda);
+  color: var(--hnv-color-on-accent, #ffffff);
+}
+
+.nui-form__reset {
+  border-color: var(--hnv-color-border, #dce2ea);
+  background: var(--hnv-color-surface, #ffffff);
+  color: var(--hnv-color-ink, #202938);
+}
+
+.nui-form__submit:disabled,
+.nui-form__reset:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.nui-form__native {
+  width: 100%;
+  min-height: var(--hnv-control-height, 36px);
+  padding: var(--hnv-space-2, 8px) var(--hnv-space-3, 12px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-control, 8px);
+  background: var(--hnv-color-surface, #ffffff);
+  color: var(--hnv-color-ink, #202938);
+  font: inherit;
+}
+
+/* F12 DatePicker */
+.nui-datepicker,
+.nui-timepicker,
+.nui-colorpicker,
+.nui-fileinput {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hnv-space-1, 4px);
+}
+
+.nui-datepicker__row,
+.nui-timepicker__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hnv-space-2, 8px);
+  align-items: stretch;
+  min-width: 0;
+}
+
+.nui-datepicker__inputs {
+  display: flex;
+  flex: 1 1 12rem;
+  flex-wrap: wrap;
+  gap: var(--hnv-space-1, 4px);
+  min-width: 0;
+}
+
+.nui-datepicker__part {
+  display: flex;
+  flex: 1 1 8rem;
+  gap: var(--hnv-space-2, 8px);
+  align-items: center;
+  min-width: 0;
+  min-height: var(--hnv-control-height, 36px);
+  padding: 0 var(--hnv-space-3, 12px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-control, 8px);
+  background: var(--hnv-color-surface, #ffffff);
+}
+
+.nui-datepicker__part:focus-within {
+  outline: var(--hnv-focus-ring-width, 3px) solid var(--hnv-color-focus, #315cda);
+  outline-offset: 2px;
+}
+
+.nui-datepicker__part-label {
+  flex: 0 0 auto;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-small, 13px);
+  white-space: nowrap;
+}
+
+.nui-datepicker__input,
+.nui-timepicker__input {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  padding: var(--hnv-space-2, 8px) 0;
+  border: 0;
+  background: transparent;
+  color: var(--hnv-color-ink, #202938);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.nui-datepicker__input:focus-visible,
+.nui-timepicker__input:focus-visible {
+  outline: none;
+}
+
+.nui-datepicker__input:disabled,
+.nui-timepicker__input:disabled,
+.nui-datepicker__input:read-only {
+  color: var(--hnv-color-muted, #5c6879);
+}
+
+.nui-datepicker__trigger,
+.nui-timepicker__trigger {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: var(--hnv-space-1, 4px);
+  align-items: center;
+  justify-content: center;
+  min-height: var(--hnv-control-height, 36px);
+  padding: var(--hnv-space-2, 8px) var(--hnv-space-3, 12px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-accent, #315cda);
+  border-radius: var(--hnv-radius-control, 8px);
+  background: var(--hnv-color-accent-soft, #eef2ff);
+  color: var(--hnv-color-accent, #315cda);
+  font: inherit;
+  font-size: var(--hnv-font-size-small, 13px);
+  cursor: pointer;
+}
+
+.nui-datepicker__trigger:disabled,
+.nui-timepicker__trigger:disabled {
+  border-color: var(--hnv-color-border, #dce2ea);
+  background: var(--hnv-color-code-bg, #f3f5f8);
+  color: var(--hnv-color-muted, #5c6879);
+  cursor: not-allowed;
+}
+
+.nui-datepicker__clear,
+.nui-timepicker__clear,
+.nui-colorpicker__clear {
+  flex: 0 0 auto;
+  min-height: var(--hnv-control-height, 36px);
+  padding: var(--hnv-space-2, 8px) var(--hnv-space-3, 12px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-control, 8px);
+  background: var(--hnv-color-surface, #ffffff);
+  color: var(--hnv-color-muted, #5c6879);
+  font: inherit;
+  font-size: var(--hnv-font-size-small, 13px);
+  cursor: pointer;
+}
+
+.nui-datepicker__clear:hover,
+.nui-timepicker__clear:hover,
+.nui-colorpicker__clear:hover {
+  color: var(--hnv-color-danger, #b23a45);
+  border-color: var(--hnv-color-danger, #b23a45);
+}
+
+.nui-datepicker--disabled .nui-datepicker__part,
+.nui-timepicker--disabled .nui-timepicker__input {
+  background: var(--hnv-color-code-bg, #f3f5f8);
+  color: var(--hnv-color-muted, #5c6879);
+}
+
+.nui-datepicker__panel,
+.nui-timepicker__panel {
+  padding: var(--hnv-space-3, 12px);
+  width: min(20rem, calc(100vw - 16px));
+  max-width: calc(100vw - 16px);
+  color: var(--hnv-color-ink, #202938);
+  font-family: var(--hnv-font-family, "Segoe UI","Microsoft YaHei UI","Microsoft YaHei","PingFang SC",sans-serif);
+}
+
+.nui-datepicker__header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--hnv-space-2, 8px);
+  align-items: center;
+  margin-bottom: var(--hnv-space-2, 8px);
+}
+
+.nui-datepicker__nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-control, 8px);
+  background: var(--hnv-color-surface, #ffffff);
+  color: var(--hnv-color-ink, #202938);
+  font: inherit;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.nui-datepicker__nav:disabled {
+  color: var(--hnv-color-muted, #5c6879);
+  background: var(--hnv-color-code-bg, #f3f5f8);
+  cursor: not-allowed;
+}
+
+.nui-datepicker__month {
+  min-width: 0;
+  text-align: center;
+  font-size: var(--hnv-font-size-label, 14px);
+  font-weight: var(--hnv-font-weight-strong, 600);
+  white-space: nowrap;
+}
+
+.nui-datepicker__weekdays,
+.nui-datepicker__week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.nui-datepicker__weekdays {
+  margin-bottom: 2px;
+}
+
+.nui-datepicker__weekday {
+  min-width: 0;
+  padding: 2px 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+  text-align: center;
+}
+
+.nui-datepicker__grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nui-datepicker__blank {
+  min-height: 32px;
+}
+
+.nui-datepicker__day {
+  min-width: 0;
+  min-height: 32px;
+  padding: 0;
+  border: var(--hnv-border-width, 1px) solid transparent;
+  border-radius: var(--hnv-radius-control, 8px);
+  background: transparent;
+  color: var(--hnv-color-ink, #202938);
+  font: inherit;
+  font-size: var(--hnv-font-size-small, 13px);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.nui-datepicker__day:hover {
+  background: var(--hnv-color-accent-soft, #eef2ff);
+}
+
+.nui-datepicker__day--today {
+  border-color: var(--hnv-color-accent, #315cda);
+  font-weight: var(--hnv-font-weight-strong, 600);
+}
+
+.nui-datepicker__day--in-range {
+  background: var(--hnv-color-accent-soft, #eef2ff);
+}
+
+.nui-datepicker__day--selected,
+.nui-datepicker__day--range-start,
+.nui-datepicker__day--range-end {
+  border-color: var(--hnv-color-accent, #315cda);
+  background: var(--hnv-color-accent, #315cda);
+  color: var(--hnv-color-on-accent, #ffffff);
+  font-weight: var(--hnv-font-weight-strong, 600);
+}
+
+.nui-datepicker__day--disabled {
+  color: var(--hnv-color-muted, #5c6879);
+  background: var(--hnv-color-code-bg, #f3f5f8);
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+
+.nui-datepicker__day--disabled:hover {
+  background: var(--hnv-color-code-bg, #f3f5f8);
+}
+
+.nui-datepicker__note,
+.nui-timepicker__note {
+  margin: var(--hnv-space-2, 8px) 0 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.nui-datepicker__status {
+  position: absolute;
+}
+
+/* F13 TimePicker */
+.nui-timepicker__row {
+  flex-wrap: wrap;
+}
+
+.nui-timepicker__input {
+  flex: 1 1 8rem;
+  min-height: var(--hnv-control-height, 36px);
+  padding: var(--hnv-space-2, 8px) var(--hnv-space-3, 12px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-control, 8px);
+  background: var(--hnv-color-surface, #ffffff);
+}
+
+.nui-timepicker__input:focus-visible {
+  outline: var(--hnv-focus-ring-width, 3px) solid var(--hnv-color-focus, #315cda);
+  outline-offset: 2px;
+}
+
+.nui-timepicker__panel-title {
+  margin: 0 0 var(--hnv-space-2, 8px);
+  color: var(--hnv-color-ink, #202938);
+  font-size: var(--hnv-font-size-label, 14px);
+  font-weight: var(--hnv-font-weight-strong, 600);
+}
+
+.nui-timepicker__units {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(4rem, 1fr));
+  gap: var(--hnv-space-2, 8px);
+}
+
+.nui-timepicker__unit {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.nui-timepicker__unit-label {
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+}
+
+.nui-timepicker__select {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--hnv-control-height, 36px);
+  padding: 4px var(--hnv-space-2, 8px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-control, 8px);
+  background: var(--hnv-color-surface, #ffffff);
+  color: var(--hnv-color-ink, #202938);
+  font: inherit;
+  font-size: var(--hnv-font-size-label, 14px);
+  font-variant-numeric: tabular-nums;
+}
+
+.nui-timepicker__draft {
+  margin: var(--hnv-space-2, 8px) 0 0;
+  color: var(--hnv-color-accent, #315cda);
+  font-size: var(--hnv-font-size-label, 14px);
+  font-weight: var(--hnv-font-weight-strong, 600);
+  font-variant-numeric: tabular-nums;
+}
+
+.nui-timepicker__panel-error {
+  margin: var(--hnv-space-2, 8px) 0 0;
+  padding: var(--hnv-space-1, 4px) var(--hnv-space-2, 8px);
+  border-inline-start: 3px solid var(--hnv-color-danger, #b23a45);
+  border-radius: 0 var(--hnv-radius-control, 8px) var(--hnv-radius-control, 8px) 0;
+  background: var(--hnv-color-danger-soft, #fbeef0);
+  color: var(--hnv-color-danger, #b23a45);
+  font-size: var(--hnv-font-size-small, 13px);
+}
+
+.nui-timepicker__done {
+  margin-top: var(--hnv-space-3, 12px);
+  min-height: var(--hnv-control-height, 36px);
+  padding: var(--hnv-space-2, 8px) var(--hnv-space-4, 16px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-accent, #315cda);
+  border-radius: var(--hnv-radius-control, 8px);
+  background: var(--hnv-color-accent, #315cda);
+  color: var(--hnv-color-on-accent, #ffffff);
+  font: inherit;
+  font-size: var(--hnv-font-size-label, 14px);
+  cursor: pointer;
+}
+
+/* F14 ColorPicker */
+.nui-colorpicker__palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hnv-space-2, 8px);
+  align-items: center;
+  min-width: 0;
+}
+
+.nui-colorpicker__swatch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-control, 8px);
+  background: var(--hnv-color-surface, #ffffff);
+  cursor: pointer;
+}
+
+.nui-colorpicker__swatch--selected {
+  outline: 2px solid var(--hnv-color-ink, #202938);
+  outline-offset: 2px;
+}
+
+.nui-colorpicker__swatch:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.nui-colorpicker__swatch-check {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.nui-colorpicker__swatch--selected .nui-colorpicker__swatch-check {
+  display: flex;
+}
+
+.nui-colorpicker__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hnv-space-2, 8px);
+  align-items: stretch;
+  min-width: 0;
+}
+
+.nui-colorpicker__native-wrap,
+.nui-colorpicker__text-wrap {
+  display: flex;
+  gap: var(--hnv-space-2, 8px);
+  align-items: center;
+  min-width: 0;
+  min-height: var(--hnv-control-height, 36px);
+  padding: 0 var(--hnv-space-2, 8px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-control, 8px);
+  background: var(--hnv-color-surface, #ffffff);
+}
+
+.nui-colorpicker__native-wrap {
+  flex: 0 0 auto;
+}
+
+.nui-colorpicker__text-wrap {
+  flex: 1 1 10rem;
+}
+
+.nui-colorpicker__native-wrap:focus-within,
+.nui-colorpicker__text-wrap:focus-within {
+  outline: var(--hnv-focus-ring-width, 3px) solid var(--hnv-color-focus, #315cda);
+  outline-offset: 2px;
+}
+
+.nui-colorpicker__native-label,
+.nui-colorpicker__text-label {
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-small, 13px);
+  white-space: nowrap;
+}
+
+.nui-colorpicker__native {
+  width: 34px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.nui-colorpicker__native:disabled {
+  cursor: not-allowed;
+}
+
+.nui-colorpicker__input {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  padding: var(--hnv-space-2, 8px) 0;
+  border: 0;
+  background: transparent;
+  color: var(--hnv-color-ink, #202938);
+  font-family: var(--hnv-font-mono, "Cascadia Mono", Consolas, monospace);
+  font-size: var(--hnv-font-size-small, 13px);
+}
+
+.nui-colorpicker__input:focus-visible {
+  outline: none;
+}
+
+.nui-colorpicker__status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hnv-space-2, 8px);
+  align-items: center;
+  min-width: 0;
+}
+
+.nui-colorpicker__preview {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: 5px;
+  background: var(--hnv-color-surface, #ffffff);
+}
+
+.nui-colorpicker__preview--empty {
+  background-color: var(--hnv-color-surface, #ffffff);
+  background-image:
+    linear-gradient(45deg, var(--hnv-color-border, #dce2ea) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--hnv-color-border, #dce2ea) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--hnv-color-border, #dce2ea) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--hnv-color-border, #dce2ea) 75%);
+  background-size: 8px 8px;
+  background-position: 0 0, 0 4px, 4px -4px, -4px 0;
+}
+
+.nui-colorpicker__readout {
+  min-width: 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-small, 13px);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.nui-colorpicker--disabled .nui-colorpicker__palette {
+  opacity: 0.7;
+}
+
+/* F15 FileInput */
+.nui-fileinput__drop {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 96px;
+  padding: var(--hnv-space-4, 16px);
+  border: 2px dashed var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-object, 10px);
+  background: var(--hnv-color-surface, #ffffff);
+  color: var(--hnv-color-ink, #202938);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+
+.nui-fileinput__drop:hover {
+  border-color: var(--hnv-color-accent, #315cda);
+}
+
+.nui-fileinput--dragover .nui-fileinput__drop {
+  border-color: var(--hnv-color-accent, #315cda);
+  background: var(--hnv-color-accent-soft, #eef2ff);
+}
+
+.nui-fileinput__drop:disabled {
+  border-color: var(--hnv-color-border, #dce2ea);
+  background: var(--hnv-color-code-bg, #f3f5f8);
+  color: var(--hnv-color-muted, #5c6879);
+  cursor: not-allowed;
+}
+
+.nui-fileinput__drop-title {
+  font-size: var(--hnv-font-size-label, 14px);
+  font-weight: var(--hnv-font-weight-strong, 600);
+}
+
+.nui-fileinput__drop-text {
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-small, 13px);
+}
+
+.nui-fileinput__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hnv-space-1, 4px) var(--hnv-space-3, 12px);
+  align-items: baseline;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.nui-fileinput__hint {
+  flex: 1 1 14rem;
+}
+
+.nui-fileinput__count {
+  flex: 0 0 auto;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-small, 13px);
+  white-space: nowrap;
+}
+
+.nui-fileinput__errors {
+  padding: var(--hnv-space-2, 8px) var(--hnv-space-3, 12px);
+  border-inline-start: 3px solid var(--hnv-color-danger, #b23a45);
+  border-radius: 0 var(--hnv-radius-control, 8px) var(--hnv-radius-control, 8px) 0;
+  background: var(--hnv-color-danger-soft, #fbeef0);
+  color: var(--hnv-color-danger, #b23a45);
+  font-size: var(--hnv-font-size-small, 13px);
+}
+
+.nui-fileinput__errors-title {
+  margin: 0 0 4px;
+  font-weight: var(--hnv-font-weight-strong, 600);
+}
+
+.nui-fileinput__error-list {
+  margin: 0;
+  padding-inline-start: 1.2em;
+}
+
+.nui-fileinput__error-item {
+  overflow-wrap: anywhere;
+}
+
+.nui-fileinput__error-name {
+  font-weight: var(--hnv-font-weight-strong, 600);
+}
+
+.nui-fileinput__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hnv-space-2, 8px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.nui-fileinput__empty {
+  padding: var(--hnv-space-2, 8px);
+  border: var(--hnv-border-width, 1px) dashed var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-control, 8px);
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-small, 13px);
+}
+
+.nui-fileinput__file {
+  display: flex;
+  gap: var(--hnv-space-2, 8px);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  padding: var(--hnv-space-2, 8px) var(--hnv-space-3, 12px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-control, 8px);
+  background: var(--hnv-color-surface, #ffffff);
+}
+
+.nui-fileinput__file-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.nui-fileinput__file-name {
+  color: var(--hnv-color-ink, #202938);
+  font-size: var(--hnv-font-size-label, 14px);
+  overflow-wrap: anywhere;
+}
+
+.nui-fileinput__file-meta {
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+  overflow-wrap: anywhere;
+}
+
+.nui-fileinput__remove,
+.nui-fileinput__clear-all {
+  flex: 0 0 auto;
+  min-height: 30px;
+  padding: var(--hnv-space-1, 4px) var(--hnv-space-2, 8px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-control, 8px);
+  background: var(--hnv-color-surface, #ffffff);
+  color: var(--hnv-color-danger, #b23a45);
+  font: inherit;
+  font-size: var(--hnv-font-size-small, 13px);
+  cursor: pointer;
+}
+
+.nui-fileinput__clear-all {
+  align-self: flex-start;
+  color: var(--hnv-color-muted, #5c6879);
+}
+
+.nui-fileinput__remove:disabled,
+.nui-fileinput__clear-all:disabled {
+  color: var(--hnv-color-muted, #5c6879);
+  cursor: not-allowed;
+}
+
+.nui-fileinput__note {
+  margin: 0;
+  padding-top: var(--hnv-space-1, 4px);
+  border-top: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+  line-height: 1.5;
+}
+
+@media (max-width: 520px) {
+  .nui-slider__part {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .nui-slider__part-label {
+    padding-top: 2px;
+  }
+
+  .nui-datepicker__row,
+  .nui-timepicker__row,
+  .nui-colorpicker__row {
+    align-items: stretch;
+  }
+
+  .nui-datepicker__trigger,
+  .nui-timepicker__trigger,
+  .nui-datepicker__clear,
+  .nui-timepicker__clear,
+  .nui-colorpicker__clear {
+    flex: 1 1 auto;
+  }
+
+  .nui-timepicker__units {
+    gap: var(--hnv-space-1, 4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nui-switch__track,
+  .nui-switch__thumb {
+    transition: none;
+  }
+}

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NoteDemo scene 示例 · 开发宿主</title>
+  <link rel="stylesheet" href="../../src/core/tokens.css">
+  <link rel="stylesheet" href="../../src/core/base.css">
+  <link rel="stylesheet" href="../../src/ui/controls.css">
+  <link rel="stylesheet" href="../../src/expr/focus.css">
+  <link rel="stylesheet" href="../../src/expr/range.css">
+  <link rel="stylesheet" href="../../src/expr/link.css">
+  <link rel="stylesheet" href="../../src/ui/layout.css">
+  <link rel="stylesheet" href="../../src/viz/objects.css">
+  <link rel="stylesheet" href="../../src/blocks/stage.css">
+  <link rel="stylesheet" href="../../src/demo/presentation.css">
+  <link rel="stylesheet" href="./demo-scene.css">
+</head>
+<body class="demo-scene">
+  <header class="demo-scene__head">
+    <p class="demo-scene__kicker">NoteDemo · scene</p>
+    <h1>完整目标画面的受控过渡</h1>
+    <p class="demo-scene__lede">三个样例演示同一套 scene 能力：完整目标提交、对象过渡、目标括线和可选揭示。页面默认静止，用每个样例下方的默认控件推进；先读当前停点的字幕，再点下一步。</p>
+  </header>
+
+  <main class="demo-scene__main" id="demo-scene-main">
+    <section class="demo-scene__scenario" data-demo-scenario="scene-bytes" aria-labelledby="scene-bytes-title">
+      <header class="demo-scene__scenario-head">
+        <h2 id="scene-bytes-title">字节填充：41 7E 7D 42 → 41 7D 5E 7D 5D 42</h2>
+      </header>
+      <div class="demo-scene__stage" data-demo-host></div>
+      <details class="demo-scene__dev">
+        <summary>开发自检</summary>
+        <p class="demo-scene__dev-note">线路对象由 D01 sequence adapter 以 layout 参与 scene；接收端文字用 dom adapter 的 reveal，在对象效果收束后揭示；目标 Frame 的两条 range 括线说明转义关系。</p>
+        <p class="demo-scene__readout" data-demo-readout aria-live="polite">正在加载场景…</p>
+      </details>
+    </section>
+
+    <section class="demo-scene__scenario" data-demo-scenario="scene-other-bytes" aria-labelledby="scene-other-title">
+      <header class="demo-scene__scenario-head">
+        <h2 id="scene-other-title">另一组数据：90 7E 80 41 → 90 7D 5E 7D 80 41</h2>
+      </header>
+      <div class="demo-scene__stage" data-demo-host></div>
+      <details class="demo-scene__dev">
+        <summary>开发自检</summary>
+        <p class="demo-scene__dev-note">换一组字节复用同一个 sequence adapter 与 scene 能力；本样例不声明 result，说明 reveal 是可选能力，不是每次 scene 的固定组成。</p>
+        <p class="demo-scene__readout" data-demo-readout aria-live="polite">正在加载场景…</p>
+      </details>
+    </section>
+
+    <section class="demo-scene__scenario" data-demo-scenario="scene-custom" aria-labelledby="scene-custom-title">
+      <header class="demo-scene__scenario-head">
+        <h2 id="scene-custom-title">最小自定义 Adapter：cut + reveal</h2>
+      </header>
+      <div class="demo-scene__stage" data-demo-host></div>
+      <details class="demo-scene__dev">
+        <summary>开发自检</summary>
+        <p class="demo-scene__dev-note">本页内置一个最小 Panel Adapter：声明 sceneModes ['cut','reveal']，沿用 restore 作为同步提交。一步里一个容器 cut、另一个 reveal，验证扩展入口无需改核心。</p>
+        <p class="demo-scene__readout" data-demo-readout aria-live="polite">正在加载场景…</p>
+      </details>
+    </section>
+  </main>
+
+  <footer class="demo-scene__foot">
+    <p>开发宿主直接加载 src 经典脚本（core → ui/blocks → expr → viz → demo-runtime/scene/adapters → presentation），与 standalone.html 结构一致。</p>
+    <p>技术候选预览；示例默认静止，请用每个场景内的默认控件推进阅读。</p>
+  </footer>
+
+  <!-- 清单按 src/manifests 的模块顺序与 js 数组顺序维护；source-loaders-check 会核对。 -->
+  <script src="../../src/core/core.js"></script>
+  <script src="../../src/core/icons-data.js"></script>
+  <script src="../../src/core/icons.js"></script>
+  <script src="../../src/core/motion.js"></script>
+  <script src="../../src/core/floating.js"></script>
+  <script src="../../src/ui/controls.js"></script>
+  <script src="../../src/expr/focus.js"></script>
+  <script src="../../src/expr/range.js"></script>
+  <script src="../../src/expr/link.js"></script>
+  <script src="../../src/ui/layout.js"></script>
+  <script src="../../src/viz/objects.js"></script>
+  <script src="../../src/viz/objects-sequence-matrix.js"></script>
+  <script src="../../src/viz/objects-graph.js"></script>
+  <script src="../../src/viz/objects-timeline-tree.js"></script>
+  <script src="../../src/viz/objects-compare.js"></script>
+  <script src="../../src/blocks/shared.js"></script>
+  <script src="../../src/blocks/stage.js"></script>
+  <script src="../../src/demo/definition-compare.js"></script>
+  <script src="../../src/demo/definition-compile.js"></script>
+  <script src="../../src/demo/definition-prepare.js"></script>
+  <script src="../../src/demo/definition.js"></script>
+  <script src="../../src/demo/effects.js"></script>
+  <script src="../../src/demo/scene-geometry.js"></script>
+  <script src="../../src/demo/scene-effects.js"></script>
+  <script src="../../src/demo/scene-attention.js"></script>
+  <script src="../../src/demo/scene.js"></script>
+  <script src="../../src/demo/runner.js"></script>
+  <script src="../../src/demo/bindings.js"></script>
+  <script src="../../src/demo/controller.js"></script>
+  <script src="../../src/demo/adapters/sequence.js"></script>
+  <script src="../../src/demo/adapters/dom.js"></script>
+  <script src="../../src/demo/adapters/index.js"></script>
+  <script src="../../src/demo/authoring.js"></script>
+  <script src="../../src/demo/index.js"></script>
+  <script src="../../src/demo/presentation-chrome.js"></script>
+  <script src="../../src/demo/presentation-marks.js"></script>
+  <script src="../../src/demo/presentation.js"></script>
+  <script src="./scenarios.js"></script>
+  <script src="./standalone.js"></script>
+</body>
+</html>

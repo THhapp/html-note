@@ -1,0 +1,116 @@
+/* NoteDemo recipe shell — structural layout only; content styling stays with the example. */
+.nd-recipe {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hnv-space-md, 16px);
+  width: 100%;
+  min-width: 0;
+}
+
+.nd-recipe__board,
+.nd-recipe__process,
+.nd-recipe__readout,
+.nd-recipe__result {
+  min-width: 0;
+  background: var(--hnv-color-surface, #fff);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-md, 10px);
+}
+
+.nd-recipe__board {
+  padding: 12px 14px;
+}
+
+.nd-recipe__process {
+  padding: 16px 18px;
+}
+
+.nd-recipe__readout,
+.nd-recipe__result {
+  padding: 10px 13px;
+}
+
+.nd-recipe__head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  margin: 0 0 10px;
+}
+
+.nd-recipe__title {
+  margin: 0;
+  color: var(--hnv-color-ink, #202938);
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.nd-recipe__meta {
+  margin: 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+}
+
+.nd-recipe__slot {
+  min-width: 0;
+  min-height: 0;
+}
+
+.nd-recipe__process-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.nd-recipe__process-slot {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.nd-recipe__footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(9rem, 0.36fr);
+  gap: 10px;
+  align-items: stretch;
+  min-width: 0;
+  width: 100%;
+}
+
+.nd-recipe__readout,
+.nd-recipe__result {
+  margin: 0;
+}
+
+.nd-recipe__readout .nd-recipe__head,
+.nd-recipe__result .nd-recipe__head {
+  margin-bottom: 4px;
+}
+
+.nd-recipe__readout .nd-recipe__title,
+.nd-recipe__result .nd-recipe__title {
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+}
+
+.nd-recipe__result {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.nd-recipe__footer .nui-grid {
+  width: 100%;
+}
+
+@media (max-width: 700px) {
+  .nd-recipe__footer {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

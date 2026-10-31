@@ -1,0 +1,33 @@
+# Local history and private discussion sources
+/archive/
+/.local/
+
+# Dependencies, browser state, and generated test output
+node_modules/
+.cache/
+__pycache__/
+*.pyc
+/tests/shots/
+browser-profile*/
+/%SystemDrive%/
+/_dev*/
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+*.local.json
+
+# Build archives and temporary output (runtime JS/CSS/HTML remain tracked)
+*.zip
+*.7z
+*.log
+*.out
+*.tmp
+/dist/组件库-预览-发布.html
+
+# Editor and operating-system files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,0 +1,560 @@
+/*! note-library module: ui-overlay
+ * dependencies: core, legacy
+ * type: CSS
+ * generated-by: scripts/build.mjs; do-not-edit.
+ */
+
+/* ---- source: src/ui/overlay.css ---- */
+/* NoteUI overlay components — Tooltip / Popover / Dialog / Drawer.
+ * Scope: .nui-tooltip, .nui-popover, .nui-dialog, .nui-drawer (and their panels).
+ * Panel base .hnv-floating, backdrop, stacking and focus are owned by NoteCore (I04).
+ * Tokens: only --hnv-* with fallbacks. No global bare selectors, no :root variables.
+ */
+
+.nui-tooltip,
+.nui-popover,
+.nui-dialog,
+.nui-drawer,
+.nui-tooltip__panel,
+.nui-popover__panel,
+.nui-dialog__panel,
+.nui-drawer__panel {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  font-family: var(--hnv-font-family, "Microsoft YaHei", "Noto Sans SC", sans-serif);
+  color: var(--hnv-color-ink, #202938);
+}
+
+.nui-tooltip,
+.nui-popover {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  vertical-align: baseline;
+}
+
+.nui-dialog,
+.nui-drawer {
+  display: contents;
+}
+
+/* --------------------------------------------------------------- triggers */
+
+.nui-tooltip__trigger,
+.nui-popover__trigger,
+.nui-dialog__close,
+.nui-drawer__close {
+  touch-action: manipulation;
+  font-family: inherit;
+}
+
+.nui-tooltip__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  max-width: 100%;
+  margin: 0;
+  padding: 2px 3px;
+  border: 0;
+  border-bottom: 1px dashed var(--hnv-color-muted, #5c6879);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--hnv-color-ink, #202938);
+  font-size: var(--hnv-font-size-label, 14px);
+  font-weight: 600;
+  line-height: 1.45;
+  text-align: center;
+  overflow-wrap: anywhere;
+  cursor: help;
+  transition: color var(--hnv-motion-ui, 160ms) var(--hnv-motion-ease-ui, ease),
+    border-color var(--hnv-motion-ui, 160ms) var(--hnv-motion-ease-ui, ease);
+}
+
+.nui-tooltip__trigger:not(:disabled):hover {
+  color: var(--hnv-color-accent, #315cda);
+  border-bottom-color: var(--hnv-color-accent, #315cda);
+}
+
+.nui-popover__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  max-width: 100%;
+  margin: 0;
+  padding: 8px 13px;
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-control, 8px);
+  background: var(--hnv-color-surface, #fff);
+  color: var(--hnv-color-ink, #202938);
+  font-size: var(--hnv-font-size-label, 14px);
+  font-weight: 600;
+  line-height: 1.45;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  transition: background-color var(--hnv-motion-ui, 160ms) var(--hnv-motion-ease-ui, ease),
+    border-color var(--hnv-motion-ui, 160ms) var(--hnv-motion-ease-ui, ease),
+    color var(--hnv-motion-ui, 160ms) var(--hnv-motion-ease-ui, ease);
+}
+
+.nui-popover__trigger:not(:disabled):hover {
+  background: var(--hnv-color-page, #f4f6f9);
+  border-color: var(--hnv-color-attention, #6f82b7);
+}
+
+.nui-tooltip__trigger:disabled,
+.nui-popover__trigger:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* ----------------------------------------------------------------- panels */
+
+.nui-tooltip__panel {
+  padding: 8px 11px;
+  border: 1px solid color-mix(in srgb, var(--hnv-color-ink, #202938) 82%, #fff);
+  border-radius: 6px;
+  background: var(--hnv-color-ink, #202938);
+  color: var(--hnv-color-surface, #fff);
+  box-shadow: var(--hnv-shadow-float, 0 8px 24px rgba(25, 37, 59, 0.18));
+  font-size: var(--hnv-font-size-caption, 13px);
+  line-height: 1.5;
+  text-align: start;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  pointer-events: none;
+}
+
+.nui-popover__panel {
+  min-width: min(240px, calc(100vw - 16px));
+  padding: 14px 16px;
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-object, 10px);
+  background: var(--hnv-color-surface, #fff);
+  color: var(--hnv-color-ink, #202938);
+  box-shadow: var(--hnv-shadow-float, 0 12px 32px rgba(25, 37, 59, 0.18));
+  font-size: var(--hnv-font-size-label, 14px);
+  line-height: 1.6;
+  overflow: auto;
+  overscroll-behavior: contain;
+  max-height: calc(100dvh - 24px);
+}
+
+.nui-dialog__panel {
+  display: flex;
+  flex-direction: column;
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-object, 10px);
+  background: var(--hnv-color-surface, #fff);
+  box-shadow: var(--hnv-shadow-float, 0 20px 56px rgba(25, 37, 59, 0.24));
+  overflow: hidden;
+}
+
+.nui-dialog__panel--sm {
+  width: min(420px, calc(100vw - 32px));
+}
+
+.nui-dialog__panel--md {
+  width: min(560px, calc(100vw - 32px));
+}
+
+.nui-dialog__panel--lg {
+  width: min(760px, calc(100vw - 32px));
+}
+
+.nui-dialog__header,
+.nui-drawer__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 0 0 auto;
+  padding: 17px 18px 13px 20px;
+  border-bottom: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  min-width: 0;
+}
+
+.nui-dialog__title,
+.nui-drawer__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  color: var(--hnv-color-ink, #202938);
+  font-size: var(--hnv-font-size-heading, 20px);
+  font-weight: 650;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.nui-dialog__close,
+.nui-drawer__close {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin: -5px -4px -5px 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--hnv-radius-control, 8px);
+  background: transparent;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.nui-dialog__close:hover,
+.nui-drawer__close:hover {
+  background: var(--hnv-color-page, #f4f6f9);
+  color: var(--hnv-color-ink, #202938);
+}
+
+.nui-dialog__content {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 16px 20px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  font-size: var(--hnv-font-size-label, 14px);
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.nui-dialog__footer {
+  flex: 0 0 auto;
+  padding: 13px 20px 17px;
+  border-top: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  background: var(--hnv-color-surface, #fff);
+}
+
+.nui-dialog__actions,
+.nui-drawer__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* Action buttons: NoteUI.Button (legacy) supplies .nui-button when loaded.
+ * These prefixed rules keep a usable fallback when legacy is absent and add
+ * tone variants that legacy does not provide. */
+.nui-dialog__action,
+.nui-drawer__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  max-width: 100%;
+  margin: 0;
+  padding: 8px 14px;
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-control, 8px);
+  background: var(--hnv-color-surface, #fff);
+  color: var(--hnv-color-ink, #202938);
+  font-family: inherit;
+  font-size: var(--hnv-font-size-label, 14px);
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color var(--hnv-motion-ui, 160ms) var(--hnv-motion-ease-ui, ease),
+    border-color var(--hnv-motion-ui, 160ms) var(--hnv-motion-ease-ui, ease),
+    color var(--hnv-motion-ui, 160ms) var(--hnv-motion-ease-ui, ease);
+}
+
+.nui-dialog__action:not(:disabled):hover,
+.nui-drawer__action:not(:disabled):hover {
+  background: var(--hnv-color-page, #f4f6f9);
+  border-color: var(--hnv-color-attention, #6f82b7);
+}
+
+.nui-dialog__action--primary,
+.nui-drawer__action--primary {
+  background: var(--hnv-color-accent, #315cda);
+  border-color: var(--hnv-color-accent, #315cda);
+  color: #fff;
+}
+
+.nui-dialog__action--primary:not(:disabled):hover,
+.nui-drawer__action--primary:not(:disabled):hover {
+  background: color-mix(in srgb, var(--hnv-color-accent, #315cda) 88%, #000);
+  border-color: color-mix(in srgb, var(--hnv-color-accent, #315cda) 88%, #000);
+}
+
+.nui-dialog__action--quiet,
+.nui-drawer__action--quiet {
+  background: transparent;
+  border-color: transparent;
+  color: var(--hnv-color-muted, #5c6879);
+}
+
+.nui-dialog__action--quiet:not(:disabled):hover,
+.nui-drawer__action--quiet:not(:disabled):hover {
+  background: var(--hnv-color-accent-soft, #eef2ff);
+  border-color: transparent;
+  color: var(--hnv-color-accent, #315cda);
+}
+
+.nui-dialog__action--danger,
+.nui-drawer__action--danger {
+  background: var(--hnv-color-danger, #b3261e);
+  border-color: var(--hnv-color-danger, #b3261e);
+  color: #fff;
+}
+
+.nui-dialog__action--danger:not(:disabled):hover,
+.nui-drawer__action--danger:not(:disabled):hover {
+  background: color-mix(in srgb, var(--hnv-color-danger, #b3261e) 86%, #000);
+  border-color: color-mix(in srgb, var(--hnv-color-danger, #b3261e) 86%, #000);
+}
+
+.nui-dialog__action:disabled,
+.nui-drawer__action:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ----------------------------------------------------------------- Drawer */
+
+.nui-drawer__anchor {
+  position: fixed;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.nui-drawer__anchor--right {
+  right: 0;
+}
+
+.nui-drawer__anchor--left {
+  left: 0;
+}
+
+.nui-drawer__panel {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 16px);
+  height: calc(100dvh - 16px);
+  max-height: calc(100dvh - 16px);
+  padding: 0;
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  background: var(--hnv-color-surface, #fff);
+  box-shadow: var(--hnv-shadow-float, 0 20px 56px rgba(25, 37, 59, 0.28));
+  border-radius: var(--hnv-radius-object, 10px);
+  overflow: hidden;
+}
+
+.nui-drawer__content {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 16px 20px 20px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  font-size: var(--hnv-font-size-reading, 16px);
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.nui-drawer__footer {
+  flex: 0 0 auto;
+  padding: 13px 20px 17px;
+  border-top: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  background: var(--hnv-color-surface, #fff);
+}
+
+.nui-drawer__footer-content {
+  margin-bottom: 10px;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 13px);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.nui-drawer__footer-content:last-child {
+  margin-bottom: 0;
+}
+
+/* ------------------------------------------------------------------- focus */
+
+.nui-overlay-focusable:focus-visible,
+.nui-tooltip__panel :focus-visible,
+.nui-popover__panel :focus-visible,
+.nui-dialog__panel :focus-visible,
+.nui-drawer__panel :focus-visible {
+  outline: var(--hnv-focus-ring-width, 3px) solid var(--hnv-color-focus, #5b73d8);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------- demo helper styles */
+
+.nui-overlay-demo {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  max-width: 100%;
+  color: var(--hnv-color-ink, #202938);
+  font-family: var(--hnv-font-family, "Microsoft YaHei", "Noto Sans SC", sans-serif);
+}
+
+.nui-overlay-demo__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.nui-overlay-demo__note {
+  margin: 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 13px);
+  line-height: 1.6;
+}
+
+.nui-overlay-demo__status {
+  min-height: 1.6em;
+  margin: 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 13px);
+  line-height: 1.6;
+}
+
+.nui-overlay-demo__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 12px;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 13px);
+  line-height: 1.5;
+}
+
+.nui-overlay-demo__field input,
+.nui-overlay-demo__field select {
+  box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+  padding: 7px 9px;
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-control, 8px);
+  background: var(--hnv-color-surface, #fff);
+  color: var(--hnv-color-ink, #202938);
+  font-family: inherit;
+  font-size: var(--hnv-font-size-label, 14px);
+  line-height: 1.4;
+}
+
+.nui-overlay-demo__field input:focus-visible,
+.nui-overlay-demo__field select:focus-visible {
+  outline: var(--hnv-focus-ring-width, 3px) solid var(--hnv-color-focus, #5b73d8);
+  outline-offset: 2px;
+}
+
+.nui-overlay-demo__anchor,
+.nui-overlay-demo__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  max-width: 100%;
+  margin: 0;
+  padding: 7px 12px;
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-control, 8px);
+  background: var(--hnv-color-surface, #fff);
+  color: var(--hnv-color-ink, #202938);
+  font-family: inherit;
+  font-size: var(--hnv-font-size-label, 14px);
+  font-weight: 600;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.nui-overlay-demo__anchor {
+  border-bottom-style: dashed;
+  cursor: help;
+}
+
+.nui-overlay-demo__anchor:hover,
+.nui-overlay-demo__button:hover {
+  background: var(--hnv-color-page, #f4f6f9);
+  border-color: var(--hnv-color-attention, #6f82b7);
+}
+
+.nui-overlay-demo__button--primary {
+  background: var(--hnv-color-accent, #315cda);
+  border-color: var(--hnv-color-accent, #315cda);
+  color: #fff;
+}
+
+.nui-overlay-demo__button--primary:hover {
+  background: color-mix(in srgb, var(--hnv-color-accent, #315cda) 88%, #000);
+  border-color: color-mix(in srgb, var(--hnv-color-accent, #315cda) 88%, #000);
+}
+
+.nui-overlay-demo__long {
+  margin: 0 0 12px;
+  line-height: 1.7;
+}
+
+/* ---------------------------------------------------------------- responsive */
+
+@media (max-width: 520px) {
+  .nui-dialog__panel {
+    width: calc(100vw - 20px);
+    max-height: calc(100dvh - 20px);
+  }
+
+  .nui-dialog__header,
+  .nui-drawer__header {
+    padding: 14px 12px 11px 16px;
+  }
+
+  .nui-dialog__content,
+  .nui-drawer__content {
+    padding: 13px 16px 16px;
+  }
+
+  .nui-dialog__footer,
+  .nui-drawer__footer {
+    padding: 11px 16px 14px;
+  }
+
+  .nui-dialog__actions,
+  .nui-drawer__actions {
+    justify-content: stretch;
+  }
+
+  .nui-dialog__actions .nui-dialog__action,
+  .nui-drawer__actions .nui-drawer__action {
+    flex: 1 1 140px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nui-tooltip__trigger,
+  .nui-popover__trigger,
+  .nui-dialog__action,
+  .nui-drawer__action {
+    transition: none;
+  }
+}

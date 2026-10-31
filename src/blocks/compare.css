@@ -1,0 +1,225 @@
+/* NoteBlocks comparison compositions — B03 RuleCompare, B04 StateCompare.
+ * Owned roots: .nblk-rule-compare, .nblk-state-compare.
+ * Dependencies: core tokens + NoteUI.Table/Notice/DataObject/Badge visuals
+ * and NoteViz.CompareView visuals. NoteExpr.Focus provides its own layer.
+ * Scope only .nblk-*; no page/body/element-wide selectors.
+ * Internal spacing is owned here; external spacing belongs to the host. */
+
+.nblk-rule-compare,
+.nblk-state-compare {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  color: var(--hnv-color-ink, #202938);
+  font-family: var(--hnv-font-family, "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif);
+  font-size: var(--hnv-font-size-label, 14px);
+  line-height: 1.6;
+  text-align: start;
+}
+
+/* =====================================================================
+   B03 RuleCompare
+   ===================================================================== */
+
+.nblk-rule-compare {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.nblk-rule-compare__emphasis {
+  margin: 0;
+  padding: 9px 12px;
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-left: 3px solid var(--hnv-color-accent, #315cda);
+  border-radius: var(--hnv-radius-control, 8px);
+  background: var(--hnv-color-accent-soft, #eef2ff);
+  color: var(--hnv-color-ink, #202938);
+  font-size: var(--hnv-font-size-small, 13px);
+  font-weight: 500;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.nblk-rule-compare__table {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.nblk-rule-compare__notes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.nblk-rule-compare__notes-title {
+  margin: 0;
+  color: var(--hnv-color-ink, #202938);
+  font-family: inherit;
+  font-size: var(--hnv-font-size-label, 14px);
+  font-weight: 650;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.nblk-rule-compare__notice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.nblk-rule-compare__emphasis[hidden],
+.nblk-rule-compare__notes[hidden] {
+  display: none !important;
+}
+
+/* =====================================================================
+   B04 StateCompare
+   ===================================================================== */
+
+.nblk-state-compare {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.nblk-state-compare__caption {
+  margin: 0;
+  color: var(--hnv-color-ink, #202938);
+  font-size: var(--hnv-font-size-reading, 16px);
+  font-weight: 400;
+  line-height: var(--hnv-font-line-reading, 1.65);
+  overflow-wrap: anywhere;
+}
+
+.nblk-state-compare__caption[hidden] {
+  display: none !important;
+}
+
+.nblk-state-compare__views {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.nblk-state-compare__objects {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.nblk-state-compare__object {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.nblk-state-compare__flags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.nblk-state-compare__flag-copy {
+  min-width: 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-small, 13px);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.nblk-state-compare__empty {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 14px;
+  border: var(--hnv-border-width, 1px) dashed var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-control, 8px);
+  background: var(--hnv-color-page, #f4f6f9);
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-label, 14px);
+  line-height: 1.6;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.nblk-state-compare__summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  max-width: 100%;
+  padding-top: 12px;
+  border-top: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+}
+
+.nblk-state-compare__summary-section {
+  min-width: 0;
+}
+
+.nblk-state-compare__summary-title {
+  margin: 0;
+  color: var(--hnv-color-ink, #202938);
+  font-family: inherit;
+  font-size: var(--hnv-font-size-label, 14px);
+  font-weight: 650;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.nblk-state-compare__summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 6px 0 0;
+  padding-inline-start: 1.25em;
+  color: var(--hnv-color-ink, #202938);
+  font-size: var(--hnv-font-size-small, 13px);
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.nblk-state-compare__summary-item {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.nblk-state-compare__summary-text {
+  margin: 6px 0 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-small, 13px);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 520px) {
+  .nblk-rule-compare__emphasis {
+    padding: 8px 10px;
+  }
+
+  .nblk-state-compare__summary {
+    gap: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nblk-rule-compare,
+  .nblk-rule-compare *,
+  .nblk-state-compare,
+  .nblk-state-compare * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

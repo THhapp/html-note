@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Content demos checks</title>
+<link rel="stylesheet" href="../../src/core/tokens.css">
+<link rel="stylesheet" href="../../src/core/base.css">
+<link rel="stylesheet" href="../../vendor/katex/katex.min.css">
+<link rel="stylesheet" href="../../src/ui/content.css">
+<style>
+  body { margin: 0; padding: 20px; background: var(--hnv-color-page); color: var(--hnv-color-ink); font-family: var(--hnv-font-family); }
+  #fixture { max-width: 980px; margin: 0 auto; }
+  .demo-host { min-width: 0; padding: 24px; border: 1px solid var(--hnv-color-border); border-radius: 14px; background: var(--hnv-color-surface); }
+  .demo-label { margin: 0 0 14px; font-size: 13px; font-weight: 700; color: var(--hnv-color-muted); letter-spacing: .06em; }
+</style>
+</head>
+<body>
+<div id="fixture"></div>
+<script src="../../src/core/core.js"></script>
+<script src="../../vendor/marked/marked.umd.js"></script>
+<script src="../../vendor/katex/katex.min.js"></script>
+<script src="../../src/ui/content.js"></script>
+<script src="../../gallery/demos/ui-content.js"></script>
+<script>
+  window.currentContentDemo = null;
+  window.renderOneContentDemo = function (id) {
+    var fixture = document.getElementById('fixture');
+    if (window.currentContentDemo) window.destroyCurrentContentDemo();
+    fixture.replaceChildren();
+    var section = document.createElement('section');
+    section.className = 'demo-host';
+    var label = document.createElement('p');
+    label.className = 'demo-label';
+    label.textContent = id;
+    section.appendChild(label);
+    var host = document.createElement('div');
+    section.appendChild(host);
+    fixture.appendChild(section);
+    var result = window.NoteGalleryDemos[id](host);
+    window.currentContentDemo = { id: id, section: section, host: host, result: result };
+    return {
+      id: id,
+      mounted: host.children.length,
+      destroyable: !!(result && typeof result.destroy === 'function')
+    };
+  };
+  window.inspectCurrentContentDemo = function () {
+    var current = window.currentContentDemo;
+    if (!current) return null;
+    return {
+      id: current.id,
+      hostChildren: current.host.children.length,
+      buttons: current.host.querySelectorAll('.nui-cdemo-button').length,
+      height: current.host.getBoundingClientRect().height,
+      textLength: current.host.textContent.length
+    };
+  };
+  window.clickAllContentDemoButtons = function () {
+    var current = window.currentContentDemo;
+    if (!current) return 0;
+    var buttons = Array.prototype.slice.call(current.host.querySelectorAll('.nui-cdemo-button'));
+    buttons.forEach(function (button) { button.click(); });
+    return buttons.length;
+  };
+  window.destroyCurrentContentDemo = function () {
+    var current = window.currentContentDemo;
+    if (!current) return true;
+    if (current.result && typeof current.result.destroy === 'function') current.result.destroy();
+    var clean = current.host.children.length === 0;
+    current.section.remove();
+    window.currentContentDemo = null;
+    return clean;
+  };
+</script>
+</body>
+</html>

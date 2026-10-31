@@ -1,0 +1,259 @@
+{
+  "module": "blocks",
+  "title": "可复用组合块",
+  "js": [
+    "src/blocks/shared.js",
+    "src/blocks/stage.js",
+    "src/blocks/compare.js"
+  ],
+  "css": [
+    "src/blocks/stage.css",
+    "src/blocks/compare.css"
+  ],
+  "demos": [
+    "gallery/demos/blocks-stage.js"
+  ],
+  "dependencies": [
+    "core",
+    "legacy",
+    "ui-layout",
+    "ui-content",
+    "viz-objects"
+  ],
+  "entries": [
+    {
+      "id": "B01",
+      "name": "NoteBlocks.DemoStage",
+      "cn": "演示舞台",
+      "category": "可复用组合块",
+      "purpose": "组织宿主提供的演示画面、位置稳定的字幕与基本控制，不规定统一尺寸，也不安装整页主题。",
+      "inputs": [
+        "title",
+        "stage",
+        "caption",
+        "controls",
+        "maxWidth",
+        "minStageHeight",
+        "label"
+      ],
+      "customizable": [
+        "标题与可访问名称",
+        "画面 DOM 或纯文本",
+        "字幕文本",
+        "按钮配置或宿主 DOM 控件",
+        "最大宽度与可选最小舞台高度"
+      ],
+      "states": [
+        "短/长字幕且字幕区保持稳定",
+        "切换画面内容",
+        "无控件/禁用控件/带图标控件",
+        "宿主提供 DOM 控件",
+        "窄容器换行",
+        "销毁后无控件实例残留"
+      ],
+      "usage": "var stage = NoteBlocks.DemoStage.mount(host, { title: '演示', stage: node, caption: '初始字幕', controls: [{ label: '下一步', onClick: fn }], maxWidth: '56rem' });",
+      "dependencies": [
+        "core",
+        "ui-layout",
+        "legacy"
+      ],
+      "source": [
+        "src/blocks/stage.js",
+        "src/blocks/stage.css"
+      ],
+      "demo": "gallery/demos/blocks-stage.js#B01",
+      "preview": "gallery/index.html#B01",
+      "example": "examples/run.html?id=B01",
+      "limitations": [
+        "字幕区固定预留约两行高度；更长的字幕仍会自然增高，不对跨停点高度作强制裁切。",
+        "不规定演示画面的宽高、边框或背景，也不管理和销毁宿主放进舞台的子组件；宿主应自行清理。",
+        "控件配置图标若为名称，需要 NoteCore.icons；未知图标名称会按 NoteUI.Button 的原行为降级，不报错。",
+        "不提供整页主题、自动播放或控件之外的全页键盘操作。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": ["K03", "K04", "K05", "K06", "K09", "K12", "K13"],
+      "docs": "docs/blocks-stage.md#B01",
+      "notes": "组合 NoteUI.Stack、Inline 与 Button；返回 stageEl/captionEl，供 StepPlayer 和宿主复用。"
+    },
+    {
+      "id": "B02",
+      "name": "NoteBlocks.StepPlayer",
+      "cn": "稳定状态步进",
+      "category": "可复用组合块",
+      "purpose": "以宿主提供的完整状态快照逐个停点重绘，提供上一步、下一步、跳转、重看和重来，不自动串播。",
+      "inputs": [
+        "steps",
+        "render",
+        "initialIndex",
+        "labels",
+        "onStep",
+        "title",
+        "maxWidth"
+      ],
+      "customizable": [
+        "任意停点状态与字幕",
+        "宿主 render 及 cleanup",
+        "初始停点",
+        "控件文案",
+        "用户步进回调",
+        "标题与最大宽度",
+        "可选步骤 label 作为跳转项名称"
+      ],
+      "states": [
+        "初始停点",
+        "前进/回退无累积残留",
+        "边界按钮禁用",
+        "select 跳转",
+        "重看同一停点",
+        "重来回到初始快照",
+        "快速连续操作",
+        "render 抛错显示可读错误",
+        "程序 update 换数据并夹紧索引",
+        "无停点"
+      ],
+      "usage": "var player = NoteBlocks.StepPlayer.mount(host, { steps: snapshots, render: function (state, ctx) { ctx.stageEl.appendChild(view(state)); return cleanup; }, title: '分步演示' });",
+      "dependencies": [
+        "core",
+        "ui-layout",
+        "legacy"
+      ],
+      "source": [
+        "src/blocks/stage.js",
+        "src/blocks/stage.css"
+      ],
+      "demo": "gallery/demos/blocks-stage.js#B02",
+      "preview": "gallery/index.html#B02",
+      "example": "examples/run.html?id=B02",
+      "limitations": [
+        "同模块内复用 NoteBlocks.DemoStage；它们是同一个 blocks 模块，需按同一构建顺序加载。",
+        "不深拷贝 state；宿主应在停点激活期间保持快照对象稳定，并由 render 返回自己的 cleanup。",
+        "只有用户操作的停点变化触发 onStep。程序 go/next/prev/reset/update 不触发；重看也不触发。",
+        "重看不伪造动效；减少动效由宿主 render 自行读取偏好处理。",
+        "不接管整页键盘，也不自动播放；宿主级键盘快捷键需另行实现。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": ["K03", "K04", "K05", "K06", "K09", "K12", "K13"],
+      "docs": "docs/blocks-stage.md#B02",
+      "notes": "每次切换先调用上一停点 render 的 cleanup，清空 stageEl 后再渲染目标快照；控件节点不随停点重建。"
+    },
+    {
+      "id": "B03",
+      "name": "NoteBlocks.RuleCompare",
+      "cn": "规则对照",
+      "category": "可复用组合块",
+      "purpose": "用表格组织宿主提供的规则、条件、结果与说明，支持行列强调和就近的可读补充说明。",
+      "inputs": [
+        "rules",
+        "columns",
+        "caption",
+        "emphasize",
+        "note",
+        "label"
+      ],
+      "customizable": [
+        "规则行数据",
+        "列集合与列标签",
+        "表格 caption",
+        "强调行与强调列",
+        "全局补充说明",
+        "可访问名称"
+      ],
+      "states": [
+        "普通规则表",
+        "强调行",
+        "强调列",
+        "长条件与窄容器局部滚动",
+        "自定义列标签",
+        "空规则",
+        "有说明与无说明"
+      ],
+      "usage": "var rc = NoteBlocks.RuleCompare.mount(host, { rules: rules, caption: '访问规则', emphasize: { row: ['r2'], column: 'result' }, note: '规则由宿主提供' });",
+      "dependencies": [
+        "core",
+        "ui-content",
+        "legacy"
+      ],
+      "source": [
+        "src/blocks/compare.js",
+        "src/blocks/compare.css"
+      ],
+      "demo": "gallery/demos/blocks-stage.js#B03",
+      "preview": "gallery/index.html#B03",
+      "example": "examples/run.html?id=B03",
+      "limitations": [
+        "规则 ID 需唯一；重复 ID 时 getTarget 会指向最后渲染的同键行。",
+        "默认列为规则/条件/结果/说明；columns 数组会替换列集合，对象则只覆盖已知列标签。",
+        "强调同时用表格样式和可见文字摘要表达，不依赖颜色作为唯一提示。",
+        "窄容器横向滚动由 NoteUI.Table 提供；本块只保留可读的局部滚动，不接管滚轮或整页滚动。",
+        "规则内容由宿主提供，不内置任何业务规则，也不自动播放或自动判定重点。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": ["K03", "K04", "K05", "K06", "K09", "K12", "K13"],
+      "docs": "docs/blocks-stage.md#B03",
+      "notes": "组合 NoteUI.Table 与 Notice；getTarget(id) 返回对应行元素。"
+    },
+    {
+      "id": "B04",
+      "name": "NoteBlocks.StateCompare",
+      "cn": "前后状态对照",
+      "category": "可复用组合块",
+      "purpose": "用对照容器、数据对象和文字标记呈现前后状态，明确本步变化与必要不变量，可选标记首个变化对象。",
+      "inputs": [
+        "before",
+        "after",
+        "changed",
+        "invariant",
+        "caption",
+        "mode",
+        "label",
+        "focusChanged"
+      ],
+      "customizable": [
+        "前后对象列表",
+        "变化对象 ID",
+        "保持未变对象 ID",
+        "可见说明与可访问名称",
+        "并排/上下模式",
+        "是否用 NoteExpr.Focus 标记首个变化对象"
+      ],
+      "states": [
+        "并排与上下对照",
+        "窄容器自动上下",
+        "变化对象与未变对象同时存在",
+        "没有变化对象",
+        "单侧或无对象",
+        "可选 Focus 开启/关闭",
+        "内容替换后对象顺序稳定",
+        "销毁后无 Focus 覆盖层残留"
+      ],
+      "usage": "var sc = NoteBlocks.StateCompare.mount(host, { before: beforeObjects, after: afterObjects, changed: ['limit'], invariant: ['window'], caption: '窗口保持不变。', focusChanged: true }); sc.getTarget('limit');",
+      "dependencies": [
+        "core",
+        "viz-objects",
+        "legacy"
+      ],
+      "source": [
+        "src/blocks/compare.js",
+        "src/blocks/compare.css"
+      ],
+      "demo": "gallery/demos/blocks-stage.js#B04",
+      "preview": "gallery/index.html#B04",
+      "example": "examples/run.html?id=B04",
+      "limitations": [
+        "NoteExpr.Focus 为可选依赖；未加载时 focusChanged 静默跳过，不报错也不伪造独立标记。",
+        "只标记 changed 列表中的首个可定位对象；同时出现在 changed 与 invariant 时按变化处理。",
+        "getTarget('left'/'right') 是保留 ID；对象 ID 不应使用这两个字符串。同 ID 在两侧出现时优先返回变化后对象。",
+        "不判断变化的业务含义，也不生成测验、评分或自动播放；变化说明直接由宿主数据与 ID 生成。",
+        "上下/并排的实际布局由 NoteViz.CompareView 在窄容器阈值下调整，本块不复制其布局实现。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": ["K03", "K04", "K05", "K06", "K09", "K12", "K13"],
+      "docs": "docs/blocks-stage.md#B04",
+      "notes": "组合 NoteViz.CompareView、NoteUI.DataObject/Badge 与可选 NoteExpr.Focus；getTarget 支持左右容器与对象 ID。"
+    }
+  ]
+}

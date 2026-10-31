@@ -1,0 +1,175 @@
+{
+  "module": "ui-forms-advanced",
+  "title": "高级输入与表单控件",
+  "js": [
+    "src/ui/forms-advanced-internal.js",
+    "src/ui/forms-advanced.js",
+    "src/ui/forms-advanced-pickers.js",
+    "src/ui/forms-advanced-inputs.js"
+  ],
+  "css": ["src/ui/forms-advanced.css"],
+  "demos": ["gallery/demos/ui-forms-advanced.js"],
+  "dependencies": ["core", "ui-forms-basic"],
+  "entries": [
+    {
+      "id": "F09",
+      "name": "NoteUI.Switch",
+      "cn": "开关",
+      "category": "输入与表单",
+      "purpose": "以原生按钮提供即时布尔切换，状态与可见标签同时可读。",
+      "inputs": ["checked", "label", "disabled", "onChange", "hint", "disabledReason", "required", "error"],
+      "customizable": ["开启/关闭状态", "标签与说明", "禁用及禁用原因", "必填标记", "外部错误"],
+      "states": ["关闭", "开启", "禁用并说明原因", "带辅助说明"],
+      "usage": "NoteUI.Switch.mount(host, { checked: true, label: '启用提醒', onChange: function (checked) {} })",
+      "dependencies": ["core"],
+      "limitations": [
+        "即时切换，不替宿主提交表单或承担批量选中",
+        "与 A03 NoteUI.Toggle 的按下态按钮语义不同：Switch 表示持久的开/关状态",
+        "禁用原因需通过 disabledReason 或 hint 传入才会显示"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": ["K09", "K10", "K13"],
+      "docs": "docs/ui-forms-advanced.md#F09",
+      "notes": "原生 button[role=switch]，Space/Enter 由浏览器触发。"
+    },
+    {
+      "id": "F10",
+      "name": "NoteUI.Slider",
+      "cn": "滑块",
+      "category": "输入与表单",
+      "purpose": "单值或区间数值选择，带可读数值、步长、上下限和键盘操作。",
+      "inputs": ["value", "min", "max", "step", "range", "showValue", "format", "label", "hint", "disabled", "disabledReason", "required", "error", "onChange"],
+      "customizable": ["单值/区间", "范围与步长", "数值格式化", "是否显示读数", "标签与说明"],
+      "states": ["单值", "区间", "格式化读数", "禁用并说明原因"],
+      "usage": "NoteUI.Slider.mount(host, { label: '字号', min: 12, max: 32, step: 2, value: 18, format: function (v) { return v + ' px'; }, onChange: fn })",
+      "dependencies": ["core"],
+      "limitations": [
+        "区间由两个上下排列的原生 range 输入提供，不使用自绘双拇指；交叉时当前滑块停在另一端",
+        "programmatic update 会将值夹紧到范围并吸附到步长",
+        "轨道视觉依赖 accent-color；宿主主题需保证对比度"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": ["K09", "K10", "K13"],
+      "docs": "docs/ui-forms-advanced.md#F10",
+      "notes": "getValue() 单值返回 number，区间返回 [min, max]。"
+    },
+    {
+      "id": "F11",
+      "name": "NoteUI.Form",
+      "cn": "表单组织",
+      "category": "输入与表单",
+      "purpose": "组合 Field 与现有控件，集中取值、同步校验、错误定位、重置和宿主提交回调。",
+      "inputs": ["fields", "values", "onSubmit", "onChange", "submitLabel", "resetLabel", "validateOn", "label"],
+      "customizable": ["字段与控件类型", "默认值", "同步校验函数", "校验时机", "按钮文案", "自定义控件"],
+      "states": ["默认", "校验错误与首错聚焦", "重置", "程序更新不触发用户事件"],
+      "usage": "NoteUI.Form.mount(host, { fields: [{ name: 'email', label: '邮箱', control: 'text', required: true, validate: function (v) { return /@/.test(v) ? null : '邮箱格式不正确。'; } }], onSubmit: fn })",
+      "dependencies": ["core", "ui-forms-basic"],
+      "limitations": [
+        "只执行同步校验，不发网络请求，也不自动序列化到 URL",
+        "custom 实例的 onChange 不保证自动桥接；Form 会在失焦、submit() 与 getValue() 时读取 getValue()",
+        "程序 update() 不触发 onChange，也不自动重新校验",
+        "文本/文本域/数字/复选/下拉行使用 ui-forms-basic 的 Field/TextInput/Textarea/NumberInput/Checkbox/Select；开关与滑块使用本模块"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": ["K09", "K10", "K13"],
+      "docs": "docs/ui-forms-advanced.md#F11",
+      "notes": "默认校验时机为 submit + blur；可配置 submit/blur/input。"
+    },
+    {
+      "id": "F12",
+      "name": "NoteUI.DatePicker",
+      "cn": "日期选择",
+      "category": "输入与表单",
+      "purpose": "日历与严格文本输入结合，支持单日、范围、禁用日期与清空。",
+      "inputs": ["value", "range", "min", "max", "disabledDates", "weekStartsOn", "today", "label", "hint", "placeholder", "disabled", "disabledReason", "clearable", "error", "onChange"],
+      "customizable": ["单日/范围", "允许范围", "数组或函数形式的禁用日期", "周起始日", "标签与说明", "清空"],
+      "states": ["单日", "范围", "禁用日期", "非法文本错误", "已选/今天/区间内"],
+      "usage": "NoteUI.DatePicker.mount(host, { range: true, min: '2026-10-01', max: '2026-12-31', disabledDates: function (iso) { return iso === '2026-10-20'; }, onChange: fn })",
+      "dependencies": ["core"],
+      "limitations": [
+        "固定使用 YYYY-MM-DD 文本格式，不支持本地化日期格式",
+        "只处理本地日历日期，不做时区换算；没有时间部分",
+        "范围允许部分值 {start, end}，日历选择第二端后关闭；文本输入顺序会整理并给出可见提示",
+        "浮层复用 NoteCore.floating；窄视口会被视口夹紧并可滚动"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": ["K09", "K10", "K13"],
+      "docs": "docs/ui-forms-advanced.md#F12",
+      "notes": "禁用规则：min/max 含端点；disabledDates 支持 ISO 数组或 function(iso, Date)。"
+    },
+    {
+      "id": "F13",
+      "name": "NoteUI.TimePicker",
+      "cn": "时间选择",
+      "category": "输入与表单",
+      "purpose": "本地时:分（可选秒）输入与列表选择，支持步长、范围限制和清空。",
+      "inputs": ["value", "seconds", "step", "min", "max", "label", "hint", "disabled", "disabledReason", "clearable", "error", "onChange"],
+      "customizable": ["是否显示秒", "步长", "允许范围", "标签与说明", "清空"],
+      "states": ["时:分", "时:分:秒", "范围边界", "非法文本错误", "下拉受限选项"],
+      "usage": "NoteUI.TimePicker.mount(host, { seconds: true, step: 15, min: '08:00:00', max: '18:00:00', value: '09:30:00', onChange: fn })",
+      "dependencies": ["core"],
+      "limitations": [
+        "只处理本地钟表时间，不含日期，不做时区换算",
+        "seconds=false 时格式固定 HH:mm，seconds=true 时固定 HH:mm:ss",
+        "step 单位随时钟精度变化：无秒时按分钟，含秒时按秒；min/max 使用同一精度",
+        "浮层中的三个原生 select 提供选项；受限组合在确认前会给出可见错误，不静默修正"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": ["K09", "K10", "K13"],
+      "docs": "docs/ui-forms-advanced.md#F13",
+      "notes": "min/max 含端点；getValue() 返回字符串或 null。"
+    },
+    {
+      "id": "F14",
+      "name": "NoteUI.ColorPicker",
+      "cn": "颜色选择",
+      "category": "输入与表单",
+      "purpose": "色板、原生拾色器与文本值结合，明确格式、校验和透明度策略。",
+      "inputs": ["value", "palette", "label", "hint", "disabled", "disabledReason", "clearable", "error", "onChange"],
+      "customizable": ["预设色板", "初始颜色", "标签与说明", "清空"],
+      "states": ["色板选择", "系统拾色器", "文本值", "非法值/透明度被拒绝", "未选择"],
+      "usage": "NoteUI.ColorPicker.mount(host, { value: '#315cda', palette: ['#315cda', '#b23a45', '#ffffff'], onChange: fn })",
+      "dependencies": ["core"],
+      "limitations": [
+        "文本接受 #rgb 与 #rrggbb，输出统一小写 #rrggbb",
+        "不支持 alpha/透明度，也没有 rgba()、颜色名或其他 CSS 颜色语法",
+        "原生 input[type=color] 的输出能力取决于浏览器，但组件会再次规范化为 #rrggbb",
+        "非法文本显示错误，不把旧值当成当前有效值"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": ["K09", "K10", "K13"],
+      "docs": "docs/ui-forms-advanced.md#F14",
+      "notes": "getValue() 返回 #rrggbb 或 null。"
+    },
+    {
+      "id": "F15",
+      "name": "NoteUI.FileInput",
+      "cn": "本地文件选择",
+      "category": "输入与表单",
+      "purpose": "在浏览器内选择或拖入文件，展示清单、限制与拒绝原因，可逐个删除。",
+      "inputs": ["multiple", "accept", "maxSize", "maxFiles", "label", "hint", "disabled", "disabledReason", "onChange", "files"],
+      "customizable": ["单选/多选", "接受类型", "单文件大小上限", "数量上限", "标签与说明"],
+      "states": ["空清单", "已选清单", "多选", "拖入高亮", "类型/大小/数量拒绝", "单个删除"],
+      "usage": "NoteUI.FileInput.mount(host, { multiple: true, accept: '.txt,.md,image/*', maxSize: 1048576, maxFiles: 5, onChange: fn })",
+      "dependencies": ["core"],
+      "limitations": [
+        "只在浏览器内选择和读取 File 对象，不执行上传、不请求网络、不伪造服务端状态",
+        "accept 主要依赖浏览器筛选；拖入文件由组件再次校验扩展名/MIME",
+        "maxSize 单位为字节；maxFiles 限制新增文件，调低上限不会自动删除已有文件",
+        "value/getValue() 返回 File 数组，刷新或序列化后不能还原 File",
+        "单选模式下一次选择/拖入全部被拒绝时保留原清单，不会因拒绝而清空已有文件"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": ["K09", "K10", "K13"],
+      "docs": "docs/ui-forms-advanced.md#F15",
+      "notes": "隐藏原生 input；可见的“选择文件”按钮同时是拖放区和键盘入口；每次选择后重置 input.value 以允许重复选择同一文件。"
+    }
+  ]
+}

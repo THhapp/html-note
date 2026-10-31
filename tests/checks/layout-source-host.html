@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Layout and Actions source harness</title>
+  <link rel="stylesheet" href="../../src/core/tokens.css">
+  <link rel="stylesheet" href="../../src/core/base.css">
+  <link rel="stylesheet" href="../../src/ui/controls.css">
+  <link rel="stylesheet" href="../../src/ui/layout.css">
+  <link rel="stylesheet" href="../../src/ui/actions.css">
+  <style>
+    .check-page { width: min(100%, 1180px); margin: 0 auto; padding: 24px; box-sizing: border-box; }
+    .check-sandbox { width: 100%; min-width: 0; margin-block: 16px; }
+    .check-wide { width: 900px; max-width: 100%; }
+    .check-narrow { width: 460px; max-width: 100%; }
+  </style>
+</head>
+<body>
+  <main class="check-page">
+    <div id="sandbox" class="check-sandbox check-wide"></div>
+    <div id="demo-host" class="check-sandbox"></div>
+  </main>
+  <script src="../../src/core/core.js"></script>
+  <script src="../../src/core/icons-data.js"></script>
+  <script src="../../src/core/icons.js"></script>
+  <script src="../../src/core/motion.js"></script>
+  <script src="../../src/core/floating.js"></script>
+  <script src="../../src/ui/controls.js"></script>
+  <script src="../../src/ui/layout.js"></script>
+  <script src="../../src/ui/actions.js"></script>
+  <script src="../../gallery/demos/ui-layout.js"></script>
+  <script src="../../gallery/demos/ui-actions.js"></script>
+</body>
+</html>

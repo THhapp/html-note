@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>矩阵乘法 C₁₂ · NoteDemo 复用验证</title>
+  <link rel="stylesheet" href="../../src/core/tokens.css">
+  <link rel="stylesheet" href="../../src/core/base.css">
+  <link rel="stylesheet" href="../../src/ui/controls.css">
+  <link rel="stylesheet" href="../../src/expr/focus.css">
+  <link rel="stylesheet" href="../../src/expr/range.css">
+  <link rel="stylesheet" href="../../src/expr/link.css">
+  <link rel="stylesheet" href="../../src/ui/layout.css">
+  <link rel="stylesheet" href="../../src/ui/content.css">
+  <link rel="stylesheet" href="../../src/ui/expression.css">
+  <link rel="stylesheet" href="../../src/viz/objects.css">
+  <link rel="stylesheet" href="../../src/blocks/stage.css">
+  <link rel="stylesheet" href="../../src/demo/presentation.css">
+  <link rel="stylesheet" href="./reuse.css">
+</head>
+<body class="mp-page">
+  <header class="mp-head">
+    <p class="mp-kicker">NoteDemo · 复用验证</p>
+    <h1>矩阵乘法：C₁₂ 是怎么算出来的？</h1>
+    <p class="mp-lede">只计算 C 的第 1 行、第 2 列：取 A 的第 1 行与 B 的第 2 列，逐对相乘，再把三个乘积相加。</p>
+  </header>
+
+  <main class="mp-main">
+    <section class="mp-card" data-demo-scenario aria-label="矩阵乘法 C 第一行第二列演示">
+      <div class="mp-host" data-demo-host></div>
+      <details class="mp-dev">
+        <summary>开发自检</summary>
+        <p class="mp-dev-readout" data-demo-readout aria-live="polite">正在加载演示…</p>
+        <p class="mp-dev-note">知识内容入口：content.js；画布与 NoteDemo 装配：host.js。默认舞台由 NoteDemo.mount 提供。</p>
+      </details>
+    </section>
+  </main>
+
+  <footer class="mp-foot">
+    <p>页面默认静止，请用演示下方的默认控件推进。</p>
+    <p>离线预览不依赖服务或网络。</p>
+  </footer>
+
+  <!-- 清单按 src/manifests 的模块顺序与 js 数组顺序维护；source-loaders-check 会核对。 -->
+  <script src="../../src/core/core.js"></script>
+  <script src="../../src/core/icons-data.js"></script>
+  <script src="../../src/core/icons.js"></script>
+  <script src="../../src/core/motion.js"></script>
+  <script src="../../src/core/floating.js"></script>
+  <script src="../../src/ui/controls.js"></script>
+  <script src="../../src/expr/focus.js"></script>
+  <script src="../../src/expr/range.js"></script>
+  <script src="../../src/expr/link.js"></script>
+  <script src="../../src/ui/layout.js"></script>
+  <script src="../../src/ui/content.js"></script>
+  <script src="../../src/ui/expression.js"></script>
+  <script src="../../src/viz/objects.js"></script>
+  <script src="../../src/viz/objects-sequence-matrix.js"></script>
+  <script src="../../src/viz/objects-graph.js"></script>
+  <script src="../../src/viz/objects-timeline-tree.js"></script>
+  <script src="../../src/viz/objects-compare.js"></script>
+  <script src="../../src/blocks/shared.js"></script>
+  <script src="../../src/blocks/stage.js"></script>
+  <script src="../../src/demo/definition-compare.js"></script>
+  <script src="../../src/demo/definition-compile.js"></script>
+  <script src="../../src/demo/definition-prepare.js"></script>
+  <script src="../../src/demo/definition.js"></script>
+  <script src="../../src/demo/effects.js"></script>
+  <script src="../../src/demo/scene-geometry.js"></script>
+  <script src="../../src/demo/scene-effects.js"></script>
+  <script src="../../src/demo/scene-attention.js"></script>
+  <script src="../../src/demo/scene.js"></script>
+  <script src="../../src/demo/runner.js"></script>
+  <script src="../../src/demo/bindings.js"></script>
+  <script src="../../src/demo/controller.js"></script>
+  <script src="../../src/demo/adapters/matrix.js"></script>
+  <script src="../../src/demo/adapters/sequence.js"></script>
+  <script src="../../src/demo/adapters/dom.js"></script>
+  <script src="../../src/demo/adapters/expression.js"></script>
+  <script src="../../src/demo/adapters/index.js"></script>
+  <script src="../../src/demo/authoring.js"></script>
+  <script src="../../src/demo/index.js"></script>
+  <script src="../../src/demo/presentation-chrome.js"></script>
+  <script src="../../src/demo/presentation-marks.js"></script>
+  <script src="../../src/demo/presentation.js"></script>
+  <script src="./content.js"></script>
+  <script src="./host.js"></script>
+</body>
+</html>

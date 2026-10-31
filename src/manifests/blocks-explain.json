@@ -1,0 +1,415 @@
+{
+  "module": "blocks",
+  "title": "可复用组合块",
+  "js": [
+    "src/blocks/shared.js",
+    "src/blocks/codetrace.js",
+    "src/blocks/framefields.js",
+    "src/blocks/flow.js",
+    "src/blocks/sequence-diagram.js",
+    "src/blocks/hierarchy.js",
+    "src/blocks/chart-explain.js"
+  ],
+  "css": [
+    "src/blocks/codetrace.css",
+    "src/blocks/framefields.css",
+    "src/blocks/flow.css",
+    "src/blocks/sequence-diagram.css",
+    "src/blocks/hierarchy.css",
+    "src/blocks/chart-explain.css"
+  ],
+  "demos": [
+    "gallery/demos/blocks-explain.js"
+  ],
+  "dependencies": [
+    "core",
+    "legacy",
+    "ui-layout",
+    "ui-content",
+    "ui-navigation",
+    "viz-objects",
+    "viz-chart"
+  ],
+  "entries": [
+    {
+      "id": "B05",
+      "name": "NoteBlocks.CodeTrace",
+      "cn": "代码与状态跟踪",
+      "category": "可复用组合块",
+      "purpose": "把宿主提供的只读代码、当前代码行范围、变量完整快照、补充说明和用户步进组合为一个代码跟踪画面，帮助读者在同一停点核对代码与变量。",
+      "inputs": [
+        "code",
+        "language",
+        "title",
+        "steps",
+        "current",
+        "labels",
+        "onStep",
+        "maxWidth",
+        "label"
+      ],
+      "customizable": [
+        "预置代码文本与语言标签",
+        "每个停点的字幕、行范围、变量快照与说明",
+        "变量 label、value、unit 与 changed 标记",
+        "初始停点、控制文案、最大宽度与可访问名称",
+        "用户步进回调"
+      ],
+      "states": [
+        "初始停点静止显示",
+        "带上一步/下一步/跳转/重看/重来",
+        "单个变量变化与多个变量变化",
+        "无变化变量与无变量停点",
+        "代码长行与纵向局部滚动",
+        "变量卡自动换列与窄容器单列",
+        "回退后变量和行范围按完整快照重建",
+        "快速连续步进无旧变量卡残留",
+        "程序 update 替换代码和停点不触发 onStep",
+        "无停点"
+      ],
+      "usage": "var trace = NoteBlocks.CodeTrace.mount(host, { code: 'const answer = 42;', language: 'js', steps: [{ id: 's1', caption: '初始停点', highlight: 1, variables: [{ name: 'answer', value: 42, changed: true }], explanation: '代码只显示，不执行。' }] }); trace.next();",
+      "dependencies": [
+        "core",
+        "legacy",
+        "ui-layout",
+        "ui-content"
+      ],
+      "source": [
+        "src/blocks/codetrace.js",
+        "src/blocks/codetrace.css"
+      ],
+      "demo": "gallery/demos/blocks-explain.js#B05",
+      "preview": "gallery/index.html#B05",
+      "example": "examples/run.html?id=B05",
+      "limitations": [
+        "代码始终作为纯文本显示，不执行、不解析也不求值；变量值同样完全由宿主在每个停点给出。",
+        "不自动检测代码行与变量变化；highlight 与 changed 都由宿主停点快照声明。",
+        "getTarget('code') 返回当前 CodeBlock 根，getTarget('var:'+name) 返回当前变量卡，getTarget(当前停点 id) 返回本停点内容区；非当前停点与不存在的对象返回 null。",
+        "变量 name 应在当前停点内唯一；重复 name 时 getTarget 指向最后渲染的同名变量卡。",
+        "代码块与变量区在同一视觉分组内；窄容器下改为上下排列，代码和变量列表各自可局部滚动。",
+        "无自动播放，不接管整页键盘；步进只由用户操作 StepPlayer 的控件触发。",
+        "复用同模块的 NoteBlocks.StepPlayer；加载 blocks 模块时需保证 shared.js、stage.js 与其依赖已加载。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": ["K03", "K04", "K05", "K06", "K09", "K12", "K13"],
+      "docs": "docs/blocks-explain.md#B05",
+      "notes": "组合 NoteBlocks.StepPlayer（内部含 DemoStage）、NoteUI.CodeBlock、DataObject、Badge 与 Notice；每次停点先销毁旧子实例再按快照重建；只改 title/maxWidth/label 等展示项时不重建当前画面。"
+    },
+    {
+      "id": "B06",
+      "name": "NoteBlocks.FrameFields",
+      "cn": "位串与字段结构",
+      "category": "可复用组合块",
+      "purpose": "把宿主提供的位串、字段范围和字段说明组合起来，并用可聚焦字段行同步序列关注，帮助读者核对字段边界、顺序、单位和值。",
+      "inputs": [
+        "items",
+        "fields",
+        "focusField",
+        "bitOrder",
+        "caption",
+        "changed",
+        "label",
+        "onSelect"
+      ],
+      "customizable": [
+        "位串 items（字符串或带稳定 id 的对象）",
+        "字段 id、label、start/end 范围、note、unit 与显式 value",
+        "初始关注字段与变化字段",
+        "MSB/LSB 计算顺序",
+        "字段说明与可访问名称",
+        "用户字段选择回调"
+      ],
+      "states": [
+        "初始有关注字段与无关注字段",
+        "当前字段与本步变化字段区分",
+        "同一字段兼具当前与变化时的合成标记",
+        "宿主显式字段值与按位串计算字段值",
+        "MSB/LSB 切换导致计算值变化",
+        "字段值缺失或位范围含非 0/1 值",
+        "长字段列表局部纵向滚动",
+        "窄容器字段行改为单列",
+        "程序 focusField 静默切换",
+        "程序 update 换位串、字段和变化标记不触发 onSelect"
+      ],
+      "usage": "var fields = NoteBlocks.FrameFields.mount(host, { items: ['1','0','1','1'], fields: [{ id: 'mode', label: '模式', start: 0, end: 1 }, { id: 'count', label: '计数', start: 2, end: 3, unit: '次' }], focusField: 'mode', bitOrder: 'msb', changed: ['count'] }); fields.getTarget('sequence');",
+      "dependencies": [
+        "core",
+        "legacy",
+        "ui-layout",
+        "viz-objects"
+      ],
+      "source": [
+        "src/blocks/framefields.js",
+        "src/blocks/framefields.css"
+      ],
+      "demo": "gallery/demos/blocks-explain.js#B06",
+      "preview": "gallery/index.html#B06",
+      "example": "examples/run.html?id=B06",
+      "limitations": [
+        "字段语义完全由宿主提供；本块不解释协议、不校验字段含义，也不写死任何字段名或位序规则。",
+        "start/end 是 items 的零基闭区间索引。字段没有显式 value 时，只对范围内全为 0/1 的 items 计算无符号整数：MSB 在前时最小索引权重最高，LSB 在前时最小索引权重最低；含空值或多字符值时显示“—”，不猜值。",
+        "显式 value 优先于计算；unit 只用于显示附加单位，不参与计算。",
+        "字段范围默认互不重叠；重叠字段仍可显示和聚焦，但 NoteViz.Sequence 的分组条会按第一个覆盖该位的字段归类。",
+        "键盘 Tab 聚焦字段按钮会静默同步当前字段与 Sequence 关注；点击或按 Enter/Space 激活才触发 onSelect(id,event)。update() 不触发 onSelect；程序 focusField 默认在改变选择时通知，可传 {silent:true} 抑制。",
+        "getTarget('sequence') 返回序列根；字段 id 优先返回字段行，未匹配时尝试返回 Sequence 中的同名/同索引单元；两者同 id 时字段行优先。",
+        "位序切换只重算派生显示值，不重排 items；不内置端序检测。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": ["K03", "K04", "K05", "K06", "K09", "K12", "K13"],
+      "docs": "docs/blocks-explain.md#B06",
+      "notes": "组合 NoteViz.Sequence、NoteUI.Stack、Badge 与 Notice；字段按钮只改变关注和选中状态，滚动区与序列滚动均由基础组件负责。"
+    },
+    {
+      "id": "B07",
+      "name": "NoteBlocks.ProcessFlow",
+      "cn": "流程步进",
+      "category": "可复用组合块",
+      "purpose": "用宿主提供的节点、边和停点组织基础流程演示，突出当前节点与当前关系，并用步骤指示让已完成流程可辨认。",
+      "inputs": [
+        "nodes",
+        "edges",
+        "steps",
+        "title",
+        "labels",
+        "onStep",
+        "maxWidth",
+        "label"
+      ],
+      "customizable": [
+        "节点、边、分组与可选手动坐标",
+        "每个停点的字幕、nodeId、edgeIds 与说明",
+        "流程标题、控制文案与最大宽度",
+        "可访问名称",
+        "用户步进回调"
+      ],
+      "states": [
+        "分层自动布局与全坐标 manual 布局",
+        "初始停点静止",
+        "当前节点关注",
+        "当前边文字关系列出",
+        "已完成 / 当前 / 未到达步骤指示",
+        "无 edgeIds 的停点",
+        "停点引用不存在的节点或边",
+        "程序 update 替换流程数据并夹紧索引",
+        "窄容器图内局部滚动",
+        "无停点"
+      ],
+      "usage": "var flow = NoteBlocks.ProcessFlow.mount(host, { nodes: [{ id: 'a', label: '接收' }, { id: 'b', label: '处理' }], edges: [{ id: 'ab', from: 'a', to: 'b', label: '进入', directed: true }], steps: [{ id: 's1', caption: '从接收开始', nodeId: 'a' }, { id: 's2', caption: '沿进入边到处理', nodeId: 'b', edgeIds: ['ab'] }] }); flow.next();",
+      "dependencies": [
+        "core",
+        "legacy",
+        "ui-layout",
+        "ui-navigation",
+        "viz-objects"
+      ],
+      "source": [
+        "src/blocks/flow.js",
+        "src/blocks/flow.css"
+      ],
+      "demo": "gallery/demos/blocks-explain.js#B07",
+      "preview": "gallery/index.html#B07",
+      "example": "examples/run.html?id=B07",
+      "limitations": [
+        "冻结的 NoteViz.Graph 公开 API 只有节点 focus/changed 与节点 getTarget，没有边关注或边 target 接口。当前节点由 Graph 的虚线关注表达；当前边在本块图下的“本步关系”条文中以“当前边”文字强调，没有在 SVG 边上直接加样式。",
+        "edgeIds 先匹配边的 id，其次匹配 from -> to 字符串，最后匹配 edges 数组索引；没有 id 的平行同向边用 route 与 route #n 区分。flow 中不存在的引用会显示可见警告。",
+        "不会根据 nodeId 推断 edgeIds，也不会自动把已完成节点标为“本步变化”；变化与关注保持分开。",
+        "只有所有节点都有有限 x/y 时才使用 manual 布局，否则使用 Graph 的 layered 布局；本块不做拖拽、缩放或流程编辑。",
+        "getTarget 优先返回 Graph 节点；也接受 edge:<edgeKey> 与当前边卡 key；只有当前停点 id 返回进度区元素，非当前 step id 与不存在的引用返回 null。",
+        "图内滚动、节点标签与箭头由 NoteViz.Graph 提供；本块不复制图布局内部实现。",
+        "无自动播放；程序 update 和 go/next/prev 不触发 onStep。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": ["K03", "K04", "K05", "K06", "K09", "K12", "K13"],
+      "docs": "docs/blocks-explain.md#B07",
+      "notes": "组合 NoteBlocks.StepPlayer、NoteViz.Graph 与 NoteUI.Steps/Notice；已报告 Graph 缺少边关注接口，当前边以可读关系条补偿并在文档标明。"
+    },
+    {
+      "id": "B08",
+      "name": "NoteBlocks.SequenceDiagram",
+      "cn": "时序消息",
+      "category": "可复用组合块",
+      "purpose": "用参与者、生命线和有序消息讲解谁在何时向谁发送同步、异步或返回消息，当前消息由图中标记和下方字幕共同解释。",
+      "inputs": [
+        "participants",
+        "messages",
+        "current",
+        "title",
+        "caption",
+        "label",
+        "maxWidth"
+      ],
+      "customizable": [
+        "参与者 id、label 与 note",
+        "消息 id、from/to、label、type 与 note",
+        "初始消息、标题、上下文说明、可访问名称与最大宽度"
+      ],
+      "states": [
+        "同步 / 异步 / 返回三种消息",
+        "初始消息静止",
+        "当前消息行强调与“当前”文字标记",
+        "文字说明、线型和箭头形态区分消息类型",
+        "参与者较多时图内横向滚动",
+        "长消息多行换行与截断（完整文本在 title 与字幕中）",
+        "无消息 / 非法参与者引用",
+        "程序 update 替换参与者、消息和 current",
+        "窄容器",
+        "重看与重来"
+      ],
+      "usage": "var sd = NoteBlocks.SequenceDiagram.mount(host, { participants: [{ id: 'a', label: '客户端' }, { id: 'b', label: '服务端' }], messages: [{ id: 'm1', from: 'a', to: 'b', label: '提交请求', type: 'sync', note: '请求进入服务端。' }], current: 0, caption: '时序数据由宿主提供。' }); sd.getTarget('m1');",
+      "dependencies": [
+        "core",
+        "legacy",
+        "ui-layout"
+      ],
+      "source": [
+        "src/blocks/sequence-diagram.js",
+        "src/blocks/sequence-diagram.css"
+      ],
+      "demo": "gallery/demos/blocks-explain.js#B08",
+      "preview": "gallery/index.html#B08",
+      "example": "examples/run.html?id=B08",
+      "limitations": [
+        "只实现参与者、生命线、消息顺序、当前强调和必要字幕，不是任意图语法解析、拖拽编辑器或完整时序图引擎。",
+        "消息必须按 from/to 引用有效参与者；未知端点的消息被跳过并显示可见警告。重复消息 id 会令 getTarget 指向最后渲染的同 id 消息。",
+        "所有消息一次性由宿主提供；没有自动播放、自动动画或自动推进。图的当前行随 StepPlayer 的用户步进改变。",
+        "长标签最多显示两行并可能截断；完整消息文本保留在 SVG title 与当前字幕里。参与者 note 单行显示，完整文本保留在 title 中。",
+        "getStep() 返回当前规范化消息对象；getState() 返回 {index,total,message,caption}，不是业务状态机。getTarget 先匹配消息 id，再匹配参与者 id。",
+        "viewer 的图内滚动是局部滚动；当前消息在渲染后会滚入可视区域，减少横向寻找，但不会改变页面滚动位置。",
+        "图使用固定画布坐标再随容器局部滚动，不将文本缩到难以辨认；窄容器下依赖横向滚动而非压缩字号。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": ["K03", "K04", "K05", "K06", "K09", "K12", "K13"],
+      "docs": "docs/blocks-explain.md#B08",
+      "notes": "组合 NoteBlocks.StepPlayer 提供步进和稳定字幕；时序图本身为本块有限 SVG 实现，未复制任何基础图组件内部。"
+    },
+    {
+      "id": "B09",
+      "name": "NoteBlocks.HierarchyDetail",
+      "cn": "层级与详情",
+      "category": "可复用组合块",
+      "purpose": "组合可操作目录树与对象详情，让宿主按层级组织条目，并在选中变化时稳定替换详情字段、内容和说明。",
+      "inputs": [
+        "nodes",
+        "selected",
+        "details",
+        "labels",
+        "onSelect"
+      ],
+      "customizable": [
+        "目录节点与层级",
+        "初始选中项",
+        "按 id 提供的详情标题、字段、内容与说明",
+        "目录、详情、空态和说明文案",
+        "用户选择回调"
+      ],
+      "states": [
+        "初始选中与未选中",
+        "展开父级后选中嵌套条目",
+        "详情字段网格",
+        "长详情内容局部滚动",
+        "对象存在但无详情",
+        "更换 details 保持选中与树定位",
+        "更换 nodes 后保留仍存在的选中项",
+        "程序 select 静默切换",
+        "窄容器上下布局",
+        "销毁无子组件残留"
+      ],
+      "usage": "var hd = NoteBlocks.HierarchyDetail.mount(host, { nodes: [{ id: 'n1', label: '概览', children: [{ id: 'n2', label: '细节' }] }], selected: 'n2', details: { n2: { title: '细节', fields: [{ label: '状态', value: '示例' }], content: '宿主提供的详情文本。' } }, labels: { tree: '目录', detail: '详情' } }); hd.select('n1', { silent: true });",
+      "dependencies": [
+        "core",
+        "legacy",
+        "ui-layout",
+        "ui-navigation"
+      ],
+      "source": [
+        "src/blocks/hierarchy.js",
+        "src/blocks/hierarchy.css"
+      ],
+      "demo": "gallery/demos/blocks-explain.js#B09",
+      "preview": "gallery/index.html#B09",
+      "example": "examples/run.html?id=B09",
+      "limitations": [
+        "目录树只承担可操作目录，不绘制机制关系；需要层级图形请另行使用 NoteViz.TreeDiagram。",
+        "select(id) 默认通知 onSelect；传 {silent:true} 可抑制。update() 的程序选中、节点替换、详情替换和标签更新均不触发 onSelect。",
+        "选中嵌套条目时只自动展开其祖先路径；不会自动展开目标节点自身。update 后仍存在原选中项时保持选中并滚动定位。",
+        "getTarget('detail') 返回详情面板根；其他 id 交给 TreeView.getTarget，节点 id 若为 'detail' 将无法通过本块 getTarget 取到树项。",
+        "details 按节点 id 建表并整体替换；字段可为数组或键值对象，内容可为纯文本或宿主 DOM（节点被移入，不克隆）。",
+        "详情滚动区单独局部滚动，目录树也有独立局部滚动；窄容器改为上下布局。",
+        "不提供异步加载、树搜索、多选或拖拽；这些不属于本轮组合范围。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": ["K03", "K04", "K05", "K06", "K09", "K12", "K13"],
+      "docs": "docs/blocks-explain.md#B09",
+      "notes": "组合 NoteUI.TreeView、Panel、DataObject、Badge 与 Notice；详情随选择更新，树实例不因详情替换而重建。"
+    },
+    {
+      "id": "B10",
+      "name": "NoteBlocks.ChartExplain",
+      "cn": "图表讲解",
+      "category": "可复用组合块",
+      "purpose": "把宿主提供的统计图与逐停点关注、变化标记和稳定字幕组合起来，让读者在不自动轮播的停点中核对图表与数据表。",
+      "inputs": [
+        "chart",
+        "steps",
+        "title",
+        "labels",
+        "onStep",
+        "maxWidth",
+        "label"
+      ],
+      "customizable": [
+        "图表类型、单/多系列数据、类别标签、高度与数值格式",
+        "图表标题与单位等可选字段",
+        "数据表默认开启",
+        "每个停点的字幕、focus、changed 与说明",
+        "控制文案、最大宽度与可访问名称",
+        "用户步进回调"
+      ],
+      "states": [
+        "初始停点只显示整体图表",
+        "单柱/点关注",
+        "系列关注",
+        "关注与本步变化分开标记",
+        "数据表可展开核对",
+        "空数据",
+        "程序 update 整组替换图表与停点",
+        "回退/重看一致",
+        "窄容器图表与数据表局部滚动",
+        "无停点"
+      ],
+      "usage": "var ce = NoteBlocks.ChartExplain.mount(host, { chart: { type: 'bar', data: [{ label: 'A', value: 3 }, { label: 'B', value: 7 }], table: true }, steps: [{ id: 'all', caption: '先看整体。', focus: { index: 0 } }, { id: 'b', caption: '关注 B。', focus: { index: 1 } }], title: '图表讲解' }); ce.go(1);",
+      "dependencies": [
+        "core",
+        "legacy",
+        "ui-layout",
+        "viz-chart"
+      ],
+      "source": [
+        "src/blocks/chart-explain.js",
+        "src/blocks/chart-explain.css"
+      ],
+      "demo": "gallery/demos/blocks-explain.js#B10",
+      "preview": "gallery/index.html#B10",
+      "example": "examples/run.html?id=B10",
+      "limitations": [
+        "图表数据与统计含义全部来自宿主；本块不计算趋势、完成率、移动平均或其他派生结论，也不自动轮播。",
+        "每个停点按同一份 chart 数据重新挂载 Chart，只改 focus/changed 与字幕；因此数据表展开状态在停点切换时会回到关闭状态。",
+        "chart.table 未提供时默认开启，显式 false 才关闭；数据表可发现性由图表组件提供，本块额外显示可见提示。",
+        "update({chart}) 会整体替换 chart 配置，不合并旧的 data/series/focus；update({steps}) 保留当前索引并夹紧到新范围。",
+        "getTarget 先检查当前停点 id 与 'chart'，其余键原样交给 NoteViz.Chart（如 point:<index>、series:<key>、slice:<index>）；找不到返回 null。",
+        "图表 SVG 内部和表格由 NoteViz.Chart 负责；本块不复制其绘制实现，也不伪造缺失值或趋势。",
+        "无自动播放；程序 update/go/next/prev 不触发 onStep，只有用户在 StepPlayer 控件上操作时才触发。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": ["K03", "K04", "K05", "K06", "K09", "K12", "K13"],
+      "docs": "docs/blocks-explain.md#B10",
+      "notes": "组合 NoteBlocks.StepPlayer、NoteViz.Chart 与 NoteUI.Notice；字幕固定在图表下方，关注和变化由图内标记与字幕共同表达。"
+    }
+  ]
+}

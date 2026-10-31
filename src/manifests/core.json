@@ -1,0 +1,273 @@
+{
+  "module": "core",
+  "title": "共享基础",
+  "js": [
+    "src/core/core.js",
+    "src/core/icons-data.js",
+    "src/core/icons.js",
+    "src/core/motion.js",
+    "src/core/floating.js"
+  ],
+  "css": [
+    "src/core/tokens.css",
+    "src/core/base.css"
+  ],
+  "demos": [
+    "gallery/demos/core.js"
+  ],
+  "dependencies": [],
+  "entries": [
+    {
+      "id": "I01",
+      "name": "HNV Tokens",
+      "cn": "共享设计值与资源映射",
+      "category": "共享基础与交付",
+      "purpose": "集中提供组件共用的 --hnv-* 候选设计值、字号与间距预设，并允许宿主在任意作用域覆盖。",
+      "inputs": [
+        "--hnv-* 自定义属性",
+        "data-hnv-type=standard|readable",
+        "data-hnv-space=compact|relaxed",
+        "prefers-reduced-motion"
+      ],
+      "customizable": [
+        "颜色",
+        "字体与字号",
+        "间距刻度",
+        "圆角与控件高度",
+        "阴影与遮罩",
+        "动效时长与缓动",
+        "z-index 层级",
+        "宿主作用域覆盖"
+      ],
+      "states": [
+        "默认候选值",
+        "标准/易读字号预设",
+        "紧凑/宽松间距预设",
+        "reduced-motion 动效归零",
+        "宿主任意作用域覆盖"
+      ],
+      "usage": "加载 src/core/tokens.css；组件使用 var(--hnv-color-ink, #202938) 等形式取用。",
+      "dependencies": [],
+      "limitations": [
+        "候选默认值不是冻结规范，也不构成整套主题系统",
+        "旧 --nx-* / --si-* 桥接不在本文件内，由 compat/legacy-bridge.css 单独负责",
+        "宿主覆盖颜色后需自行检查对比度"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "新增共享基础候选，未获用户评价",
+      "consensus": [
+        "K10",
+        "K11",
+        "K16"
+      ],
+      "docs": "docs/core.md#I01",
+      "notes": "保留基础视觉试排的候选原值与预设；扩展值同为可覆盖默认值。",
+      "demo": "gallery/demos/core.js#I01"
+    },
+    {
+      "id": "I02",
+      "name": "NoteCore.icon / NoteCore.icons",
+      "cn": "本地图标资源",
+      "category": "共享基础与交付",
+      "purpose": "从本地 Lucide 子集生成可查询、可配置的 SVG 图标，避免 CDN 与运行时外部请求。",
+      "inputs": [
+        "name",
+        "size",
+        "label",
+        "className",
+        "vendor/lucide/icons/*.svg（生成期输入）"
+      ],
+      "customizable": [
+        "图标尺寸",
+        "可访问名称",
+        "附加类名",
+        "可重新生成的图标子集"
+      ],
+      "states": [
+        "16px 默认图标",
+        "24px icons.get 原始图标",
+        "无 label 装饰图标",
+        "有 label 语义图标",
+        "未知名称返回 null"
+      ],
+      "usage": "NoteCore.icon('info', { size: 16, label: '信息' })",
+      "dependencies": [],
+      "limitations": [
+        "只提供 vendor/lucide/icons 中已收录的 68 个名称",
+        "新增图标需补 SVG 后重跑 scripts/gen-icons.mjs，运行时不能远程拉取",
+        "icons.get 默认返回 24px 的基础 SVG；需要其他尺寸请用 NoteCore.icon"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "新增共享基础候选，未获用户评价",
+      "consensus": [
+        "K10",
+        "K11",
+        "K16"
+      ],
+      "docs": "docs/core.md#I02",
+      "notes": "数据文件为生成产物，运行逻辑只在 icons.js。",
+      "demo": "gallery/demos/core.js#I02"
+    },
+    {
+      "id": "I03",
+      "name": "NoteCore.motion",
+      "cn": "动效工具",
+      "category": "共享基础与交付",
+      "purpose": "以 Web Animations 提供可取消、可收敛的位移/显隐/迁移基础，并统一 reduced-motion 与 FLIP 处理。",
+      "inputs": [
+        "el",
+        "keyframes",
+        "duration",
+        "easing",
+        "delay",
+        "fill",
+        "id",
+        "fromRect"
+      ],
+      "customizable": [
+        "每次动效的时长与缓动",
+        "延迟与填充模式",
+        "FLIP 起止矩形",
+        "reduced-motion 宿主设置"
+      ],
+      "states": [
+        "正常播放完成",
+        "同一元素后一次取消前一次",
+        "主动 stop",
+        "reduced-motion 立即终态",
+        "FLIP 位移与缩放"
+      ],
+      "usage": "var anim = NoteCore.motion.play(el, [{ opacity: 0 }, { opacity: 1 }], { duration: NoteCore.motion.uiDuration(), easing: 'ease' });",
+      "dependencies": [],
+      "limitations": [
+        "依赖 Web Animations API；缺少 animate() 时回退到终态且 finished 为 false",
+        "不提供时间轴、串播或自动节奏编排；重复动效由调用方按内容组织",
+        "reduced 时 play 会把末端关键帧写入内联样式，调用方应使用可重复执行的目标状态"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "新增共享基础候选，未获用户评价",
+      "consensus": [
+        "K10",
+        "K11",
+        "K16"
+      ],
+      "docs": "docs/core.md#I03",
+      "notes": "默认时长来自 --hnv-motion-ui / --hnv-motion-explain，不在代码里固定单一毫秒数。",
+      "demo": "gallery/demos/core.js#I03"
+    },
+    {
+      "id": "I04",
+      "name": "NoteCore.floating",
+      "cn": "浮层与焦点基础",
+      "category": "共享基础与交付",
+      "purpose": "统一浮层定位、视口避让、层级栈、Esc/外点关闭、焦点陷阱与恢复、遮罩和滚动锁。",
+      "inputs": [
+        "anchor",
+        "content",
+        "placement",
+        "offset",
+        "role",
+        "className",
+        "modal",
+        "backdrop",
+        "trapFocus",
+        "returnFocus",
+        "closeOnEsc",
+        "closeOnOutside",
+        "lockScroll",
+        "matchAnchorWidth",
+        "maxWidth",
+        "onOpen",
+        "onClose"
+      ],
+      "customizable": [
+        "内容与附加类名",
+        "方位、偏移与最大宽度",
+        "面板 role 与是否 modal",
+        "焦点陷阱及焦点恢复",
+        "关闭策略",
+        "遮罩与滚动锁",
+        "锚点等宽"
+      ],
+      "states": [
+        "打开/关闭",
+        "视口翻转与夹紧",
+        "嵌套浮层只关最上层",
+        "锚点移除或不可见自动关闭",
+        "modal + backdrop",
+        "滚动锁引用计数",
+        "destroy 幂等"
+      ],
+      "usage": "var layer = NoteCore.floating.create({ anchor: trigger, content: panel, placement: 'bottom-start', trapFocus: true }); layer.open();",
+      "dependencies": [],
+      "limitations": [
+        "外点关闭监听 document 捕获阶段的 pointerdown；非 pointer 事件不会触发",
+        "锚点不可见与锚点移除都使用 anchor-removed 作为关闭原因",
+        "只锁定 body 滚动，不冻结页面内其他滚动容器",
+        "同一时刻只有栈顶浮层处理 Esc、外点与焦点循环；不进入 Shadow DOM",
+        "打开期间会观察文档子节点与常见可见性属性，以关闭锚点已移除/隐藏的浮层；高频 DOM 变更会增加少量检查开销",
+        "多层打开时，关闭其中一层会解除该层面板与锚点的 ResizeObserver 观察；其他打开层仍继续观察，栈空时才 disconnect",
+        "destroy 后不可重新打开；浮层被移除，内容节点仍在 layer.el 内供调用方回收"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "新增共享基础候选，未获用户评价",
+      "consensus": [
+        "K10",
+        "K11",
+        "K16"
+      ],
+      "docs": "docs/core.md#I04",
+      "notes": "所有浮层组件应复用此栈，不自建 body 层与焦点陷阱。",
+      "demo": "gallery/demos/core.js#I04"
+    },
+    {
+      "id": "I05",
+      "name": "NoteCore",
+      "cn": "实例与内容基础",
+      "category": "共享基础与交付",
+      "purpose": "提供 DOM/内容、生命周期、监听器、几何、可聚焦元素与剪贴板等共享基础函数。",
+      "inputs": [
+        "tag",
+        "className",
+        "text",
+        "target",
+        "value",
+        "state",
+        "render",
+        "cleanup",
+        "patch"
+      ],
+      "customizable": [
+        "组件状态与渲染函数",
+        "销毁清理逻辑",
+        "纯文本或 DOM 内容",
+        "监听目标与回调"
+      ],
+      "states": [
+        "字符串按纯文本处理",
+        "Node / Node 数组被移入",
+        "update 只赋自有键",
+        "destroy 幂等并移除 root",
+        "copy 主路径与两级回退",
+        "host 校验失败"
+      ],
+      "usage": "var instance = NoteCore.component(root, state, render, cleanup); instance.update({ value: next }); instance.destroy();",
+      "dependencies": [],
+      "limitations": [
+        "setContent 字符串不解析 HTML；需要 Markdown/公式/代码解析时由对应上层组件显式处理",
+        "copy 在浏览器拒绝剪贴板且 execCommand 不可用时返回 manual，不静默宣称成功",
+        "函数按现代 Edge 实现；不提供旧版 Internet Explorer 兼容层"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "新增共享基础候选，未获用户评价",
+      "consensus": [
+        "K10",
+        "K11",
+        "K16"
+      ],
+      "docs": "docs/core.md#I05",
+      "notes": "core.js 不依赖其他运行模块，可最先加载。",
+      "demo": "gallery/demos/core.js#I05"
+    }
+  ]
+}

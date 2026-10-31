@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>探针：StepPlayer 与 SequenceEdit 的组合边界</title>
+<link rel="stylesheet" href="../runtime/modules/core.css">
+<link rel="stylesheet" href="../runtime/modules/legacy.css">
+<link rel="stylesheet" href="../runtime/modules/ui-layout.css">
+<link rel="stylesheet" href="../runtime/modules/ui-content.css">
+<link rel="stylesheet" href="../runtime/modules/ui-navigation.css">
+<link rel="stylesheet" href="../runtime/modules/viz-objects.css">
+<link rel="stylesheet" href="../runtime/modules/viz-chart.css">
+<link rel="stylesheet" href="../runtime/modules/viz-mechanisms.css">
+<link rel="stylesheet" href="../runtime/modules/blocks.css">
+<style>
+  body { margin: 0; padding: 28px; background: #f4f6f9; font-family: "Segoe UI", "Microsoft YaHei", sans-serif; }
+  .probe-note { max-width: 52rem; margin: 0 auto 18px; color: #5c6879; font-size: 13px; line-height: 1.6; }
+  #host { max-width: 52rem; margin: 0 auto; }
+</style>
+</head>
+<body>
+<p class="probe-note">
+  最小复现：StepPlayer 的每个停点是完整快照，render 内重新挂载 SequenceEdit。
+  用来确认「快照重绘」与「机制动画」能否同时成立，以及 ctx.replay 是否能重看。
+</p>
+<div id="host"></div>
+<script src="../runtime/modules/core.js"></script>
+<script src="../runtime/modules/legacy.js"></script>
+<script src="../runtime/modules/ui-layout.js"></script>
+<script src="../runtime/modules/ui-content.js"></script>
+<script src="../runtime/modules/ui-navigation.js"></script>
+<script src="../runtime/modules/viz-objects.js"></script>
+<script src="../runtime/modules/viz-chart.js"></script>
+<script src="../runtime/modules/viz-mechanisms.js"></script>
+<script src="../runtime/modules/blocks.js"></script>
+<script>
+  (function () {
+    function items(text) {
+      return text.split('').map(function (ch) { return { id: ch.toLowerCase(), label: ch }; });
+    }
+    var observed = [];
+    var player = NoteBlocks.StepPlayer.mount(document.getElementById('host'), {
+      title: 'StepPlayer × SequenceEdit 探针',
+      steps: [
+        { id: 's0', caption: '初始 [A, B, C, D, E]', state: { items: items('ABCDE') } },
+        { id: 's1', caption: '删除 c 后 [A, B, D, E]', state: { items: items('ABDE') } },
+        { id: 's2', caption: '交换 b、e 后 [A, E, D, B]', state: { items: items('AEDB') } }
+      ],
+      render: function (state, ctx) {
+        var holder = document.createElement('div');
+        ctx.stageEl.appendChild(holder);
+        var edit = NoteViz.SequenceEdit.mount(holder, { items: state.items, animate: true });
+        observed.push({ index: ctx.index, replay: !!ctx.replay });
+        if (ctx.replay) edit.replay({ animate: true });
+        window.__probe = {
+          edit: edit,
+          holder: holder,
+          sequence: function () { return edit.getState().items.map(function (i) { return i.id; }).join(''); },
+          status: function () { return holder.querySelector('[role="status"]').textContent; },
+          transforms: function () {
+            return Array.prototype.map.call(holder.querySelectorAll('.nviz-sequence-edit__item'), function (li) {
+              return getComputedStyle(li).transform;
+            });
+          },
+          ghosts: function () { return holder.querySelectorAll('.nviz-sequence-edit__item--ghost').length; },
+          rendered: function () { return observed.slice(); }
+        };
+        return function () { edit.destroy(); };
+      }
+    });
+    window.__player = player;
+  }());
+</script>
+</body>
+</html>

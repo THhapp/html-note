@@ -1,0 +1,88 @@
+/*!
+ * 旧组件兼容桥 · legacy-bridge.css
+ *
+ * 用途：只在整个组件库的宿主页面显式加上 .hnv-legacy-bridge 时，把旧组件私有的
+ * --nx-*（NoteExpr.Focus / Range / Link）与 --si-*（SeqInsert）主要颜色映射到当前
+ * --hnv-* 候选值，让旧组件与新组件共享同一套宿主配色，而不改写任何旧接口或私有 DOM。
+ *
+ * 默认不启用：没有 .hnv-legacy-bridge 时本文件不产生任何视觉变化，旧观感保持原样。
+ * NoteExpr 的叠加层挂在 <body>：希望桥接它们时把类加在 <body> 上；仅给局部容器加类
+ * 只会桥接该容器内的 SeqInsert。需要单实例覆盖时，仍可按旧文档写在 instance.el.style 上。
+ *
+ * 依赖：core 的 --hnv-* tokens；缺失时使用与原候选接近的回退值。
+ * 本文件只声明旧变量，不写布局、字体大小、动效或根组件选择器以外的新样式。
+ */
+
+.hnv-legacy-bridge {
+  --nx-accent: var(--hnv-color-accent, #315cda);
+  --nx-ink: var(--hnv-color-ink, #202938);
+  --nx-ink-soft: var(--hnv-color-muted, #5c6879);
+  --nx-hair: var(--hnv-color-border, #dce2ea);
+  --nx-label-bg: color-mix(in srgb, var(--hnv-color-surface, #ffffff) 92%, transparent);
+  --nx-font: var(--hnv-font-family, "Segoe UI", "Microsoft YaHei", sans-serif);
+  --nx-z: var(--hnv-z-float, 1200);
+
+  --si-ink: var(--hnv-color-ink, #202938);
+  --si-ink-2: var(--hnv-color-muted, #5c6879);
+  --si-ink-3: var(--hnv-color-muted, #5c6879);
+  --si-accent: var(--hnv-color-accent, #315cda);
+  --si-accent-soft: var(--hnv-color-accent-soft, #eef2ff);
+  --si-accent-line: var(--hnv-color-attention, #6f82b7);
+  --si-mark-line: var(--hnv-color-border, #dce2ea);
+  --si-mark-ink: var(--hnv-color-muted, #5c6879);
+  --si-card-bg: var(--hnv-color-surface, #ffffff);
+  --si-card-line: var(--hnv-color-border, #dce2ea);
+  --si-card-shadow: 0 1px 2px color-mix(in srgb, var(--hnv-color-ink, #202938) 6%, transparent);
+  --si-pending-bg: var(--hnv-color-accent-soft, #eef2ff);
+  --si-pending-line: var(--hnv-color-accent, #315cda);
+  --si-pending-ink: var(--hnv-color-accent, #315cda);
+  --si-pending-shadow: 0 6px 16px color-mix(in srgb, var(--hnv-color-accent, #315cda) 12%, transparent);
+  --si-solid-bg: var(--hnv-color-accent, #315cda);
+  --si-solid-ink: var(--hnv-color-on-accent, #ffffff);
+  --si-solid-line: var(--hnv-color-accent, #315cda);
+  --si-solid-shadow: 0 2px 6px color-mix(in srgb, var(--hnv-color-accent, #315cda) 24%, transparent);
+  --si-font: var(--hnv-font-family, "Segoe UI", "Microsoft YaHei", sans-serif);
+}
+
+/* 旧组件的同名变量声明在各自根节点上会覆盖继承值，桥接必须命中根节点；
+   这里合并 link/range 共用的视觉变量，只保留各自实际使用的 --nx-z（focus 另有 --nx-accent）。
+   旧层级仍保持：连线 < 括线 < 关注。 */
+.hnv-legacy-bridge .nx-link,
+.hnv-legacy-bridge .nx-range {
+  --nx-ink: var(--hnv-color-ink, #202938);
+  --nx-ink-soft: var(--hnv-color-muted, #5c6879);
+  --nx-hair: var(--hnv-color-border, #dce2ea);
+  --nx-label-bg: color-mix(in srgb, var(--hnv-color-surface, #ffffff) 92%, transparent);
+  --nx-font: var(--hnv-font-family, "Segoe UI", "Microsoft YaHei", sans-serif);
+}
+
+.hnv-legacy-bridge .nx-link { --nx-z: var(--hnv-z-float, 1200); }
+.hnv-legacy-bridge .nx-range { --nx-z: calc(var(--hnv-z-float, 1200) + 5); }
+
+.hnv-legacy-bridge .nx-focus {
+  --nx-accent: var(--hnv-color-accent, #315cda);
+  --nx-z: calc(var(--hnv-z-float, 1200) + 10);
+}
+
+.hnv-legacy-bridge .seq-insert {
+  --si-ink: var(--hnv-color-ink, #202938);
+  --si-ink-2: var(--hnv-color-muted, #5c6879);
+  --si-ink-3: var(--hnv-color-muted, #5c6879);
+  --si-accent: var(--hnv-color-accent, #315cda);
+  --si-accent-soft: var(--hnv-color-accent-soft, #eef2ff);
+  --si-accent-line: var(--hnv-color-attention, #6f82b7);
+  --si-mark-line: var(--hnv-color-border, #dce2ea);
+  --si-mark-ink: var(--hnv-color-muted, #5c6879);
+  --si-card-bg: var(--hnv-color-surface, #ffffff);
+  --si-card-line: var(--hnv-color-border, #dce2ea);
+  --si-card-shadow: 0 1px 2px color-mix(in srgb, var(--hnv-color-ink, #202938) 6%, transparent);
+  --si-pending-bg: var(--hnv-color-accent-soft, #eef2ff);
+  --si-pending-line: var(--hnv-color-accent, #315cda);
+  --si-pending-ink: var(--hnv-color-accent, #315cda);
+  --si-pending-shadow: 0 6px 16px color-mix(in srgb, var(--hnv-color-accent, #315cda) 12%, transparent);
+  --si-solid-bg: var(--hnv-color-accent, #315cda);
+  --si-solid-ink: var(--hnv-color-on-accent, #ffffff);
+  --si-solid-line: var(--hnv-color-accent, #315cda);
+  --si-solid-shadow: 0 2px 6px color-mix(in srgb, var(--hnv-color-accent, #315cda) 24%, transparent);
+  --si-font: var(--hnv-font-family, "Segoe UI", "Microsoft YaHei", sans-serif);
+}

@@ -1,0 +1,529 @@
+/*! note-library module: viz-chart
+ * dependencies: core
+ * type: CSS
+ * generated-by: scripts/build.mjs; do-not-edit.
+ */
+
+/* ---- source: src/viz/chart.css ---- */
+/* NoteViz.Chart (V01) — scoped styles for bar / line / scatter / pie charts.
+   Scope: .nviz-chart and its descendants only. Class prefix: nviz-chart.
+   Dependencies: src/core/tokens.css (all colors/sizes use --hnv-* with fallbacks).
+   No global element selectors; no external resources. */
+
+.nviz-chart,
+.nviz-chart *,
+.nviz-chart *::before,
+.nviz-chart *::after {
+  box-sizing: border-box;
+}
+
+.nviz-chart {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  color: var(--hnv-color-ink, #202938);
+  font-family: var(--hnv-font-family, "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif);
+  font-size: var(--hnv-font-size-label, 14px);
+  line-height: 1.45;
+}
+
+.nviz-chart__caption {
+  margin: 0 0 var(--hnv-space-2, 8px);
+  color: var(--hnv-color-ink, #202938);
+  font-size: var(--hnv-font-size-label, 14px);
+  font-weight: var(--hnv-font-weight-strong, 600);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.nviz-chart__unit {
+  margin: 0 0 var(--hnv-space-1, 4px);
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.nviz-chart__plot {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.nviz-chart__plot:focus-visible {
+  outline: 3px solid var(--hnv-color-focus, #315cda);
+  outline-offset: 3px;
+}
+
+.nviz-chart--tall .nviz-chart__plot {
+  max-height: 72vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.nviz-chart__svg {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow: visible;
+  font-family: inherit;
+}
+
+.nviz-chart__svg text {
+  font-family: var(--hnv-font-family, "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif);
+}
+
+.nviz-chart__tick-label {
+  fill: var(--hnv-color-muted, #5c6879);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.nviz-chart__category-label {
+  fill: var(--hnv-color-muted, #5c6879);
+  font-size: 11.5px;
+  line-height: 1.2;
+}
+
+.nviz-chart__axis-title {
+  fill: var(--hnv-color-muted, #5c6879);
+  font-size: 11px;
+}
+
+.nviz-chart__grid-line {
+  stroke: var(--hnv-color-border, #dce2ea);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.nviz-chart__axis-line {
+  stroke: var(--hnv-color-border, #dce2ea);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.nviz-chart__zero-line {
+  stroke: var(--hnv-color-muted, #5c6879);
+  stroke-width: 1.2;
+}
+
+.nviz-chart__line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.nviz-chart__series.is-focus .nviz-chart__line {
+  stroke-width: 3.2;
+}
+
+.nviz-chart__series.is-changed .nviz-chart__line {
+  stroke-width: 3.6;
+}
+
+.nviz-chart__marker-shape {
+  stroke: var(--hnv-color-surface, #ffffff);
+  stroke-width: 2;
+}
+
+.nviz-chart__series.is-focus .nviz-chart__marker-shape {
+  stroke: var(--hnv-color-ink, #202938);
+  stroke-width: 2.2;
+}
+
+.nviz-chart__focus-ring {
+  fill: none;
+  stroke: var(--hnv-color-ink, #202938);
+  stroke-width: 1.8;
+}
+
+.nviz-chart__focus-ring.is-changed {
+  stroke-width: 2.2;
+  stroke-dasharray: 3 2.5;
+}
+
+.nviz-chart__focus-ring.is-focus.is-changed {
+  stroke-dasharray: none;
+  stroke-width: 2.5;
+}
+
+.nviz-chart__mark.is-focus {
+  stroke: var(--hnv-color-ink, #202938);
+  stroke-width: 2;
+  paint-order: stroke;
+}
+
+.nviz-chart__mark.is-changed {
+  stroke: var(--hnv-color-ink, #202938);
+  stroke-width: 2.3;
+  stroke-dasharray: 4.5 2.5;
+  paint-order: stroke;
+}
+
+.nviz-chart__mark.is-focus.is-changed {
+  stroke-width: 2.5;
+  stroke-dasharray: none;
+}
+
+.nviz-chart__slice {
+  stroke: var(--hnv-color-surface, #ffffff);
+  stroke-width: 2;
+}
+
+.nviz-chart__slice.is-focus {
+  stroke: var(--hnv-color-ink, #202938);
+  stroke-width: 3;
+}
+
+.nviz-chart__slice.is-changed {
+  stroke: var(--hnv-color-ink, #202938);
+  stroke-width: 2.4;
+  stroke-dasharray: 5 2.5;
+}
+
+.nviz-chart__slice.is-focus.is-changed {
+  stroke-width: 3;
+  stroke-dasharray: none;
+}
+
+.nviz-chart__slice-label {
+  fill: var(--hnv-color-ink, #202938);
+  font-size: 11px;
+  font-weight: var(--hnv-font-weight-strong, 600);
+  font-variant-numeric: tabular-nums;
+  paint-order: stroke;
+  stroke: var(--hnv-color-surface, #ffffff);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+.nviz-chart__band {
+  fill: var(--hnv-color-accent-soft, #eef2ff);
+  opacity: 0.68;
+  stroke: none;
+}
+
+.nviz-chart__band.is-focus {
+  stroke: var(--hnv-color-attention, #6f82b7);
+  stroke-width: 1.2;
+}
+
+.nviz-chart__band.is-changed {
+  stroke: var(--hnv-color-accent, #315cda);
+  stroke-width: 1.6;
+  stroke-dasharray: 4 3;
+}
+
+.nviz-chart__band.is-focus.is-changed {
+  stroke: var(--hnv-color-ink, #202938);
+  stroke-width: 1.8;
+  stroke-dasharray: none;
+}
+
+.nviz-chart__value-label {
+  fill: var(--hnv-color-ink, #202938);
+  font-size: 10.5px;
+  font-weight: var(--hnv-font-weight-strong, 600);
+  font-variant-numeric: tabular-nums;
+  paint-order: stroke;
+  stroke: var(--hnv-color-surface, #ffffff);
+  stroke-width: 2.6px;
+  stroke-linejoin: round;
+}
+
+.nviz-chart__point-label {
+  fill: var(--hnv-color-ink, #202938);
+  font-size: 10.5px;
+  paint-order: stroke;
+  stroke: var(--hnv-color-surface, #ffffff);
+  stroke-width: 2.8px;
+  stroke-linejoin: round;
+}
+
+.nviz-chart__leader {
+  stroke: var(--hnv-color-muted, #5c6879);
+  stroke-width: 1;
+}
+
+.nviz-chart__tag-pill {
+  fill: var(--hnv-color-surface, #ffffff);
+  stroke: var(--hnv-color-border, #dce2ea);
+  stroke-width: 1;
+}
+
+.nviz-chart__tag.is-focus .nviz-chart__tag-pill {
+  stroke: var(--hnv-color-ink, #202938);
+  stroke-width: 1.2;
+}
+
+.nviz-chart__tag.is-changed .nviz-chart__tag-pill {
+  stroke: var(--hnv-color-accent, #315cda);
+  stroke-width: 1.6;
+  stroke-dasharray: 4 2;
+}
+
+.nviz-chart__tag.is-focus.is-changed .nviz-chart__tag-pill {
+  stroke: var(--hnv-color-ink, #202938);
+  stroke-width: 1.8;
+  stroke-dasharray: none;
+}
+
+.nviz-chart__tag-text {
+  fill: var(--hnv-color-ink, #202938);
+  font-size: 11px;
+  font-weight: var(--hnv-font-weight-strong, 600);
+}
+
+.nviz-chart__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hnv-space-1, 4px) var(--hnv-space-4, 16px);
+  align-items: flex-start;
+  min-width: 0;
+  max-width: 100%;
+  margin: var(--hnv-space-3, 12px) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nviz-chart__legend-item {
+  display: flex;
+  flex: 0 1 auto;
+  gap: 7px;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  color: var(--hnv-color-ink, #202938);
+  font-size: var(--hnv-font-size-small, 13px);
+  line-height: 1.4;
+}
+
+.nviz-chart__legend-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.nviz-chart__legend-value {
+  min-width: 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.nviz-chart__swatch {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--hnv-color-border, #dce2ea);
+  border-radius: 3px;
+  background-clip: padding-box;
+}
+
+.nviz-chart__swatch--pie {
+  border-radius: 50%;
+}
+
+.nviz-chart__swatch--diag {
+  background-image: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.65) 0 2px, transparent 2px 5px);
+}
+
+.nviz-chart__swatch--dots {
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.75) 0 1.4px, transparent 1.6px);
+  background-size: 5px 5px;
+}
+
+.nviz-chart__swatch--horiz {
+  background-image: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.65) 0 2px, transparent 2px 5px);
+}
+
+.nviz-chart__swatch--cross {
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.55) 0 1.5px, transparent 1.5px 5px),
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.55) 0 1.5px, transparent 1.5px 5px);
+}
+
+.nviz-chart__swatch-svg {
+  flex: 0 0 auto;
+  display: block;
+  overflow: visible;
+}
+
+.nviz-chart__badge {
+  flex: 0 0 auto;
+  display: inline-block;
+  padding: 1px 7px;
+  border: 1px solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-pill, 999px);
+  background: var(--hnv-color-surface, #ffffff);
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.nviz-chart__badge.is-focus {
+  border-color: var(--hnv-color-ink, #202938);
+  color: var(--hnv-color-ink, #202938);
+}
+
+.nviz-chart__badge.is-changed {
+  border-color: var(--hnv-color-accent, #315cda);
+  color: var(--hnv-color-accent, #315cda);
+}
+
+.nviz-chart__badge.is-focus.is-changed {
+  border-color: var(--hnv-color-ink, #202938);
+  color: var(--hnv-color-ink, #202938);
+}
+
+.nviz-chart__empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hnv-space-2, 8px);
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 140px;
+  padding: var(--hnv-space-5, 24px);
+  border: 1px dashed var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-object, 10px);
+  background: var(--hnv-color-page, #f4f6f9);
+  color: var(--hnv-color-muted, #5c6879);
+  text-align: center;
+}
+
+.nviz-chart__empty strong {
+  color: var(--hnv-color-ink, #202938);
+  font-size: var(--hnv-font-size-label, 14px);
+  font-weight: var(--hnv-font-weight-strong, 600);
+}
+
+.nviz-chart__empty span {
+  max-width: 46ch;
+  font-size: var(--hnv-font-size-caption, 12px);
+  line-height: 1.55;
+}
+
+.nviz-chart__note {
+  margin: var(--hnv-space-2, 8px) 0 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+  line-height: 1.5;
+}
+
+.nviz-chart__table {
+  margin-top: var(--hnv-space-3, 12px);
+  border-top: 1px solid var(--hnv-color-border, #dce2ea);
+}
+
+.nviz-chart__table > summary {
+  padding: var(--hnv-space-2, 8px) 2px;
+  color: var(--hnv-color-accent, #315cda);
+  font-size: var(--hnv-font-size-small, 13px);
+  font-weight: var(--hnv-font-weight-strong, 600);
+  cursor: pointer;
+}
+
+.nviz-chart__table > summary:focus-visible {
+  outline: 3px solid var(--hnv-color-focus, #315cda);
+  outline-offset: 2px;
+}
+
+.nviz-chart__table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.nviz-chart__table-scroll:focus-visible {
+  outline: 3px solid var(--hnv-color-focus, #315cda);
+  outline-offset: 2px;
+}
+
+.nviz-chart__data-table {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+  color: var(--hnv-color-ink, #202938);
+  font-size: var(--hnv-font-size-caption, 12px);
+  line-height: 1.45;
+}
+
+.nviz-chart__data-table caption {
+  padding: 2px 0 var(--hnv-space-2, 8px);
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+  text-align: left;
+  caption-side: top;
+  overflow-wrap: anywhere;
+}
+
+.nviz-chart__data-table th,
+.nviz-chart__data-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--hnv-color-border, #dce2ea);
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.nviz-chart__data-table thead th {
+  background: var(--hnv-color-page, #f4f6f9);
+  color: var(--hnv-color-ink, #202938);
+  font-weight: var(--hnv-font-weight-strong, 600);
+}
+
+.nviz-chart__data-table tbody th {
+  color: var(--hnv-color-ink, #202938);
+  font-weight: 500;
+}
+
+.nviz-chart__data-table .is-numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@keyframes nviz-chart-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.nviz-chart.is-animating .nviz-chart__plot-area {
+  animation: nviz-chart-reveal 340ms var(--hnv-motion-ease-explain, cubic-bezier(0.2, 0.8, 0.2, 1)) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nviz-chart.is-animating .nviz-chart__plot-area {
+    animation: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .nviz-chart__legend {
+    gap: 4px 12px;
+  }
+
+  .nviz-chart__legend-item {
+    font-size: 12.5px;
+  }
+
+  .nviz-chart__data-table th,
+  .nviz-chart__data-table td {
+    padding: 5px 8px;
+  }
+}

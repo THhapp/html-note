@@ -1,0 +1,163 @@
+/*!
+ * 范围注释与分组说明 · NoteExpr.Range 样式 v1.0.0
+ * 单一设计、无主题、无外链资源；所有选择器以 .nx-range 开头，变量前缀 --nx-。
+ *
+ * 叠加层：position:fixed; inset:0; pointer-events:none; z-index:var(--nx-z,1205)；
+ * 根节点由 JS 创建并挂到 body，本文件只提供视觉与 1px 括线/端刺的绘制方式。
+ * 括线几何（left/top/width/height）由 JS 依 SPEC §4 精确写入内联样式。
+ *
+ *   括线本体 = 1px 的 .nx-range__bracket（横向时高 1px、纵向时宽 1px）
+ *   端刺     = .nx-range__bracket::before / ::after，1×7 的 1px 线（横向）或 7×1（纵向）
+ *   标签     = .nx-range__label，12px/1.4 单行，JS 负责位置与视口内夹紧
+ */
+
+.nx-range {
+  /* 共享视觉令牌（SPEC §1）；宿主可在实例根内联覆盖 */
+  --nx-ink: #1b2430;
+  --nx-ink-soft: #4f5a6a;
+  --nx-hair: #aab4c3;
+  --nx-label-bg: rgba(255, 255, 255, .92);
+  --nx-font: "Segoe UI", system-ui, -apple-system, "Microsoft YaHei", "PingFang SC", sans-serif;
+
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: var(--nx-z, 1205);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  pointer-events: none;
+  font-family: var(--nx-font);
+  -webkit-font-smoothing: antialiased;
+}
+
+.nx-range,
+.nx-range__bracket,
+.nx-range__label {
+  box-sizing: border-box;
+}
+
+/* ---------- 括线本体 ---------- */
+
+.nx-range__bracket {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background-color: var(--nx-hair);
+  pointer-events: none;
+}
+
+/* ---------- 端刺：指向对象一侧，长度 7px ---------- */
+
+.nx-range__bracket::before,
+.nx-range__bracket::after {
+  content: "";
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background-color: var(--nx-hair);
+  /* 1px 发丝线的转折处圆角按 SPEC 的 2px 近似；在 1px 描边下视觉上即为干净的直角 */
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+/* 横向：端刺是 1×7 的竖线 */
+.nx-range[data-nx-orientation="h"] .nx-range__bracket::before,
+.nx-range[data-nx-orientation="h"] .nx-range__bracket::after {
+  width: 1px;
+  height: 7px;
+}
+
+/* 横向 below：线在组下方，端刺向上指 */
+.nx-range[data-nx-orientation="h"][data-nx-side="below"] .nx-range__bracket::before {
+  left: 0;
+  bottom: 100%;
+}
+
+.nx-range[data-nx-orientation="h"][data-nx-side="below"] .nx-range__bracket::after {
+  right: 0;
+  bottom: 100%;
+}
+
+/* 横向 above：线在组上方，端刺向下指 */
+.nx-range[data-nx-orientation="h"][data-nx-side="above"] .nx-range__bracket::before {
+  left: 0;
+  top: 100%;
+}
+
+.nx-range[data-nx-orientation="h"][data-nx-side="above"] .nx-range__bracket::after {
+  right: 0;
+  top: 100%;
+}
+
+/* 纵向：端刺是 7×1 的横线 */
+.nx-range[data-nx-orientation="v"] .nx-range__bracket::before,
+.nx-range[data-nx-orientation="v"] .nx-range__bracket::after {
+  width: 7px;
+  height: 1px;
+}
+
+/* 纵向 right：线在组右侧，端刺向左指 */
+.nx-range[data-nx-orientation="v"][data-nx-side="right"] .nx-range__bracket::before {
+  top: 0;
+  right: 100%;
+}
+
+.nx-range[data-nx-orientation="v"][data-nx-side="right"] .nx-range__bracket::after {
+  bottom: 0;
+  right: 100%;
+}
+
+/* 纵向 left：线在组左侧，端刺向右指 */
+.nx-range[data-nx-orientation="v"][data-nx-side="left"] .nx-range__bracket::before {
+  top: 0;
+  left: 100%;
+}
+
+.nx-range[data-nx-orientation="v"][data-nx-side="left"] .nx-range__bracket::after {
+  bottom: 0;
+  left: 100%;
+}
+
+/* ---------- 标签：单行、12px、与括线对齐由 JS 定位 ---------- */
+
+.nx-range__label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: max-content;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--nx-font);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: .01em;
+  color: var(--nx-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+/* ---------- 减少动效：组件自身不播放 CSS 动画/过渡 ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .nx-range__bracket,
+  .nx-range__label {
+    transition: none;
+    animation: none;
+  }
+}

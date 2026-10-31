@@ -1,0 +1,369 @@
+{
+  "module": "ui-navigation",
+  "title": "导航与定位",
+  "js": [
+    "src/ui/navigation-shared.js",
+    "src/ui/navigation.js",
+    "src/ui/navigation-menu.js",
+    "src/ui/navigation-paging.js",
+    "src/ui/navigation-tree.js"
+  ],
+  "css": [
+    "src/ui/navigation.css"
+  ],
+  "demos": [
+    "gallery/demos/ui-navigation.js"
+  ],
+  "dependencies": [
+    "core"
+  ],
+  "entries": [
+    {
+      "id": "N01",
+      "name": "NoteUI.Tabs",
+      "cn": "标签页",
+      "category": "导航与定位",
+      "purpose": "在少数并列区域间切换，保持标签与面板的关联、当前项和键盘操作；由宿主决定非当前面板是否继续挂载。",
+      "inputs": [
+        "items",
+        "value",
+        "keepMounted",
+        "onChange",
+        "label",
+        "orientation"
+      ],
+      "customizable": [
+        "标签与面板内容（DOM 或字符串）",
+        "当前值与禁用项",
+        "keepMounted 默认 true",
+        "onChange 回调",
+        "横向/纵向方向扩展"
+      ],
+      "states": [
+        "正常切换",
+        "禁用标签",
+        "keepMounted=true 保留面板 DOM",
+        "keepMounted=false 仅挂载当前面板",
+        "纵向方向",
+        "长标签换行",
+        "空/全部禁用"
+      ],
+      "usage": "NoteUI.Tabs.mount(host, { items: [{ id: 'a', label: '概览', content: '内容' }], value: 'a', keepMounted: true, onChange: (value, event) => {} })",
+      "dependencies": [
+        "core"
+      ],
+      "limitations": [
+        "自动激活：方向键移动焦点时同步切换；未实现手动激活模式。",
+        "面板 DOM 节点按契约移入而不是克隆；keepMounted=false 会卸载面板 DOM，但宿主仍持有原节点时其自身状态可能保留。",
+        "orientation 是为满足纵向键盘要求的可选扩展，不在 §6.4 冻结字段中。",
+        "字符串内容按纯文本处理，不解析 HTML。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": [
+        "K08",
+        "K09",
+        "K11"
+      ],
+      "docs": "docs/ui-navigation.md#N01",
+      "notes": "getValue() 与 activate(id) 均为程序调用，不触发 onChange；变更事件只来自用户操作。"
+    },
+    {
+      "id": "N02",
+      "name": "NoteUI.AnchorNav",
+      "cn": "章节锚点目录",
+      "category": "导航与定位",
+      "purpose": "把标题列表与当前章节绑定，点击跳转到目标并用局部滚动位置更新当前项，不依赖整页重排或持续动画。",
+      "inputs": [
+        "items",
+        "active",
+        "target",
+        "offset",
+        "label"
+      ],
+      "customizable": [
+        "标题 id/label/level",
+        "初始当前章节",
+        "滚动容器",
+        "跳转顶部偏移",
+        "导航标签"
+      ],
+      "states": [
+        "页面整体滚动",
+        "指定局部滚动容器",
+        "长标题换行",
+        "当前章节跟随滚动",
+        "程序 setActive",
+        "空目录"
+      ],
+      "usage": "NoteUI.AnchorNav.mount(host, { items: [{ id: 'sec-1', label: '概览', level: 1 }], target: scrollContainer, active: 'sec-1' })",
+      "dependencies": [
+        "core"
+      ],
+      "limitations": [
+        "标题目标通过全局 document.getElementById 查找，因此 id 必须在整页唯一。",
+        "使用被动 scroll/resize 计算，不在滚动中持续运行 rAF 动画；减少动效时跳转立即完成。",
+        "setActive(id) 默认只更新当前呈现，不主动滚动；可选 setActive(id,{scroll:true}) 才会跳转。",
+        "滚动导致的 active 变化不提供回调；宿主可读取 aria-current 或 getValue()。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": [
+        "K08",
+        "K09",
+        "K11"
+      ],
+      "docs": "docs/ui-navigation.md#N02",
+      "notes": "N02 不在 §6.4 冻结清单中，本模块按任务最低能力新增 getValue/setActive/update/destroy 形状。"
+    },
+    {
+      "id": "N03",
+      "name": "NoteUI.Breadcrumb",
+      "cn": "面包屑",
+      "category": "导航与定位",
+      "purpose": "呈现宿主提供的层级路径与当前项，并在长路径中把中间层级收进可交互、可键盘操作的省略菜单。",
+      "inputs": [
+        "items",
+        "maxItems",
+        "label",
+        "onSelect"
+      ],
+      "customizable": [
+        "路径项 label/href/onClick",
+        "最大可见项数 maxItems",
+        "导航 aria-label",
+        "全局选择回调"
+      ],
+      "states": [
+        "完整短路径",
+        "长中文/英文路径换行",
+        "maxItems 折叠",
+        "省略菜单打开与键盘选择",
+        "maxItems=0 展开全部",
+        "空路径"
+      ],
+      "usage": "NoteUI.Breadcrumb.mount(host, { items: [{ label: '首页', href: '#home' }, { label: '当前页' }], maxItems: 4, label: '当前位置' })",
+      "dependencies": [
+        "core"
+      ],
+      "limitations": [
+        "最后一项始终作为当前项，使用 aria-current=\"page\" 且不渲染为链接。",
+        "maxItems 小于 3 时不折叠；折叠后的中间项通过 NoteUI.Menu 展示。",
+        "折叠菜单中的 href 由本组件在点击后导航；若宿主回调调用了 event.preventDefault() 则尊重取消。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": [
+        "K08",
+        "K09",
+        "K11"
+      ],
+      "docs": "docs/ui-navigation.md#N03",
+      "notes": "省略菜单复用本模块 Menu（同文件前置），Menu 再复用 NoteCore.floating；不依赖 forms。"
+    },
+    {
+      "id": "N04",
+      "name": "NoteUI.Menu",
+      "cn": "菜单",
+      "category": "导航与定位",
+      "purpose": "提供按钮下拉、右键上下文菜单与受控菜单，支持子菜单、禁用项、图标、快捷键文字和完整的键盘关闭行为。",
+      "inputs": [
+        "items",
+        "trigger",
+        "anchor",
+        "placement",
+        "onSelect",
+        "label"
+      ],
+      "customizable": [
+        "菜单项与子菜单",
+        "分隔线、图标、快捷键文字、禁用项",
+        "button/contextmenu/受控 trigger",
+        "锚点与方向",
+        "选中回调"
+      ],
+      "states": [
+        "按钮下拉",
+        "右键上下文菜单",
+        "受控 open(anchor)",
+        "子菜单展开",
+        "禁用项跳过",
+        "嵌套浮层关闭当前层",
+        "选中后关闭根菜单"
+      ],
+      "usage": "NoteUI.Menu.mount(host, { items: [{ id: 'open', label: '打开' }], trigger: { type: 'button', label: '操作' }, onSelect: (item, event) => {} })",
+      "dependencies": [
+        "core"
+      ],
+      "limitations": [
+        "所有浮层定位、外点关闭、Esc 层级与 z-index 均委托 NoteCore.floating；未另建焦点陷阱。",
+        "未实现字符 typeahead、悬停自动展开子菜单或菜单项拖拽；子菜单通过点击或 → 打开。",
+        "右键菜单使用一个临时 1×1 视口锚点把指针位置交给 NoteCore.floating，关闭或销毁时移除；它不是自建浮层。",
+        "受控菜单 trigger:null 时需要宿主调用 open(anchor, position?)；trigger 按钮的 aria-expanded 由组件维护。",
+        "menu item 的 onSelect 回调收到宿主传入的原始菜单项对象；程序 update 不会触发 onSelect。",
+        "上下文菜单要按 Esc 回到目标区域时，锚点区域应可聚焦（如 tabindex=\"0\"）。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": [
+        "K08",
+        "K09",
+        "K11"
+      ],
+      "docs": "docs/ui-navigation.md#N04",
+      "notes": "选中叶子会关闭根菜单；Esc/外点只关闭最上层，子菜单关闭只回到当前层。"
+    },
+    {
+      "id": "N05",
+      "name": "NoteUI.Pagination",
+      "cn": "分页",
+      "category": "导航与定位",
+      "purpose": "只在浏览器内表达总量、当前页和每页数量，向宿主报告用户变更，不内置远程请求。",
+      "inputs": [
+        "total",
+        "page",
+        "pageSize",
+        "pageSizes",
+        "label",
+        "siblingCount",
+        "onChange"
+      ],
+      "customizable": [
+        "总条数、当前页和每页数量",
+        "可选每页数量列表",
+        "页码邻域数量",
+        "分页标签",
+        "变更回调"
+      ],
+      "states": [
+        "大量页与省略号",
+        "首尾页边界禁用",
+        "每页数量变化",
+        "非法页码夹紧",
+        "总数为 0 空态",
+        "窄容器换行"
+      ],
+      "usage": "NoteUI.Pagination.mount(host, { total: 137, page: 1, pageSize: 10, pageSizes: [10, 20, 50], onChange: (page, pageSize, event) => {} })",
+      "dependencies": [
+        "core"
+      ],
+      "limitations": [
+        "不写 URL、不缓存数据、不发起 fetch 或任何远程请求；宿主按回调自行加载。",
+        "页码从一开始并以整数夹紧；总数为 0 时 page 归一为 1 但页面只显示空态。",
+        "每页数量使用原生 select，保证可靠的可访问性与键盘行为。",
+        "getValue() 返回 { page, pageSize }；它是本模块对未冻结接口的补充。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": [
+        "K08",
+        "K09",
+        "K11"
+      ],
+      "docs": "docs/ui-navigation.md#N05",
+      "notes": "onChange(page,pageSize,event) 仅在用户点击页码/前后页或修改原生 select 时触发。"
+    },
+    {
+      "id": "N06",
+      "name": "NoteUI.Steps",
+      "cn": "步骤指示",
+      "category": "导航与定位",
+      "purpose": "显示当前、已完成与未到达的步骤；只报告用户跳转意图，不自行推进 current，也不启动计时器。",
+      "inputs": [
+        "items",
+        "current",
+        "clickable",
+        "onChange",
+        "orientation"
+      ],
+      "customizable": [
+        "步骤标签与说明",
+        "每项可选 status 覆盖",
+        "current 索引",
+        "是否可点击",
+        "横向/纵向"
+      ],
+      "states": [
+        "已完成/当前/未开始文字与形状",
+        "可选跳转",
+        "宿主 update 推进",
+        "横向/纵向",
+        "长标签换行",
+        "窄容器自动纵向",
+        "空步骤"
+      ],
+      "usage": "NoteUI.Steps.mount(host, { items: [{ label: '准备' }, { label: '执行' }], current: 1, clickable: true, onChange: (index, event) => {} })",
+      "dependencies": [
+        "core"
+      ],
+      "limitations": [
+        "组件不自动推进演示或改变 current；点击可选步骤只触发 onChange，由宿主调用 update({current})。",
+        "当前步骤始终由 current 索引决定；items[].status 只用于非当前项覆盖 complete/upcoming 呈现。",
+        "没有自动播放、计时器、内置上一步/下一步按钮或远程状态。",
+        "窄窗口在 720px 媒体断点下把横向步骤转为纵向阅读。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": [
+        "K08",
+        "K09",
+        "K11"
+      ],
+      "docs": "docs/ui-navigation.md#N06",
+      "notes": "aria-current=\"step\" 标在当前步骤；所有状态同时用标记形状与可见文字表达。"
+    },
+    {
+      "id": "N07",
+      "name": "NoteUI.TreeView",
+      "cn": "树形目录",
+      "category": "导航与定位",
+      "purpose": "以可操作目录树呈现层级、展开、选择与键盘移动；不冒充机制关系图，也不异步加载子节点。",
+      "inputs": [
+        "nodes",
+        "expanded",
+        "selected",
+        "multi",
+        "onSelect",
+        "onToggle",
+        "label"
+      ],
+      "customizable": [
+        "层级节点与长标签",
+        "初始展开/选择",
+        "单选/多选",
+        "禁用节点",
+        "选择与展开回调",
+        "树标签"
+      ],
+      "states": [
+        "深层目录",
+        "展开/收起",
+        "单选与多选",
+        "禁用节点仍可被键盘发现但不可操作",
+        "长标签换行",
+        "局部滚动",
+        "getTarget 聚焦"
+      ],
+      "usage": "NoteUI.TreeView.mount(host, { nodes: [{ id: 'a', label: '目录', children: [{ id: 'b', label: '文件' }] }], expanded: ['a'], selected: 'b', multi: false, onSelect: (selected, event) => {} })",
+      "dependencies": [
+        "core"
+      ],
+      "limitations": [
+        "节点 id 必须在同一棵树内唯一；不提供异步加载、拖拽或虚拟滚动。",
+        "禁用节点留在可见键盘顺序中以便发现，使用 aria-disabled 标记；用户不能选择或展开，但宿主初始数据/update/select 仍可表达禁用状态。",
+        "select(id) 默认会触发 onSelect；select(id,{silent:true}) 静默。expand(id,open) 与 update() 不触发回调。",
+        "多选时 select(id) 加入选择；可用 options.selected:false 移除单节点，或传数组设置整组选择（扩展）。",
+        "onSelect(selected,event) 的 selected 单选为 id、多选为 id 数组；onToggle(id,open,event)。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本轮新增候选，未获用户评价",
+      "consensus": [
+        "K08",
+        "K09",
+        "K11"
+      ],
+      "docs": "docs/ui-navigation.md#N07",
+      "notes": "roving tabindex、aria-expanded/selected/level/setsize/posinset；getTarget(id) 返回对应 treeitem 元素。"
+    }
+  ]
+}

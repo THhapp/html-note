@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>forms-basic self-check (real core)</title>
+<link rel="stylesheet" href="../../src/core/tokens.css">
+<link rel="stylesheet" href="../../src/core/base.css">
+<link rel="stylesheet" href="../../src/ui/forms-basic.css">
+<style>
+  body { margin: 0; padding: 20px; background: var(--hnv-color-page, #f4f6f9); }
+  #test-root { max-width: 900px; }
+  .test-box { width: 320px; max-width: 100%; }
+  .test-narrow { width: 240px; max-width: 100%; }
+  .test-wide { width: 760px; max-width: 100%; }
+</style>
+</head>
+<body>
+<div id="test-root"></div>
+<script>
+  window.__instances = [];
+  window.registerInstance = function (instance) {
+    window.__instances.push(instance);
+    return instance;
+  };
+  window.clearInstances = function () {
+    var list = window.__instances.slice().reverse();
+    window.__instances = [];
+    list.forEach(function (instance) {
+      try { if (instance && typeof instance.destroy === 'function') instance.destroy(); } catch (error) { console.error('destroy failed', error); }
+    });
+    document.getElementById('test-root').replaceChildren();
+    var outside = document.getElementById('outside-target');
+    if (outside) outside.remove();
+  };
+</script>
+<script src="../../src/core/core.js"></script>
+<script src="../../src/ui/forms-basic.js"></script>
+<script src="../../gallery/demos/ui-forms-basic.js"></script>
+</body>
+</html>

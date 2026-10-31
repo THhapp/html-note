@@ -1,0 +1,90 @@
+/* C13 NoteUI.Expression — 有稳定身份的表达式项；不承担播放器。 */
+
+.nui-expression {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  gap: 0.16em;
+  max-width: 100%;
+  color: var(--hnv-color-ink, #202938);
+  font-family: var(--hnv-font-mono, "Cascadia Mono", Consolas, monospace);
+  font-size: var(--hnv-font-size-body, 15px);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.6;
+  white-space: nowrap;
+  vertical-align: baseline;
+}
+
+.nui-expression__part {
+  display: inline-flex;
+  align-items: baseline;
+  min-width: 0;
+  padding: 0 0.06em;
+  border-radius: 4px;
+  color: inherit;
+  outline: 2px dashed transparent;
+  outline-offset: 1px;
+}
+
+.nui-expression__content,
+.nui-expression__value {
+  display: inline-flex;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.nui-expression__ghost {
+  position: absolute !important;
+  box-sizing: border-box;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.nui-expression[data-note-scene="true"] .nui-expression__part,
+.nui-expression[data-note-scene="true"] .nui-expression__content,
+.nui-expression[data-note-scene="true"] .nui-expression__value {
+  transition: none;
+}
+
+.nui-expression__part--tex {
+  align-items: center;
+  padding: 0 0.08em;
+}
+
+.nui-expression__math {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.nui-expression__math .nui-math {
+  font-size: 1em;
+  line-height: 1.3;
+}
+
+.nui-expression__part[data-mark="focus"],
+.nui-expression__part[data-mark="both"] {
+  outline-color: var(--hnv-color-accent, #315cda);
+}
+
+.nui-expression__part[data-mark="changed"] {
+  background: var(--hnv-color-accent-soft, #eef2ff);
+}
+
+.nui-expression__part[data-mark="both"] {
+  background: var(--hnv-color-accent-soft, #eef2ff);
+}
+
+.nui-expression[data-note-scene="true"] .nui-expression__part {
+  transition: none;
+}
+
+.nui-expression[data-note-scene="true"] {
+  will-change: auto;
+}
+
+@media (max-width: 620px) {
+  .nui-expression {
+    font-size: var(--hnv-font-size-label, 14px);
+  }
+}

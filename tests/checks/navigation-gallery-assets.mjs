@@ -1,0 +1,16 @@
+import { chromium } from '../tools/node_modules/playwright-core/index.mjs';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+const here = path.dirname(fileURLToPath(import.meta.url));
+const root = path.resolve(here, '..', '..');
+const browser = await chromium.launch({ executablePath: 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', headless: true });
+const page = await browser.newPage({ viewport: { width: 1200, height: 900 } });
+const failed = [];
+page.on('requestfailed', req => failed.push(req.url()));
+const consoleErrors = [];
+page.on('console', m => { if (m.type()==='error') consoleErrors.push(m.text()); });
+await page.goto(pathToFileURL(path.join(root,'gallery/index.html')).href + '#N01');
+await page.waitForTimeout(2000);
+console.log('FAILED', failed);
+console.log('CONSOLE', consoleErrors);
+await browser.close();

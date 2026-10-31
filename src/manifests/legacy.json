@@ -1,0 +1,701 @@
+{
+  "module": "legacy",
+  "title": "旧组件复用与接入",
+  "js": [
+    "src/ui/controls.js",
+    "src/ui/primitives.js",
+    "src/expr/focus.js",
+    "src/expr/range.js",
+    "src/expr/link.js",
+    "src/viz/sequence-insert.js"
+  ],
+  "css": [
+    "src/ui/controls.css",
+    "src/ui/primitives.css",
+    "src/expr/focus.css",
+    "src/expr/range.css",
+    "src/expr/link.css",
+    "src/viz/sequence-insert.css",
+    "src/compat/legacy-bridge.css"
+  ],
+  "demos": [
+    "gallery/demos/legacy.js"
+  ],
+  "dependencies": [
+    "core"
+  ],
+  "entries": [
+    {
+      "id": "R01",
+      "name": "NoteUI.Button",
+      "cn": "按钮",
+      "category": "复用与接入",
+      "purpose": "已有基础按钮的最小向后兼容增强：保留原有 label/variant/disabled/onClick，补充图标、纯图标、加载、紧凑尺寸、可访问名称与提示。",
+      "inputs": [
+        "label",
+        "variant",
+        "disabled",
+        "onClick",
+        "icon",
+        "iconPosition",
+        "iconOnly",
+        "loading",
+        "ariaLabel",
+        "title",
+        "size"
+      ],
+      "customizable": [
+        "按钮文案",
+        "主要/次要/轻量",
+        "禁用",
+        "图标 DOM 或经 iconResolver 解析的图标名",
+        "图标在前或在后",
+        "纯图标",
+        "加载态",
+        "可访问名称",
+        "悬停提示",
+        "标准或紧凑尺寸"
+      ],
+      "states": [
+        "默认次要按钮",
+        "主要按钮",
+        "轻量按钮",
+        "禁用",
+        "图标在首/尾",
+        "纯图标",
+        "加载中",
+        "sm 紧凑尺寸"
+      ],
+      "usage": "NoteUI.Button.mount(host, { label: '继续', icon: NoteCore.icons.get('arrow-right'), iconPosition: 'end', onClick: fn })",
+      "dependencies": [
+        "core"
+      ],
+      "source": [
+        "src/ui/controls.js",
+        "src/ui/controls.css"
+      ],
+      "dist": [
+        "dist/modules/legacy.js",
+        "dist/modules/legacy.css",
+        "dist/note-library.js",
+        "dist/note-library.css"
+      ],
+      "demo": "gallery/demos/legacy.js#R01",
+      "preview": "gallery/index.html#R01",
+      "limitations": [
+        "loading 只表示等待，不伪造完成、成功或失败结果",
+        "字符串图标必须由 NoteUI.Button.iconResolver 解析；未设置解析器时不显示图标且不报错",
+        "loading 时忽略点击但保留键盘焦点，不使用原生 disabled 夺取焦点；宿主仍需在业务完成时更新状态",
+        "图标 DOM 会移入按钮，不会克隆；纯图标依赖 ariaLabel、label 或图标名生成可访问名称"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "复用接入与变体增强，未获本批具体视觉评价；原六项组件的旧评价不自动覆盖新增变体",
+      "consensus": [
+        "K06",
+        "K07",
+        "K12",
+        "K15",
+        "K16"
+      ],
+      "docs": "docs/legacy.md#R01",
+      "notes": "R01 只改 controls.js/controls.css，经统一构建进入 dist；历史独立预览只作回看，回归范围见 docs/legacy.md。"
+    },
+    {
+      "id": "R02",
+      "name": "NoteUI.Segmented",
+      "cn": "分段选择",
+      "category": "复用与接入",
+      "purpose": "复用已有单选分段选择，保留方向键、Home/End、禁用项跳过和程序更新不触发 onChange 的语义。",
+      "inputs": [
+        "options",
+        "value",
+        "onChange"
+      ],
+      "customizable": [
+        "选项文案与值",
+        "当前值",
+        "禁用选项",
+        "长标签",
+        "change 回调"
+      ],
+      "states": [
+        "默认选中首项",
+        "用户换选",
+        "长标签",
+        "禁用项",
+        "程序更新"
+      ],
+      "usage": "var s = NoteUI.Segmented.mount(host, { options: [{ value: 'all', label: '全部' }], value: 'all', onChange: fn }); s.getValue();",
+      "dependencies": [
+        "core"
+      ],
+      "source": [
+        "src/ui/controls.js",
+        "src/ui/controls.css"
+      ],
+      "dist": [
+        "dist/modules/legacy.js",
+        "dist/modules/legacy.css",
+        "dist/note-library.js",
+        "dist/note-library.css"
+      ],
+      "demo": "gallery/demos/legacy.js#R02",
+      "preview": "gallery/index.html#R02",
+      "limitations": [
+        "选项值应唯一；无效当前值回退到首个可用项",
+        "仅单选，不提供多选或自由输入",
+        "程序 update({ value }) 不调用 onChange，用户换选才回调"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本批未获具体视觉评价；沿用原候选接口，不因复用自动升级评价",
+      "consensus": [
+        "K06",
+        "K07",
+        "K12",
+        "K15",
+        "K16"
+      ],
+      "docs": "docs/legacy.md#R02",
+      "notes": "未修改源码。"
+    },
+    {
+      "id": "R03",
+      "name": "NoteUI.Badge",
+      "cn": "状态标记",
+      "category": "复用与接入",
+      "purpose": "复用短标签呈现中性、强调与提醒状态；文案可替换，长文字完整换行。",
+      "inputs": [
+        "label",
+        "tone"
+      ],
+      "customizable": [
+        "标签文案",
+        "neutral/accent/warning 语气"
+      ],
+      "states": [
+        "中性",
+        "当前关注/强调",
+        "需要核对/提醒",
+        "较长文字"
+      ],
+      "usage": "NoteUI.Badge.mount(host, { label: '已更新', tone: 'accent' })",
+      "dependencies": [
+        "core"
+      ],
+      "source": [
+        "src/ui/primitives.js",
+        "src/ui/primitives.css"
+      ],
+      "dist": [
+        "dist/modules/legacy.js",
+        "dist/modules/legacy.css",
+        "dist/note-library.js",
+        "dist/note-library.css"
+      ],
+      "demo": "gallery/demos/legacy.js#R03",
+      "preview": "gallery/index.html#R03",
+      "limitations": [
+        "只呈现宿主给的短状态，不自动判定状态语义",
+        "三档语气固定，不允许自定义颜色映射"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本批未获具体视觉评价",
+      "consensus": [
+        "K06",
+        "K07",
+        "K12",
+        "K15",
+        "K16"
+      ],
+      "docs": "docs/legacy.md#R03",
+      "notes": "未修改源码。"
+    },
+    {
+      "id": "R04",
+      "name": "NoteUI.Notice",
+      "cn": "常驻说明",
+      "category": "复用与接入",
+      "purpose": "复用常驻说明块，把必要解释放在正常阅读路径；标题、正文与语气可更新，正文支持纯文本或 DOM 节点。",
+      "inputs": [
+        "title",
+        "content",
+        "tone"
+      ],
+      "customizable": [
+        "标题",
+        "正文文字或 DOM",
+        "neutral/accent/warning 语气"
+      ],
+      "states": [
+        "一般说明",
+        "当前重点",
+        "范围提醒",
+        "长正文",
+        "DOM 内容"
+      ],
+      "usage": "var n = NoteUI.Notice.mount(host, { title: '范围', content: '只展示局部结果。', tone: 'warning' }); n.update({ content: '更新后的说明' });",
+      "dependencies": [
+        "core"
+      ],
+      "source": [
+        "src/ui/primitives.js",
+        "src/ui/primitives.css"
+      ],
+      "dist": [
+        "dist/modules/legacy.js",
+        "dist/modules/legacy.css",
+        "dist/note-library.js",
+        "dist/note-library.css"
+      ],
+      "demo": "gallery/demos/legacy.js#R04",
+      "preview": "gallery/index.html#R04",
+      "limitations": [
+        "常驻说明不是 Tooltip，不负责悬停触发或自动消失",
+        "字符串按纯文本写入；DOM 节点会被移入，不克隆",
+        "不内置关闭按钮或自动隐藏"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本批未获具体视觉评价",
+      "consensus": [
+        "K06",
+        "K07",
+        "K12",
+        "K15",
+        "K16"
+      ],
+      "docs": "docs/legacy.md#R04",
+      "notes": "未修改源码。"
+    },
+    {
+      "id": "R05",
+      "name": "NoteUI.Disclosure",
+      "cn": "折叠说明",
+      "category": "复用与接入",
+      "purpose": "复用可选详情的原生 details 组件，标题和概述始终可见；保留程序开合、toggle 事件和 event=null 的既有语义。",
+      "inputs": [
+        "title",
+        "summary",
+        "content",
+        "open",
+        "onToggle"
+      ],
+      "customizable": [
+        "标题",
+        "始终可见的概述",
+        "细节内容",
+        "初始/程序开合",
+        "切换回调"
+      ],
+      "states": [
+        "默认收起",
+        "初始展开",
+        "用户展开/收起",
+        "程序更新 open",
+        "长内容与 DOM 内容"
+      ],
+      "usage": "var d = NoteUI.Disclosure.mount(host, { title: '细节', summary: '始终可读', content: node, onToggle: fn }); d.update({ open: true });",
+      "dependencies": [
+        "core"
+      ],
+      "source": [
+        "src/ui/primitives.js",
+        "src/ui/primitives.css"
+      ],
+      "dist": [
+        "dist/modules/legacy.js",
+        "dist/modules/legacy.css",
+        "dist/note-library.js",
+        "dist/note-library.css"
+      ],
+      "demo": "gallery/demos/legacy.js#R05",
+      "preview": "gallery/index.html#R05",
+      "limitations": [
+        "必要说明不能只放在收起区域",
+        "程序开合触发 onToggle(open, null)，原生操作为 toggle 事件；宿主不应假定事件对象始终存在",
+        "手风琴组是宿主组合方式，不是独立接口"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本批未获具体视觉评价",
+      "consensus": [
+        "K06",
+        "K07",
+        "K12",
+        "K15",
+        "K16"
+      ],
+      "docs": "docs/legacy.md#R05",
+      "notes": "未修改源码。"
+    },
+    {
+      "id": "R06",
+      "name": "NoteUI.DataObject",
+      "cn": "数据对象",
+      "category": "复用与接入",
+      "purpose": "复用标签、值与就近说明组成的数据对象；身份/关注与变化标记可同时存在，值可更新且支持 DOM 内容。",
+      "inputs": [
+        "label",
+        "value",
+        "caption",
+        "attention",
+        "changed"
+      ],
+      "customizable": [
+        "标签",
+        "值文字或 DOM",
+        "说明",
+        "关注标记",
+        "变化标记"
+      ],
+      "states": [
+        "普通对象",
+        "当前关注",
+        "本步变化",
+        "关注与变化并存",
+        "长标签/长值"
+      ],
+      "usage": "var o = NoteUI.DataObject.mount(host, { label: '结果', value: 'C3', caption: '同一对象。' }); o.update({ value: 'C4', changed: true });",
+      "dependencies": [
+        "core"
+      ],
+      "source": [
+        "src/ui/primitives.js",
+        "src/ui/primitives.css"
+      ],
+      "dist": [
+        "dist/modules/legacy.js",
+        "dist/modules/legacy.css",
+        "dist/note-library.js",
+        "dist/note-library.css"
+      ],
+      "demo": "gallery/demos/legacy.js#R06",
+      "preview": "gallery/index.html#R06",
+      "limitations": [
+        "不判断业务上何为身份、关注或变化，全部由宿主指定",
+        "字符串按纯文本写入；DOM 节点会被移入",
+        "不提供编辑、比较或持久化能力"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "本批未获具体视觉评价",
+      "consensus": [
+        "K06",
+        "K07",
+        "K12",
+        "K15",
+        "K16"
+      ],
+      "docs": "docs/legacy.md#R06",
+      "notes": "未修改源码。"
+    },
+    {
+      "id": "R07",
+      "name": "NoteExpr.Focus",
+      "cn": "关注与范围标记",
+      "category": "复用与接入",
+      "purpose": "复用既有目标关注标记：元素外扩框选、文本子串逐行下划线，以及多个目标之间的关注迁移。",
+      "inputs": [
+        "motion",
+        "zIndex",
+        "show(element)",
+        "show({ el, text, mode })"
+      ],
+      "customizable": [
+        "目标元素",
+        "文本子串",
+        "动效 auto/always/never",
+        "叠加层层级",
+        "实例根上的 --nx-* 变量"
+      ],
+      "states": [
+        "idle",
+        "元素框选",
+        "文本下划线",
+        "关注迁移",
+        "减少动效终态"
+      ],
+      "usage": "var f = NoteExpr.Focus.mount({ motion: 'auto' }); f.show(el); f.show({ el: p, text: '缓存' }); f.hide(); f.refresh(); f.destroy();",
+      "dependencies": [
+        "core"
+      ],
+      "source": [
+        "src/expr/focus.js",
+        "src/expr/focus.css"
+      ],
+      "dist": [
+        "dist/modules/legacy.js",
+        "dist/modules/legacy.css",
+        "dist/note-library.js",
+        "dist/note-library.css"
+      ],
+      "demo": "gallery/demos/legacy.js#R07",
+      "preview": "gallery/index.html#R07",
+      "limitations": [
+        "旧接口是 show/hide/refresh/destroy，不伪装为 update",
+        "叠加层挂在 document.body，对屏幕阅读器为 aria-hidden 的视觉层；文字说明需由宿主写入正文",
+        "不保证跟随 transform 祖先、iframe 或嵌套滚动容器",
+        "只在 Edge/Chromium 桌面与 file:// 下验证过"
+      ],
+      "userReview": "positive-with-scope",
+      "reviewScope": "总体满意，读起来比较轻松；动作衔接与视觉表现层次保留为精修项，不表示参数冻结",
+      "consensus": [
+        "K06",
+        "K07",
+        "K12",
+        "K15",
+        "K16"
+      ],
+      "docs": "docs/legacy.md#R07",
+      "notes": "未修改源码；原验证范围与限制沿用 archive/prototypes 中的原验证记录。"
+    },
+    {
+      "id": "R08",
+      "name": "NoteExpr.Range",
+      "cn": "范围注释与分组说明",
+      "category": "复用与接入",
+      "purpose": "复用一组目标外侧的括线与就近说明，用于表达分组范围或一条说明针对哪一段；更新用 show，布局变化用 refresh。",
+      "inputs": [
+        "motion",
+        "zIndex",
+        "show({ targets, text, side, orientation })"
+      ],
+      "customizable": [
+        "目标组",
+        "说明文字",
+        "side auto/below/above/left/right",
+        "orientation auto/h/v",
+        "动效与层级",
+        "实例根上的 --nx-* 变量"
+      ],
+      "states": [
+        "idle",
+        "横排下方/上方",
+        "竖排右侧/左侧",
+        "无文字括线",
+        "减少动效终态"
+      ],
+      "usage": "var r = NoteExpr.Range.mount(); r.show({ targets: [a, b], text: '这两步一起做' }); r.refresh(); r.hide(); r.destroy();",
+      "dependencies": [
+        "core"
+      ],
+      "source": [
+        "src/expr/range.js",
+        "src/expr/range.css"
+      ],
+      "dist": [
+        "dist/modules/legacy.js",
+        "dist/modules/legacy.css",
+        "dist/note-library.js",
+        "dist/note-library.css"
+      ],
+      "demo": "gallery/demos/legacy.js#R08",
+      "preview": "gallery/index.html#R08",
+      "limitations": [
+        "旧接口是 show/hide/refresh/destroy，不伪装为 update",
+        "只画视觉括线并隐藏于屏幕阅读器，不做语义分组替代",
+        "仅在浅色背景、常规文档流与桌面 Chromium 下保证默认观感",
+        "不保证 transform 祖先、iframe 与超长页面滚动下的跟随"
+      ],
+      "userReview": "positive-with-scope",
+      "reviewScope": "总体满意，读起来比较轻松；动效衔接与视觉层次保留为精修项，不表示参数冻结",
+      "consensus": [
+        "K06",
+        "K07",
+        "K12",
+        "K15",
+        "K16"
+      ],
+      "docs": "docs/legacy.md#R08",
+      "notes": "未修改源码；原验证范围与限制沿用 archive/prototypes 中的原验证记录。"
+    },
+    {
+      "id": "R09",
+      "name": "NoteExpr.Link",
+      "cn": "对象关系连线",
+      "category": "复用与接入",
+      "purpose": "复用两端对象之间的曲线、箭头与关系文字，用于关系、映射与局部流程；端点和方向可替换。",
+      "inputs": [
+        "motion",
+        "zIndex",
+        "show({ from, to, label, arrow, fromSide, toSide })"
+      ],
+      "customizable": [
+        "起点与终点",
+        "关系文字",
+        "是否显示箭头",
+        "两端锚点方向",
+        "动效与层级",
+        "实例根上的 --nx-* 变量"
+      ],
+      "states": [
+        "idle",
+        "自动选边",
+        "显式指定端点边",
+        "无文字连线",
+        "无箭头",
+        "减少动效终态"
+      ],
+      "usage": "var l = NoteExpr.Link.mount(); l.show({ from: a, to: b, label: '提交到', arrow: true }); l.refresh(); l.hide(); l.destroy();",
+      "dependencies": [
+        "core"
+      ],
+      "source": [
+        "src/expr/link.js",
+        "src/expr/link.css"
+      ],
+      "dist": [
+        "dist/modules/legacy.js",
+        "dist/modules/legacy.css",
+        "dist/note-library.js",
+        "dist/note-library.css"
+      ],
+      "demo": "gallery/demos/legacy.js#R09",
+      "preview": "gallery/index.html#R09",
+      "limitations": [
+        "旧接口是 show/hide/refresh/destroy，不伪装为 update",
+        "示例中的关系语义必须由宿主保证自洽；gallery 使用可核对的数据关系",
+        "只画视觉连线并隐藏于屏幕阅读器，不替代正文中的语义说明",
+        "不做拖拽编辑、通用避障或大图自动布局"
+      ],
+      "userReview": "positive-with-scope",
+      "reviewScope": "总体满意；既有组合示例的关系语义待修正，该问题属于预览内容，不构成对连线实现的新认可",
+      "consensus": [
+        "K06",
+        "K07",
+        "K12",
+        "K15",
+        "K16"
+      ],
+      "docs": "docs/legacy.md#R09",
+      "notes": "未修改源码；原验证范围与限制沿用 archive/prototypes 中的原验证记录。"
+    },
+    {
+      "id": "R10",
+      "name": "SeqInsert",
+      "cn": "序列插入与让位",
+      "category": "复用与接入",
+      "purpose": "复用第二轮序列插入代表组件，展示既有序列中一处插入、右侧对象让位、撤回、重看及内容替换；保留原接口与 keepState 语义。",
+      "inputs": [
+        "sequence",
+        "insert",
+        "unit",
+        "labels",
+        "startInserted",
+        "onChange",
+        "onSettle"
+      ],
+      "customizable": [
+        "原序列与对象 key",
+        "插入文本与位置",
+        "量词与标签文案",
+        "初始停点",
+        "动效开关",
+        "内容替换是否保留停点"
+      ],
+      "states": [
+        "插入前",
+        "插入后",
+        "末尾追加无让位",
+        "撤回",
+        "重看",
+        "setData keepState",
+        "减少动效终态"
+      ],
+      "usage": "var s = SeqInsert.mount(host, { sequence: ['A', 'B'], insert: { text: 'X', index: 1 } }); s.insert(); s.restore(); s.replay(); s.setData(data, { keepState: true }); s.destroy();",
+      "dependencies": [
+        "core"
+      ],
+      "source": [
+        "src/viz/sequence-insert.js",
+        "src/viz/sequence-insert.css"
+      ],
+      "dist": [
+        "dist/modules/legacy.js",
+        "dist/modules/legacy.css",
+        "dist/note-library.js",
+        "dist/note-library.css"
+      ],
+      "demo": "gallery/demos/legacy.js#R10",
+      "preview": "gallery/index.html#R10",
+      "limitations": [
+        "旧接口是 insert/restore/toggle/replay/setData/destroy，不伪装为统一 update",
+        "已测原序列 1–5 项、单一插入点；不保证 0 项、6 项以上、多行文本或多处插入/删除/替换",
+        "极窄容器触到 48px 卡片下限后可能横向溢出",
+        "未在真实笔记正文、移动端、Firefox/Safari 与打印中验证"
+      ],
+      "userReview": "positive-with-scope",
+      "reviewScope": "第二轮整体：这轮不错；真实笔记中的组装效果与具体尺寸/时长/停点数未获评价，不成为固定标准",
+      "consensus": [
+        "K06",
+        "K07",
+        "K12",
+        "K15",
+        "K16"
+      ],
+      "docs": "docs/legacy.md#R10",
+      "notes": "未修改源码；原验证范围与限制沿用 archive/prototypes 中的原验证记录。"
+    },
+    {
+      "id": "I06",
+      "name": "构建与离线分发",
+      "cn": "清单、文档、构建与离线分发",
+      "category": "共享基础与交付",
+      "purpose": "把全部 manifest 与 status 合并为单一 registry，按固定依赖顺序生成全量包、模块包和自包含 gallery 预览，并支持离线双击与按模块取用。",
+      "inputs": [
+        "src/manifests/*.json",
+        "src/status.json",
+        "vendor/",
+        "gallery/index.html"
+      ],
+      "customizable": [
+        "输出目录",
+        "--final 严格校验",
+        "--release 发布目标路径",
+        "SOURCE_DATE_EPOCH 可复现时间"
+      ],
+      "states": [
+        "开发构建（缺失项警告）",
+        "严格构建（缺失项失败）",
+        "模块分发包",
+        "自包含单文件预览",
+        "发布复制"
+      ],
+      "usage": "node scripts/build.mjs --final && node scripts/check.mjs --final && node scripts/build.mjs --final --release",
+      "dependencies": [
+        "node 内置模块",
+        "vendor"
+      ],
+      "source": [
+        "scripts/build.mjs",
+        "scripts/check.mjs",
+        "src/manifests/legacy.json",
+        "gallery/demos/legacy.js",
+        "docs/构建与分发.md",
+        "docs/legacy.md"
+      ],
+      "dist": [
+        "dist/note-library.js",
+        "dist/note-library.css",
+        "dist/registry.js",
+        "registry.json",
+        "dist/组件库-预览.html"
+      ],
+      "demo": "gallery/demos/legacy.js#I06",
+      "preview": "gallery/index.html#I06",
+      "limitations": [
+        "离线构建依赖 Node 内置模块，不运行于浏览器，不提供运行时打包服务",
+        "技术状态只来自 src/status.json，不因文件存在自动升级为 verified",
+        "单文件预览要求 gallery/index.html 已就绪；开发期缺失会跳过并警告，--final 失败",
+        "单文件内联样式、脚本、静态图片与 CSS 本地 url，并把 examples/assets 示例素材映射为 data URI；外部 http(s) 资源必须先在 gallery 中去掉",
+        "不发布、不上传；--release 由主控执行，产物与 dist 版本保持字节一致"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "交付能力，未获用户对本构建脚本、registry 或发布流程的具体评价",
+      "consensus": [
+        "K10",
+        "K11",
+        "K16"
+      ],
+      "docs": "docs/构建与分发.md",
+      "notes": "构建、检查与打包分别由 scripts/build.mjs、check.mjs、package.ps1 执行；R01 只改 controls.js/controls.css，经统一构建进入 dist。技术状态只取 src/status.json，本说明不参与升级或降级。"
+    }
+  ]
+}

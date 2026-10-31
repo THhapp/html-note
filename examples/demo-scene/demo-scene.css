@@ -1,0 +1,362 @@
+/* NoteDemo demo-scene 开发宿主样式 — 白底、沿用 core tokens，仅本页作用域。
+ * 公共舞台负责画面/字幕/操作；本文件只装配本页的画布、结果读数与场景卡片。
+ * Scope: .demo-scene* / .demo-panel*；不覆盖组件内部结构，不引外部资源。 */
+
+.demo-scene {
+  box-sizing: border-box;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  background: var(--hnv-color-page, #f4f6f9);
+  color: var(--hnv-color-ink, #202938);
+  font-family: var(--hnv-font-family, "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif);
+  font-size: var(--hnv-font-size-reading, 16px);
+  line-height: var(--hnv-font-line-reading, 1.65);
+  text-align: start;
+}
+
+.demo-scene *,
+.demo-scene *::before,
+.demo-scene *::after {
+  box-sizing: border-box;
+}
+
+.demo-scene__head {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 38px 20px 18px;
+}
+
+.demo-scene__kicker {
+  margin: 0 0 8px;
+  color: var(--hnv-color-accent, #315cda);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+}
+
+.demo-scene__head h1 {
+  margin: 0 0 10px;
+  font-size: clamp(26px, 3vw, 34px);
+  font-weight: 650;
+  line-height: 1.28;
+  letter-spacing: -0.015em;
+}
+
+.demo-scene__lede {
+  max-width: 72ch;
+  margin: 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-label, 14px);
+  line-height: 1.75;
+}
+
+.demo-scene__main {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 0 20px 40px;
+}
+
+.demo-scene__scenario {
+  padding: 24px 26px 18px;
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: 16px;
+  background: var(--hnv-color-surface, #ffffff);
+  box-shadow: 0 1px 2px rgba(32, 41, 56, 0.04), 0 14px 34px rgba(32, 41, 56, 0.055);
+}
+
+.demo-scene__scenario-head h2 {
+  max-width: 84ch;
+  margin: 0 0 18px;
+  font-size: 21px;
+  font-weight: 650;
+  line-height: 1.36;
+  letter-spacing: -0.01em;
+}
+
+.demo-scene__scenario-head p {
+  max-width: 84ch;
+  margin: 0 0 var(--hnv-space-3, 12px);
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-label, 14px);
+  line-height: 1.7;
+}
+
+.demo-scene__stage {
+  min-width: 0;
+}
+
+/* 默认舞台的公共标记走廊在本页收进画布内部，避免说明压住画布外沿。 */
+.demo-scene__stage .note-demo {
+  --note-demo-mark-gutter: 0px;
+}
+
+/* ---- 画布：舞台唯一的演示表面 ---- */
+
+.demo-scene__canvas {
+  display: grid;
+  min-width: 0;
+  padding: 30px 24px 22px;
+  border: var(--hnv-border-width, 1px) solid color-mix(in srgb, var(--hnv-color-border, #dce2ea) 82%, var(--hnv-color-ink, #202938));
+  border-radius: var(--hnv-radius-stage, 14px);
+  background: color-mix(in srgb, var(--hnv-color-page, #f4f6f9) 58%, var(--hnv-color-surface, #fff));
+}
+
+.demo-scene__canvas--split {
+  grid-template-columns: minmax(0, 1fr) 15rem;
+  gap: 24px;
+  align-items: center;
+}
+
+.demo-scene__canvas--solo {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.demo-scene__canvas--panels {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-items: stretch;
+}
+
+.demo-scene__canvas-main {
+  min-width: 0;
+}
+
+/* 画布已有表面，组件自身的视口不再叠第二层边框/底色。 */
+.demo-scene__canvas .nviz-sequence__viewport {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: auto;
+}
+
+.demo-scene__canvas .nviz-sequence__track {
+  justify-content: center;
+}
+
+/* ---- 结果读数：窄、有标题、只承载一个值 ---- */
+
+.demo-scene__readout-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  align-self: stretch;
+  min-width: 0;
+  padding-inline-start: 22px;
+  border-inline-start: var(--hnv-border-width, 1px) solid color-mix(in srgb, var(--hnv-color-border, #dce2ea) 86%, var(--hnv-color-ink, #202938));
+}
+
+.demo-scene__readout-label {
+  margin: 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.5;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+.demo-scene__readout-value {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 2.5em;
+  color: var(--hnv-color-ink, #202938);
+  font-family: var(--hnv-font-mono, "Cascadia Mono", Consolas, monospace);
+  font-size: 19px;
+  font-weight: 650;
+  line-height: 1.35;
+  letter-spacing: 0.04em;
+  overflow-wrap: anywhere;
+}
+
+.demo-scene__readout-value .note-demo-adapter,
+.demo-scene__readout-value .note-demo-dom {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* ---- 槽位与自定义 Adapter ---- */
+
+.demo-scene__slot {
+  min-width: 0;
+  min-height: 0;
+}
+
+.note-demo-adapter {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.demo-scene__canvas-panel {
+  min-width: 0;
+}
+
+.demo-panel {
+  width: 100%;
+  height: 100%;
+  min-height: 7.2em;
+  padding: 16px 18px;
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-control, 8px);
+  background: var(--hnv-color-surface, #ffffff);
+  box-shadow: 0 1px 2px rgba(32, 41, 56, 0.045);
+}
+
+.demo-panel__title {
+  margin: 0 0 8px;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.5;
+  letter-spacing: 0.1em;
+}
+
+.demo-panel__text {
+  margin: 0;
+  color: var(--hnv-color-ink, #202938);
+  font-size: var(--hnv-font-size-reading, 16px);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+/* ---- 开发说明 ---- */
+
+.demo-scene__dev {
+  margin: 14px 0 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+  line-height: 1.6;
+}
+
+.demo-scene__dev summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.demo-scene__dev summary:focus-visible {
+  outline: var(--hnv-focus-ring-width, 3px) solid var(--hnv-color-focus, #315cda);
+  outline-offset: 2px;
+}
+
+.demo-scene__dev-note {
+  max-width: 82ch;
+  margin: 8px 0 0;
+}
+
+.demo-scene__readout {
+  margin: 8px 0 0;
+  padding: 6px 9px;
+  border-inline-start: 2px solid var(--hnv-color-border, #dce2ea);
+  color: var(--hnv-color-muted, #5c6879);
+  font-family: var(--hnv-font-mono, "Cascadia Mono", Consolas, monospace);
+  font-size: 12px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.demo-scene__readout[data-demo-error="true"] {
+  border-inline-start-color: var(--hnv-color-danger-border, #f0b4ae);
+  background: var(--hnv-color-danger-soft, #fbeef0);
+  color: var(--hnv-color-danger, #b23a45);
+}
+
+.demo-scene__foot {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 0 20px 40px;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+  line-height: 1.75;
+}
+
+.demo-scene__foot p {
+  margin: 0 0 4px;
+}
+
+@media (max-width: 860px) {
+  .demo-scene__head {
+    padding: 30px 16px 14px;
+  }
+
+  .demo-scene__main {
+    gap: 22px;
+    padding: 0 16px 32px;
+  }
+
+  .demo-scene__scenario {
+    padding: 20px 18px 16px;
+  }
+
+  .demo-scene__scenario-head h2 {
+    margin-bottom: 16px;
+    font-size: 19px;
+  }
+
+  .demo-scene__canvas {
+    padding: 26px 18px 20px;
+  }
+
+  .demo-scene__canvas--split,
+  .demo-scene__canvas--panels {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .demo-scene__readout-panel {
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 14px 0 0;
+    border-inline-start: 0;
+    border-top: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  }
+
+  .demo-scene__readout-value {
+    min-height: 0;
+    font-size: 17px;
+    text-align: end;
+  }
+}
+
+@media (max-width: 520px) {
+  .demo-scene__canvas {
+    padding: 22px 14px 16px;
+  }
+
+  .demo-scene__canvas .nviz-sequence[data-variant="bytes"] .nviz-sequence__cell {
+    min-width: 3em;
+    padding: 6px 5px;
+  }
+
+  .demo-scene__canvas .nviz-sequence[data-variant="bytes"] .nviz-sequence__cells {
+    gap: 4px;
+  }
+
+  .demo-scene__canvas .nviz-sequence__value {
+    font-size: 15px;
+  }
+
+  .demo-scene__canvas .nviz-sequence__label {
+    font-size: 9px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .demo-scene,
+  .demo-scene * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
