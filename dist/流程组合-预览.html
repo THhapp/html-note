@@ -69873,8 +69873,18 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     var replace = { readout: readoutView(snapshot), packet: packetView(snapshot) };
     var bindings = [{ binding: 'readout' }, { binding: 'packet' }];
     if (withStage) { replace.stage = stageView(snapshot); bindings.push({ binding: 'stage' }); }
-    if (withTable) { replace.table = tableView(snapshot); bindings.push({ binding: 'table' }); }
-    return { id: snapshot.id, caption: snapshot.caption, replace: replace, scene: { bindings: bindings } };
+    var scene = { bindings: bindings };
+    if (withTable) {
+      replace.table = tableView(snapshot);
+      bindings.push({ binding: 'table' });
+      /* 主要变化落在表格当前消息行：公共 Focus 在每次显现后指向该行 note 单元；
+       * 只观察，不把整表放进一个组门控。 */
+      var visible = Math.min(snapshot.visible, MESSAGES.length);
+      if (visible > 0) {
+        scene.attention = { targets: [{ binding: 'table', query: { row: MESSAGES[visible - 1].id, column: 'note' }, groups: [] }] };
+      }
+    }
+    return { id: snapshot.id, caption: snapshot.caption, replace: replace, scene: scene };
   }
 
   function buildStageDefinition() {
