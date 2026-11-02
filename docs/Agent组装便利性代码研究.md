@@ -1,12 +1,8 @@
 # Agent组装便利性的代码研究
 
-> 资料定位：研究记录（非现行 API），不是接口规范；文中示意接口均未实现，代码位置与文件名为研究时结构。
-> 本文记录对作者重复代码、成熟组合机制与候选辅助的研究。
-> 现行接口见 [公共编排层](公共编排层.md)；组装方式见 [取用与组合](取用与组合.md)；维护布局见 [架构与接口](架构与接口.md)。
+> 资料定位：研究资料，记录作者辅助的候选结构、槽位与编译边界；不是现行 API。现行接口见[公共编排层](公共编排层.md)，组装方式见[取用与组合](取用与组合.md)。
 
-本研究建立在已获“不赖，整体可以”评价的公共层之上。研究目标是减少作者重复表达和接线，保留已有运行、动效、布局与知识边界；研究阶段未开发作者工具、未安装依赖、未重新验收动画。现行使用查[取用指南](取用与组合.md)及[公共编排层](公共编排层.md)。
-
-用户补充：矩阵交付同时有多处需要注意的变化，动态聚焦仍不符合已有共识。作者辅助不能只压缩代码或默认让变化成员全部并行，还需让作者明确关注对象、关联区域与注意承接；公共实现与作者配方的现行分工见 [公共编排层](公共编排层.md)。
+本文比较作者重复表达、成熟组合机制与候选辅助；具体可用能力以现行文档和源码为准。
 
 ## 1. 结论先行
 
@@ -74,7 +70,7 @@ I07登记在demo-runtime，条目dependencies只有core；NoteDemo.mount还需de
 
 [portable-stories](https://github.com/storybookjs/storybook/blob/b7e6a5177733607ce37024c19cbc672503b24ad1/code/core/src/preview-api/modules/store/csf/portable-stories.ts#L88)把同一份定义准备为可独立调用的函数。
 
-研究阶段另外核对[原生HTML renderer](https://github.com/storybookjs/storybook/blob/b7e6a5177733607ce37024c19cbc672503b24ad1/code/renderers/html/src/render.ts)：Component是函数时执行Component(args,context)，可以返回DOM，并不要求React。
+本次核对另外核对[原生HTML renderer](https://github.com/storybookjs/storybook/blob/b7e6a5177733607ce37024c19cbc672503b24ad1/code/renderers/html/src/render.ts)：Component是函数时执行Component(args,context)，可以返回DOM，并不要求React。
 
 映射到本库：普通数据负责内容，普通函数负责布局与Definition；gallery、最小示例、笔记宿主和单文件预览消费同一份组合。
 
@@ -100,7 +96,7 @@ I07登记在demo-runtime，条目dependencies只有core；NoteDemo.mount还需de
 
 本库可将矩阵配对、乘积和累计值集中在普通知识构造函数中，不同时手写几份数字。这种函数属于该组合的内容构造，不应让通用运行层理解矩阵乘法。
 
-Remotion的视频帧、FPS和React渲染不是可停留笔记的运行模型；仅借结构。其为自身分层许可，不能称MIT或直接搬核心。Storybook和shadcn为MIT，实际复制代码仍需保留许可。研究阶段没有引入第三方代码。
+Remotion的视频帧、FPS和React渲染不是可停留笔记的运行模型；仅借结构。其为自身分层许可，不能称MIT或直接搬核心。Storybook和shadcn为MIT，实际复制代码仍需保留许可。本次核对没有引入第三方代码。
 
 ## 4. 研究建议：薄组合资产层
 
@@ -159,7 +155,7 @@ node scripts/build-demo-preview.mjs --template my-note/index.html --output dist/
 
 拟议collectSlots(root)只收集这些区域，定位重复/缺失槽；不自动猜内容属于哪一区域。layout继续返回{root,slots}，并研究可选cleanup。配合解除自定义布局的main别名，可让现有布局组件更自然使用。
 
-这些属于研究阶段提出的小接口补充；现行接口与边界以[取用与组合](取用与组合.md)与[公共编排层](公共编排层.md)为准。布局比例和内容适配继续由作者掌握。
+这些属于资料中提出的小接口补充；现行接口与边界以[取用与组合](取用与组合.md)与[公共编排层](公共编排层.md)为准。布局比例和内容适配继续由作者掌握。
 
 ### 5.3 纯作者编译辅助
 

@@ -114,7 +114,6 @@ var seq = NoteViz.Sequence.mount(host, {
 | `getState()` 与 `getMotionTargets()` | 供 NoteDemo scene 读回与布局测量；不改变独立用法。细节见下表与 scene 接入说明。 |
 | `getState()` | 从实际已渲染状态返回新副本 `{items:[{id,value,label}], groups:[{label,ids}], cues:{focus,changed}}`；groups 把声明顺序/范围分组归一为当前实际存在的成员 ID，供 NoteDemo 还原分组；不返回缓存目标，供 NoteDemo 核对提交结果。销毁后返回 `null`。 |
 | `getMotionTargets()` | 返回 `[{id, unit, contentEl:cell, valueEl, labelEl, markEl}]` 当前真实节点；供 scene layout 捕获/测量载体。销毁后返回空数组。 |
-| `setSceneActive(on)` | 设置根节点 `data-note-scene`。为 true 时样式暂停受控 cell/mark 的原 CSS transition，由公共层效果接管；scene 清理后还原。独立使用时无需调用。 |
 | 事件 | 无。程序更新不触发事件。 |
 
 `items` 更新时以对象 ID 为键复用节点；改变位置、值、标签、变体不丢身份。未提供稳定 ID 的字符串内容只能保证同一位置更新时的局部身份，宿主在重排时应改用对象 ID。
@@ -163,7 +162,7 @@ var seq = NoteViz.Sequence.mount(host, {
 - 分组是数组下标/id 范围，不是字段语义解析。
 - 对象本身不响应点击；只有滚动区可聚焦。
 - `summary/stateText/stable` 是可见说明与稳定排布的显示选择，不改变数据、身份或可访问描述；在 scene 运行期间，`stable` 的固定占位让一次推进前后的组件高度保持一致，字幕和控件不会随“插入/变化”文字出现而移动。
-- `getState/getMotionTargets/setSceneActive` 是为 NoteDemo scene 接入新增的最小公开查询/受控方法；它们不改变 update/渲染语义，也不使组件变成自动播放器。groups 在列表中仍支持 `start/count/ids` 形式，但 NoteDemo 的 `sequence` Adapter 只接受显式 `{label,ids}`，避免语义歧义。
+- `getState/getMotionTargets` 是为 NoteDemo scene 接入提供的最小公开查询/布局方法；它们不改变 update/渲染语义，也不使组件变成自动播放器。受控 CSS transition 的暂停由公共层在 Binding 容器上统一接管，见[受控画面的视觉接管](公共编排层.md#author-scene-control)。groups 在列表中仍支持 `start/count/ids` 形式，但 NoteDemo 的 `sequence` Adapter 只接受显式 `{label,ids}`，避免语义歧义。
 - 没有动画时间轴，更新直接落定。
 
 ---
@@ -230,7 +229,6 @@ changed: {
 | `getTarget({row, col})` | 返回对应 `<td>`。row/col 可以是 ID 或零基下标；找不到返回 `null`。 |
 | `getState()` | 返回实际已渲染的 rows/columns/values/focus/changed/caption 副本；values 按当前行列数补齐并包含行内嵌 `cells/values` 的回退结果，focus/changed 中的范围已展开为单元列表，供 NoteDemo 真实读回；不返回目标缓存。销毁后返回 null。 |
 | `getMotionTargets()` | 返回当前单元真实载体 [{id,rowId,colId,element,layoutEl,contentEl,valueEl,flagEl}]；供 scene 读目标和效果使用。 |
-| `setSceneActive(on)` | 设置根 `data-note-scene`；scene 期间暂停单元格原 CSS transition，由公共层效果接管，清理后恢复。独立使用无需调用。 |
 | 事件 | 无。程序更新不触发事件。 |
 
 ### 表格语义与视觉
@@ -625,13 +623,6 @@ var compare = NoteViz.CompareView.mount(host, {
 - D04 是“有序时间线表达”，不是按数值比例缩放的时间图表；这一点是设计边界而非未完成功能。
 - D03/D05 的布局是基础布局，不是大型图/树布局引擎；密集标签和复杂环图可能出现重叠。
 - 本模块已在 Edge（Chromium）真实挂载自检，但没有进行跨浏览器矩阵、打印样式、超大数据量或用户视觉评审。
-- 所有新增组件均未获用户评价，保留候选。
-
-## 10. 自检与评价范围
-
-自检脚本：`tests/checks/viz-objects-check.mjs`（Edge + Playwright，按 `src/manifests/viz-objects.json` 的 js 顺序直接加载源码）。覆盖六项挂载/更新/destroy、更新后 getTarget、D01 scene 查询/读回、D02 读回与 stateText、长内容局部滚动、关注+变化合成、Graph marker 唯一性与键盘选择、CompareView 窄容器堆叠，以及六个 gallery 演示的真实挂载、按钮交互和清理。另有静态检查（`node --check`、资源/危险 API 扫描）；浏览器检查同时覆盖真实 Edge 中的布局、滚动提示与 reduced-motion 落定。
-
-评价范围：**新增候选，未获用户评价**。技术自检不等同于用户认可；不写入已确认资产。
 
 最小完整示例：
 

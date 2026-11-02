@@ -499,10 +499,13 @@
 /*!
  * 关注与范围标记 · 组件样式 v1.0.0
  * 作用域：全部选择器限定在 .nx-focus 之下；无全局选择器、无外部资源引用。
- * 令牌：--nx-accent（当前关注色）、--nx-z（层级）；宿主可写在实例根 instance.el.style 上覆盖。
+ * 令牌：--nx-accent（当前关注色）、--nx-weak（弱化/虚线强调色）、--nx-z（层级）；
+ *       宿主可写在实例根 instance.el.style 上覆盖。
+ * 会话弱化：根 data-nx-emphasis="weak" 时框转虚线、降低不透明度；过渡 ≤160ms，无循环呼吸动画。
  */
 .nx-focus {
   --nx-accent: #1f6f6a;
+  --nx-weak: #7d8a9b;
   --nx-z: 1210;
   position: fixed;
   inset: 0;
@@ -516,6 +519,9 @@
   position: absolute;
   box-sizing: border-box;
   pointer-events: none;
+  transition: opacity 140ms cubic-bezier(.4, 0, .2, 1),
+    border-color 140ms cubic-bezier(.4, 0, .2, 1),
+    background-color 140ms cubic-bezier(.4, 0, .2, 1);
 }
 
 /* 元素框选：1.5px 强调色描边画在框内侧，8px 圆角，不填充、不遮挡目标 */
@@ -531,6 +537,25 @@
   border-radius: 2px;
   background: var(--nx-accent);
   transform-origin: 0 50%;
+}
+
+/* 会话弱化：保留几何与目标，只降低强调；快速过渡，不闪烁、不呼吸。 */
+.nx-focus[data-nx-emphasis="weak"] .nx-focus__box {
+  border-style: dashed;
+  border-color: var(--nx-weak);
+  opacity: .55;
+}
+
+.nx-focus[data-nx-emphasis="weak"] .nx-focus__rule {
+  background: var(--nx-weak);
+  opacity: .45;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nx-focus__box,
+  .nx-focus__rule {
+    transition: none;
+  }
 }
 
 /* ---- source: src/expr/range.css ---- */
@@ -3007,6 +3032,14 @@
   vertical-align: baseline;
 }
 
+.nui-expression__body {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  gap: inherit;
+  min-width: 0;
+}
+
 .nui-expression__part {
   display: inline-flex;
   align-items: baseline;
@@ -3030,12 +3063,6 @@
   box-sizing: border-box;
   pointer-events: none;
   z-index: 3;
-}
-
-.nui-expression[data-note-scene="true"] .nui-expression__part,
-.nui-expression[data-note-scene="true"] .nui-expression__content,
-.nui-expression[data-note-scene="true"] .nui-expression__value {
-  transition: none;
 }
 
 .nui-expression__part--tex {
@@ -3065,14 +3092,6 @@
 
 .nui-expression__part[data-mark="both"] {
   background: var(--hnv-color-accent-soft, #eef2ff);
-}
-
-.nui-expression[data-note-scene="true"] .nui-expression__part {
-  transition: none;
-}
-
-.nui-expression[data-note-scene="true"] {
-  will-change: auto;
 }
 
 @media (max-width: 620px) {
@@ -10092,10 +10111,6 @@
   color: var(--hnv-color-accent, #315cda);
 }
 
-.nviz-matrix[data-note-scene="true"] .nviz-matrix__cell {
-  transition: none;
-}
-
 .nviz-matrix__cell {
   min-width: 4.5em;
   max-width: 32ch;
@@ -11205,19 +11220,6 @@
   .nviz-demo__btn {
     transition: none !important;
   }
-}
-
-/* =====================================================================
-   D01 scene 接入：统一效果接管期间暂停受控节点的原 CSS transition
-   （由 scene 的完成边界统一恢复；稳定状态下原规则不变）
-   ===================================================================== */
-
-.nviz-sequence[data-note-scene="true"] .nviz-sequence__cell {
-  transition: none !important;
-}
-
-.nviz-sequence[data-note-scene="true"] .nviz-sequence__mark {
-  transition: none !important;
 }
 
 /* D01 稳定排布（stable:true）：标签行、状态行与可见摘要始终占位，
@@ -14368,6 +14370,20 @@
   }
 }
 
+/* ---- source: src/demo/scene-control.css ---- */
+/* NoteDemo scene controlled visuals.
+ * Scene 在同步提交前给每个参与 binding 的容器加 data-note-scene-active="true"；
+ * 公共效果接管期间，受控内容原有的 CSS transition 不能自行补间或抢先显示目标。
+ * 只作用于本 Binding 容器内部，页面其他正常动效不受影响。
+ * 由 bindings.restoreFrame / restoreBindings 在恢复写入时同样短暂接管，
+ * 目标落稳后由 scene 释放；这些属性不是作者需要维护的第二套状态。 */
+.note-demo-binding[data-note-scene-active="true"],
+.note-demo-binding[data-note-scene-active="true"] *,
+.note-demo-binding[data-note-scene-active="true"] *::before,
+.note-demo-binding[data-note-scene-active="true"] *::after {
+  transition: none !important;
+}
+
 /* ---- source: src/demo/presentation.css ---- */
 /* NoteDemo presentation — default stage chrome for NoteDemo.mount().
  * Owned roots: .note-demo (inside B01 .nblk-demo-stage__stage).
@@ -14520,6 +14536,8 @@
     0 10px 28px color-mix(in srgb, var(--nx-accent) 18%, transparent),
     inset 0 0 20px color-mix(in srgb, var(--nx-accent) 6%, transparent);
   will-change: left, top, width, height;
+  /* weak/restore 只改强调；≤160ms 过渡由这里承载，不新增循环。 */
+  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
 }
 
 .note-demo-attention .nx-focus__box::before {
@@ -14531,6 +14549,17 @@
   box-shadow: 0 0 26px color-mix(in srgb, var(--nx-accent) 20%, transparent);
   pointer-events: none;
   animation: note-demo-attention-breathe 3.2s cubic-bezier(.37, 0, .63, 1) infinite;
+}
+
+/* weak：停稳后的低强调线索。Focus 组件负责虚线/低强调基础视觉；
+ * 这里只关闭 attention 专属呼吸光晕，避免弱化后仍有循环动画。 */
+.note-demo-attention[data-nx-emphasis="weak"] .nx-focus__box::before {
+  animation: none;
+  opacity: .55;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .note-demo-attention[data-nx-emphasis="weak"] .nx-focus__box::before { animation: none; }
 }
 
 @keyframes note-demo-attention-breathe {

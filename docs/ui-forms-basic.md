@@ -61,8 +61,10 @@ field.setError('');
 | `error` | string | `''` | 初始错误；非空时显示错误块并设置 `aria-invalid="true"`。 |
 | `control` | DOM 节点 \| 含 `.el` 的实例 | `null` | 控件 DOM 会被移入字段；实例本身的 `destroy()` 不归 Field 调用。 |
 | `id` | string | `''` | 指定控件 id；未给时沿用控件已有 id，否则生成唯一 id。 |
+| `hintSlot` | Element \| null | `null` | 可选：把 hint 节点移入宿主指定的固定提示区，默认仍留在字段根内。 |
+| `errorSlot` | Element \| null | `null` | 可选：把 error 节点移入宿主指定的固定提示区，默认仍留在字段根内。两个 slot 可指向同一元素。 |
 
-实例：`el`、`control`（解析后的可聚焦元素）、`setError(message)`、`update(patch)`、`destroy()`。`update` 支持以上全部键；`setError(null)` 或 `update({error:''})` 清除错误。
+实例：`el`、`control`（解析后的可聚焦元素）、`setError(message)`、`update(patch)`、`destroy()`。`update` 支持以上全部键（包括移动 `hintSlot`/`errorSlot`）；`setError(null)` 或 `update({error:''})` 清除错误。slot 必须是 Element 或 null，否则抛 `TypeError`；销毁时 Field 会同时把移入 slot 的 hint/error 节点移除，不在宿主提示区留下残料。
 
 关联规则：
 
@@ -71,6 +73,25 @@ field.setError('');
 - `fieldset` 或 `role="group"/"radiogroup"`：使用 `aria-labelledby` 指向 Field 标签，不再对内部首个控件做 `label for`。分组控件自身已有 legend 时，避免重复提供 Field 标签。
 - 替换 `control` 时清理旧控件由 Field 添加的 `aria-describedby`、`aria-invalid`、`required` 与 `aria-labelledby`，再建立新关联。
 - 错误的 `role="alert"` 区域与长说明都在正常阅读路径中，默认可见、可换行；字段外壳不读取或修改控件值。
+- 指定 slot 不改变关联语义：`aria-describedby` / `aria-invalid` 仍按上面的规则作用于控件，提示节点只改挂载位置。
+
+#### 提示承载与布局预留
+
+默认 hint/error 位于字段根内，显示时会参与布局。需要「提示不挤动画面」时，可把两者挂到宿主预留的提示区（例如工具栏下方固定高度的 `.form-messages`，或用样式定位到图形区留白）：
+
+```js
+var messageStrip = document.getElementById('form-messages'); // 宿主预留，可为 absolute 定位
+var field = NoteUI.Field.mount(toolbar, {
+  label: '上层数据长度',
+  hint: '46–1500 B',
+  errorSlot: messageStrip,
+  hintSlot: messageStrip,
+  control: numberInput
+});
+// 之后只在数据区更新，字段根/工具栏高度不被错误提示挤动
+```
+
+默认不传 slot 时行为与之前完全一致；错误仍由 Field 显示与关联，只是节点位置由宿主决定。推荐给提示区预留 min-height 或固定定位，避免 slot 内容自身改变宿主布局。
 
 限制：`destroy()` 会移除字段根，因此被移入的控件 DOM 也随之离开文档；若控件是实例，请自行调用其 `destroy()`。无控件时字段可作为空外壳显示标签、说明与错误，但不会自动关联后加入的控件。Field 与 NumberInput 的内部错误不宜同时作为两个错误源。
 
@@ -163,6 +184,7 @@ var number = NoteUI.NumberInput.mount(host, {
 | `clearable` | boolean | `false` | 有内容时显示清空按钮。 |
 | `onChange` | function | `null` | 用户产生有效值变更时触发。 |
 | `id` | string | `''` | 原生 input id。 |
+| `messageSlot` | Element \| null | `null` | 可选：把“超出范围/格式有误/已调整”的内部消息移入宿主固定提示区；默认仍在数字输入下方。 |
 
 实例：`el`、`getValue() -> number|null`、`getError() -> string`（额外方法）、`update(patch)`、`destroy()`。`getError()` 在当前文本非法、越界或精度尚未完成时立即返回提示（即使 blur 前的视觉消息尚未显示），便于 `NoteUI.Form` 在提交时阻止未提交的值。`update` 支持以上全部键；`value` 传 `null`/`''` 清空并保持 null，不触发事件，也不夹紧或吸附步长。
 
@@ -174,8 +196,9 @@ var number = NoteUI.NumberInput.mount(host, {
 - 越界文本：键入期间不提交；blur/Enter 时夹紧到 min/max，写回格式化文本，提示“超出允许范围…已调整”，值变化时触发一次 `onChange`。
 - `blur`、`Enter`、清空、上下按钮和键盘步进都会走提交路径；`Escape` 在文本与最后有效值不同或存在内部错误时恢复文本并清除提示。
 - 程序 `update` 不触发 onChange，也不验证/夹紧；宿主应提供符合当前范围的值。
+- `messageSlot` 只改变内部消息的挂载位置，不改变 `aria-describedby`、`getError()`、可见性与显示/清除时机；`update({messageSlot: null})` 把消息移回组件根内，销毁时组件会从 slot 移除自己创建的消息节点。
 
-键盘：`ArrowUp/ArrowDown` ±step；`PageUp/PageDown` ±10×step；`Home/End` 在存在 min/max 时跳到边界；`Enter` 提交；`Tab` 保持原生焦点移动；带 Ctrl/Alt/Meta 的组合键不接管。输入框使用 `role="spinbutton"` 与 `aria-valuemin/max/now`；空值不伪造 valuenow。上下按钮有独立 aria-label，边界时禁用。数字文本按 ASCII 小数/指数解析，不接受千分位或本地化逗号。
+键盘：`ArrowUp/ArrowDown` ±step；`PageUp/PageDown` ±10×step；`Home/End` 在存在 min/max 时跳到边界；`Enter` 提交；`Tab` 保持原生焦点移动；带 Ctrl/Alt/Meta 的组合键不接管。输入框使用 `role="spinbutton"` 与 `aria-valuemin/max/now`；空值不伪造 valuenow。上下按钮有独立 aria-label，边界时禁用。数字文本按 ASCII 小数/指数解析，不接受千分位或本地化逗号。`messageSlot` 不影响这些键盘与可访问性行为；与 Range 的精确小边界值配合方式见 [ui-forms-advanced](ui-forms-advanced.md#F10)。
 
 <a id="F05"></a>
 
@@ -416,9 +439,3 @@ NoteUI.Combobox.mount(host, {
   onChange: fn
 });
 ```
-
-## 14. 用户评价范围
-
-F01–F08 均为候选组件（`userReview = not-reviewed`），未获用户视觉或交互评价。技术自检不等于用户认可；所有组件保留候选，不写入已确认资产。局部满意或自动检查通过都不能推定参数已冻结。
-
-工程自检记录（真实 Edge + Playwright，真实 core 与 tokens）：`node --check` 通过；F01–F08 组件级 113 项检查、gallery 演示 50 项检查、与 `NoteUI.Form` 的 9 项跨模块检查均通过；静态扫描无 `fetch(`、`https://` 运行资源、`eval(` 或未净化 `innerHTML`。这些数字记录自检覆盖范围，不代表用户评价或参数冻结。

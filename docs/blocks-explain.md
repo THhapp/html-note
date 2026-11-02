@@ -1,6 +1,6 @@
 # 可复用组合块 B05–B10：代码与结构讲解
 
-本文记录 B05–B10 的实现范围、接口、数据形状、组合关系、键盘与限制；B01–B04 另见[演示舞台与状态对照](blocks-stage.md)。新增项均为候选，**用户评价：未评价**。
+本文记录 B05–B10 的实现范围、接口、数据形状、组合关系、键盘与限制；B01–B04 另见[演示舞台与状态对照](blocks-stage.md)。
 
 ## 1. 范围与加载顺序
 
@@ -433,13 +433,8 @@ NoteBlocks.ChartExplain.mount(host, {
   steps: [{ id: 's1', caption: '看唯一的数据点。', focus: { index: 0 } }]
 });
 ```
-
-## 12. 用户评价范围
-
-B05–B10 都是新增组合块，`userReview` 均为 `not-reviewed`，保留候选。技术完成不等于用户对视觉、节奏或参数范围的认可；局部演示被观看也不等于接口参数冻结。用户未评价之前不删除、不迁入已确认资产。
-
 ## 13. 可运行检查线索
 
 - 演示函数：`window.NoteGalleryDemos['B05']` … `['B10']`，位于 `gallery/demos/blocks-explain.js`。
 - 清单与文档锚点：`src/manifests/blocks-explain.json`；构建分发为 `dist/modules/blocks.js|css`（由脚本生成，不手改）。
-- 检查脚本在 `tests/checks/blocks-explain-*`（真实 Edge / Playwright）；截图、结果 JSON 与临时副本写入 `tests/.cache/`，打包已排除。具体结果以执行时输出为准，不构成用户评价。
+- 检查脚本在 `tests/checks/blocks-explain-*`（真实 Edge / Playwright）；截图、结果 JSON 与临时副本写入 `tests/.cache/`，打包已排除。

@@ -201,6 +201,276 @@
     };
   }
 
+
+
+  /* ---------------- 来源可见性保持（视觉交接） ---------------- */
+
+  function isConnectedElement(element) {
+    if (!element) return false;
+    if (typeof element.isConnected === 'boolean') return element.isConnected;
+    return !!(global.document && global.document.documentElement && global.document.documentElement.contains(element));
+  }
+
+  function computedVisibility(element) {
+    var fallback = { opacity: 1, visibility: 'visible', display: '' };
+    if (!element || !global.getComputedStyle) return fallback;
+    var computed;
+    try { computed = global.getComputedStyle(element); } catch (error) { return fallback; }
+    if (!computed) return fallback;
+    return {
+      opacity: computed.opacity,
+      visibility: computed.visibility,
+      display: computed.display
+    };
+  }
+
+  function visibilityHidden(state) {
+    if (!state) return false;
+    var opacity = state.opacity === '' || state.opacity == null ? 1 : Number(state.opacity);
+    if (!isFinite(opacity)) opacity = 1;
+    return state.visibility === 'hidden' || state.visibility === 'collapse' ||
+      state.display === 'none' || !(opacity > 0.001);
+  }
+
+  /* commit 前捕获来源元素的计算可见状态与调用前内联值；返回幂等 token。 */
+  function captureVisibility(elements) {
+    var token = { items: [], held: false, released: false };
+    var seen = [];
+    (Array.isArray(elements) ? elements : []).forEach(function (element) {
+      if (!isElement(element) || seen.indexOf(element) >= 0) return;
+      seen.push(element);
+      var style = element.style || {};
+      token.items.push({
+        el: element,
+        connected: isConnectedElement(element),
+        source: computedVisibility(element),
+        inline: {
+          opacity: style.opacity,
+          visibility: style.visibility,
+          display: style.display
+        }
+      });
+    });
+    return token;
+  }
+
+  /* commit 后调用：元素仍连接、来源本来可见、目标状态压成不可见时，用内联恢复来源可见状态。
+   * 不克隆/不替换 DOM；已持有/已释放/断开元素幂等跳过。 */
+  function holdVisibility(token) {
+    if (!token || token.released || token.held) return token;
+    token.held = true;
+    for (var i = 0; i < token.items.length; i += 1) {
+      var item = token.items[i];
+      var element = item.el;
+      if (!element || !isConnectedElement(element)) continue;
+      if (visibilityHidden(item.source)) continue;
+      if (!visibilityHidden(computedVisibility(element))) continue;
+      try {
+        element.style.opacity = item.source.opacity === '' || item.source.opacity == null ? '1' : item.source.opacity;
+        if (item.source.visibility) element.style.visibility = item.source.visibility;
+        if (item.source.display) element.style.display = item.source.display;
+      } catch (error) { /* 单个元素失败不阻断交接 */ }
+    }
+    return token;
+  }
+
+  /* 取消/完成/首次内容轨道启动时调用：恢复调用前的内联值（幂等、可重复）。 */
+  function releaseVisibility(token) {
+    if (!token || token.released) return token;
+    token.released = true;
+    for (var i = 0; i < token.items.length; i += 1) {
+      var item = token.items[i];
+      var element = item.el;
+      if (!element || !element.style) continue;
+      try {
+        element.style.opacity = item.inline.opacity == null ? '' : item.inline.opacity;
+        element.style.visibility = item.inline.visibility == null ? '' : item.inline.visibility;
+        element.style.display = item.inline.display == null ? '' : item.inline.display;
+      } catch (error) { /* 单个元素失败不阻断清理 */ }
+    }
+    token.items = [];
+    return token;
+  }
+
+  /* ---------------- 进度效果（rAF 句柄，与 WAAPI 句柄同语义） ---------------- */
+
+  function linearEase(progress) { return progress; }
+
+  function cubicBezierEase(x1, y1, x2, y2) {
+    function sample(t, a1, a2) {
+      var c = 3 * a1;
+      var b = 3 * (a2 - a1) - c;
+      var a = 1 - c - b;
+      return ((a * t + b) * t + c) * t;
+    }
+    function sampleDerivative(t, a1, a2) {
+      var c = 3 * a1;
+      var b = 3 * (a2 - a1) - c;
+      var a = 1 - c - b;
+      return (3 * a * t + 2 * b) * t + c;
+    }
+    function solveX(x) {
+      var t = x;
+      for (var i = 0; i < 8; i += 1) {
+        var error = sample(t, x1, x2) - x;
+        if (Math.abs(error) < 1e-6) return t;
+        var derivative = sampleDerivative(t, x1, x2);
+        if (Math.abs(derivative) < 1e-6) break;
+        t -= error / derivative;
+        if (t < 0) t = 0;
+        else if (t > 1) t = 1;
+      }
+      var low = 0;
+      var high = 1;
+      t = x;
+      for (var b = 0; b < 20; b += 1) {
+        var value = sample(t, x1, x2);
+        if (Math.abs(value - x) < 1e-6) return t;
+        if (value < x) low = t;
+        else high = t;
+        t = (low + high) / 2;
+      }
+      return t;
+    }
+    return function (progress) {
+      if (!(progress > 0)) return 0;
+      if (progress >= 1) return 1;
+      return sample(solveX(progress), y1, y2);
+    };
+  }
+
+  var EASING_KEYWORDS = {
+    linear: [0, 0, 1, 1],
+    ease: [0.25, 0.1, 0.25, 1],
+    'ease-in': [0.42, 0, 1, 1],
+    'ease-out': [0, 0, 0.58, 1],
+    'ease-in-out': [0.42, 0, 0.58, 1]
+  };
+
+  function easingFunction(easing) {
+    if (easing == null || easing === '') return linearEase;
+    var value = String(easing).trim();
+    if (own(EASING_KEYWORDS, value)) {
+      var keyword = EASING_KEYWORDS[value];
+      return cubicBezierEase(keyword[0], keyword[1], keyword[2], keyword[3]);
+    }
+    var match = /^cubic-bezier\(([^)]*)\)$/.exec(value);
+    if (match) {
+      var parts = match[1].split(',').map(function (part) { return Number(part.trim()); });
+      if (parts.length === 4 && parts.every(function (part) { return isFinite(part); })) {
+        return cubicBezierEase(parts[0], parts[1], parts[2], parts[3]);
+      }
+    }
+    /* steps()/spring 等非连续缓动不在这里展开；进度效果回退线性，实际视觉由 update 自行处理。 */
+    return linearEase;
+  }
+
+  function nowMs() {
+    if (global.performance && typeof global.performance.now === 'function') return global.performance.now();
+    return Date.now();
+  }
+
+  function rafRequest(callback) {
+    if (typeof global.requestAnimationFrame === 'function') return global.requestAnimationFrame(callback);
+    return global.setTimeout(callback, 16);
+  }
+
+  function rafCancel(id) {
+    if (typeof global.cancelAnimationFrame === 'function') {
+      try { global.cancelAnimationFrame(id); } catch (error) { /* ignore */ }
+    } else {
+      try { global.clearTimeout(id); } catch (error) { /* ignore */ }
+    }
+  }
+
+  /* EffectSpec.type === 'progress'：不在 WAAPI 上伪造进度，用 rAF 驱动 update(p)；
+   * 句柄语义与 createHandle 一致（finished resolve true/false、reject 失败、cancel 幂等）。 */
+  function createProgressHandle(spec, meta) {
+    var settings = isObject(spec) ? spec : {};
+    if (typeof settings.update !== 'function') throw fail('progress 效果缺少 update(progress) 函数。', meta);
+    var duration = settings.duration;
+    if (typeof duration !== 'number' || !isFinite(duration) || duration < 0) {
+      throw fail('progress 效果 duration 必须是大于等于 0 的有限数字。', meta);
+    }
+    var delay = typeof settings.delay === 'number' && isFinite(settings.delay) && settings.delay >= 0 ? settings.delay : 0;
+    var ease = easingFunction(settings.easing);
+    var settled = false;
+    var cancelRequested = false;
+    var playing = false;
+    var rafId = 0;
+    var startTime = 0;
+    var resolveFinished;
+    var rejectFinished;
+    var finished = new Promise(function (resolve, reject) {
+      resolveFinished = resolve;
+      rejectFinished = reject;
+    });
+    finished.catch(noop);
+
+    function settleOk() {
+      if (settled) return;
+      settled = true;
+      resolveFinished(true);
+    }
+    function settleCancelled() {
+      if (settled) return;
+      settled = true;
+      resolveFinished(false);
+    }
+    function settleFailed(error) {
+      if (settled) return;
+      settled = true;
+      rejectFinished(error);
+    }
+    function tick() {
+      rafId = 0;
+      if (settled || cancelRequested) return;
+      var elapsed = nowMs() - startTime - delay;
+      if (elapsed < 0) {
+        rafId = rafRequest(tick);
+        return;
+      }
+      var progress = duration <= 0 ? 1 : Math.min(1, elapsed / duration);
+      try {
+        settings.update(ease(progress));
+      } catch (error) {
+        settleFailed(fail('progress update 失败：' + messageOf(error), meta, error));
+        return;
+      }
+      if (progress >= 1) {
+        settleOk();
+        return;
+      }
+      rafId = rafRequest(tick);
+    }
+
+    /* 暂停起点：创建时先画 p=0，保证未启动内容保持来源视觉。 */
+    try {
+      settings.update(ease(0));
+    } catch (error) {
+      throw fail('progress 预置 p=0 失败：' + messageOf(error), meta, error);
+    }
+
+    return {
+      progress: true,
+      finished: finished,
+      meta: isObject(meta) ? meta : {},
+      play: function () {
+        if (settled || cancelRequested || playing) return;
+        playing = true;
+        startTime = nowMs();
+        rafId = rafRequest(tick);
+      },
+      cancel: function () {
+        if (settled) return;
+        cancelRequested = true;
+        if (rafId) rafCancel(rafId);
+        rafId = 0;
+        settleCancelled();
+      }
+    };
+  }
+
   function rectOf(element) {
     if (!element || typeof element.getBoundingClientRect !== 'function') return null;
     var rect = element.getBoundingClientRect();
@@ -432,11 +702,15 @@
   Internals.effects = {
     mergeTiming: mergeTiming,
     createHandle: createHandle,
+    captureVisibility: captureVisibility,
+    holdVisibility: holdVisibility,
+    releaseVisibility: releaseVisibility,
     captureContent: captureContent,
     createGhost: createGhost,
     planValueSwap: planValueSwap,
     captureStyles: captureStyles,
     planCueChanges: planCueChanges,
-    rectOf: rectOf
+    rectOf: rectOf,
+    createProgressHandle: createProgressHandle
   };
 })(window);

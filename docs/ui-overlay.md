@@ -327,7 +327,3 @@ drawer.open();
 - 补充真实 core 临时验证（`tests/.cache`）：Tooltip 聚焦打开与 `aria-describedby`/placement 重建、Popover 触发器开合与外点关闭、Dialog 模态/非模态与焦点恢复、Dialog.confirm 的 true/false/取消与 body 标记清理、Drawer 左右侧与 Esc/焦点恢复、动作禁用后类名与初始 disabled 保持、销毁后无浮层/遮罩残留。
 - Gallery 集成依赖 T7 重建后的 `dist/note-library.js`；重建后由集成检查统一复核 O01–O04 与无浮层残留。
 - 已知接口缺口：I04 对锚点外点不排除锚点本身，本模块在 Popover 触发器上用同一事件的 pointerdown 时间戳消歧，避免“关闭后立刻被 click 重开”；Drawer 的 8px 视口安全边距来自 I04 的 `EDGE`，若需贴边全高抽屉需 core 增加选项。
-
-## 用户评价范围
-
-O01–O04 均为候选组件，`userReview=not-reviewed`。未获用户逐项视觉评价，不写入“已确认资产”。

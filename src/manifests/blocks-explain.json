@@ -91,7 +91,7 @@
         "复用同模块的 NoteBlocks.StepPlayer；加载 blocks 模块时需保证 shared.js、stage.js 与其依赖已加载。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K03", "K04", "K05", "K06", "K09", "K12", "K13"],
       "docs": "docs/blocks-explain.md#B05",
       "notes": "组合 NoteBlocks.StepPlayer（内部含 DemoStage）、NoteUI.CodeBlock、DataObject、Badge 与 Notice；每次停点先销毁旧子实例再按快照重建；只改 title/maxWidth/label 等展示项时不重建当前画面。"
@@ -156,7 +156,7 @@
         "位序切换只重算派生显示值，不重排 items；不内置端序检测。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K03", "K04", "K05", "K06", "K09", "K12", "K13"],
       "docs": "docs/blocks-explain.md#B06",
       "notes": "组合 NoteViz.Sequence、NoteUI.Stack、Badge 与 Notice；字段按钮只改变关注和选中状态，滚动区与序列滚动均由基础组件负责。"
@@ -221,7 +221,7 @@
         "无自动播放；程序 update 和 go/next/prev 不触发 onStep。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K03", "K04", "K05", "K06", "K09", "K12", "K13"],
       "docs": "docs/blocks-explain.md#B07",
       "notes": "组合 NoteBlocks.StepPlayer、NoteViz.Graph 与 NoteUI.Steps/Notice；已报告 Graph 缺少边关注接口，当前边以可读关系条补偿并在文档标明。"
@@ -281,7 +281,7 @@
         "图使用固定画布坐标再随容器局部滚动，不将文本缩到难以辨认；窄容器下依赖横向滚动而非压缩字号。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K03", "K04", "K05", "K06", "K09", "K12", "K13"],
       "docs": "docs/blocks-explain.md#B08",
       "notes": "组合 NoteBlocks.StepPlayer 提供步进和稳定字幕；时序图本身为本块有限 SVG 实现，未复制任何基础图组件内部。"
@@ -339,10 +339,10 @@
         "getTarget('detail') 返回详情面板根；其他 id 交给 TreeView.getTarget，节点 id 若为 'detail' 将无法通过本块 getTarget 取到树项。",
         "details 按节点 id 建表并整体替换；字段可为数组或键值对象，内容可为纯文本或宿主 DOM（节点被移入，不克隆）。",
         "详情滚动区单独局部滚动，目录树也有独立局部滚动；窄容器改为上下布局。",
-        "不提供异步加载、树搜索、多选或拖拽；这些不属于本轮组合范围。"
+        "不提供异步加载、树搜索、多选或拖拽；这些不属于组合范围。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K03", "K04", "K05", "K06", "K09", "K12", "K13"],
       "docs": "docs/blocks-explain.md#B09",
       "notes": "组合 NoteUI.TreeView、Panel、DataObject、Badge 与 Notice；详情随选择更新，树实例不因详情替换而重建。"
@@ -406,7 +406,7 @@
         "无自动播放；程序 update/go/next/prev 不触发 onStep，只有用户在 StepPlayer 控件上操作时才触发。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K03", "K04", "K05", "K06", "K09", "K12", "K13"],
       "docs": "docs/blocks-explain.md#B10",
       "notes": "组合 NoteBlocks.StepPlayer、NoteViz.Chart 与 NoteUI.Notice；字幕固定在图表下方，关注和变化由图内标记与字幕共同表达。"

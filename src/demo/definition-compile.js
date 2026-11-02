@@ -404,6 +404,76 @@
     return timing;
   }
 
+  /* 观察范围：单个元素框的局部偏移，或主元素+若干稳定引用的并集（深度只 1 层）。 */
+  function compileRange(input, path, bindings, issues) {
+    if (!isObject(input)) {
+      issues.push(path, "必须是 {kind:'local'|'union'} 对象");
+      return null;
+    }
+    var kind = input.kind;
+    if (kind === 'local') {
+      var localAllowed = { kind: true, dx: true, dy: true, width: true, height: true };
+      Object.keys(input).forEach(function (key) {
+        if (!own(localAllowed, key)) issues.push(pathKey(path, key), 'local range 只允许 kind/dx/dy/width/height');
+      });
+      var numbers = {};
+      var valid = true;
+      ['dx', 'dy'].forEach(function (key) {
+        if (typeof input[key] !== 'number' || !isFinite(input[key])) {
+          issues.push(pathKey(path, key), '必须是有限数字（相对主元素矩形的偏移）');
+          valid = false;
+        } else {
+          numbers[key] = input[key];
+        }
+      });
+      ['width', 'height'].forEach(function (key) {
+        if (typeof input[key] !== 'number' || !isFinite(input[key]) || input[key] < 0) {
+          issues.push(pathKey(path, key), '必须是大于等于 0 的有限数字');
+          valid = false;
+        } else {
+          numbers[key] = input[key];
+        }
+      });
+      if (!valid) return null;
+      return deepFreeze({ kind: 'local', dx: numbers.dx, dy: numbers.dy, width: numbers.width, height: numbers.height });
+    }
+    if (kind === 'union') {
+      var unionAllowed = { kind: true, refs: true };
+      Object.keys(input).forEach(function (key) {
+        if (!own(unionAllowed, key)) issues.push(pathKey(path, key), 'union range 只允许 kind/refs');
+      });
+      if (!isArray(input.refs) || input.refs.length === 0) {
+        issues.push(pathKey(path, 'refs'), '必须是非空数组（[{binding,query},...]）');
+        return null;
+      }
+      var refs = [];
+      var refsValid = true;
+      for (var r = 0; r < input.refs.length; r += 1) {
+        var refPath = pathKey(path, 'refs') + '[' + r + ']';
+        var ref = input.refs[r];
+        validateRef(ref, refPath, bindings, issues);
+        if (!isObject(ref)) {
+          refsValid = false;
+          continue;
+        }
+        Object.keys(ref).forEach(function (key) {
+          if (key !== 'binding' && key !== 'query') {
+            issues.push(pathKey(refPath, key), 'union refs 只允许 binding 与 query（深度 ≤1，不再嵌套 range）');
+          }
+        });
+        if (isNonEmptyString(ref.binding) && ref.query != null) {
+          refs.push(deepFreeze({ binding: ref.binding, query: cloneData(ref.query) }));
+        } else {
+          refsValid = false;
+        }
+      }
+      if (!refsValid || refs.length !== input.refs.length) return null;
+      return deepFreeze({ kind: 'union', refs: refs });
+    }
+    issues.push(pathKey(path, 'kind'), "必须是 'local' | 'union'");
+    return null;
+  }
+
   function compileAttention(input, path, bindings, issues) {
     if (input == null) return null;
     if (!isObject(input)) {
@@ -416,29 +486,64 @@
     });
     var targets = [];
     if (!isArray(input.targets) || input.targets.length === 0) {
-      issues.push(pathKey(path, 'targets'), '必须是非空数组（按注意顺序排列的 {binding, query}）');
+      issues.push(pathKey(path, 'targets'), '必须是非空数组（按注意顺序排列的 {binding, query, groups?, holdDuration?, range?}）');
     } else {
       for (var i = 0; i < input.targets.length; i += 1) {
         var targetPath = pathKey(path, 'targets') + '[' + i + ']';
         var ref = input.targets[i];
         validateRef(ref, targetPath, bindings, issues);
-        if (isObject(ref)) {
-          Object.keys(ref).forEach(function (key) {
-            if (key !== 'binding' && key !== 'query' && key !== 'holdDuration') {
-              issues.push(pathKey(targetPath, key), 'attention 目标只允许 binding、query 与 holdDuration');
-            }
-          });
-          var holdDuration = ref.holdDuration;
-          if (holdDuration !== undefined && holdDuration !== null &&
-              (typeof holdDuration !== 'number' || !isFinite(holdDuration) || holdDuration <= 0 || holdDuration > 10000)) {
-            issues.push(pathKey(targetPath, 'holdDuration'), '必须是 (0, 10000] 内的有限数字（毫秒）');
+        if (!isObject(ref)) continue;
+        var targetKeys = { binding: true, query: true, groups: true, holdDuration: true, range: true };
+        Object.keys(ref).forEach(function (key) {
+          if (!own(targetKeys, key)) {
+            issues.push(pathKey(targetPath, key), 'attention 目标只允许 binding、query、groups、holdDuration 与 range');
           }
-          if (isNonEmptyString(ref.binding) && ref.query != null) {
-            var compiledTarget = { binding: ref.binding, query: cloneData(ref.query) };
-            if (holdDuration !== undefined && holdDuration !== null) compiledTarget.holdDuration = holdDuration;
-            targets.push(compiledTarget);
+        });
+        var compiledGroups = null;
+        if (ref.groups !== undefined) {
+          if (!isArray(ref.groups)) {
+            issues.push(pathKey(targetPath, 'groups'), '必须是数组（[] 表示只观察；省略表示整 Binding 默认门控）');
+          } else {
+            var groups = [];
+            var groupSeen = {};
+            var groupsValid = true;
+            for (var g = 0; g < ref.groups.length; g += 1) {
+              var groupName = ref.groups[g];
+              if (!isNonEmptyString(groupName)) {
+                issues.push(pathKey(targetPath, 'groups') + '[' + g + ']', '必须是非空字符串');
+                groupsValid = false;
+                continue;
+              }
+              if (own(groupSeen, groupName)) {
+                issues.push(pathKey(targetPath, 'groups') + '[' + g + ']', '不得重复声明组 ' + repr(groupName));
+                groupsValid = false;
+                continue;
+              }
+              groupSeen[groupName] = true;
+              groups.push(groupName);
+            }
+            if (groupsValid) compiledGroups = groups;
           }
         }
+        var holdDuration = ref.holdDuration;
+        var hasHold = holdDuration !== undefined && holdDuration !== null;
+        if (hasHold && (typeof holdDuration !== 'number' || !isFinite(holdDuration) || holdDuration < 0 || holdDuration > 10000)) {
+          issues.push(pathKey(targetPath, 'holdDuration'), '必须是 [0, 10000] 内的有限数字（毫秒；0 有效）');
+          hasHold = false;
+        }
+        var compiledRange = null;
+        if (ref.range !== undefined && ref.range !== null) {
+          compiledRange = compileRange(ref.range, pathKey(targetPath, 'range'), bindings, issues);
+        }
+        if (!isNonEmptyString(ref.binding) || ref.query == null) continue;
+        var compiledTarget = { binding: ref.binding, query: cloneData(ref.query) };
+        if (compiledGroups !== null) compiledTarget.groups = compiledGroups;
+        if (hasHold) compiledTarget.holdDuration = holdDuration;
+        if (compiledRange) compiledTarget.range = compiledRange;
+        try {
+          Object.defineProperty(compiledTarget, 'path', { value: targetPath, enumerable: false, writable: false, configurable: false });
+        } catch (error) { /* 旧环境没有 defineProperty 时仍可运行 */ }
+        targets.push(deepFreeze(compiledTarget));
       }
     }
     var stepDuration = input.stepDuration;
@@ -446,7 +551,11 @@
     else if (typeof stepDuration !== 'number' || !isFinite(stepDuration) || stepDuration <= 0 || stepDuration > 10000) {
       issues.push(pathKey(path, 'stepDuration'), '必须是 (0, 10000] 内的有限数字（毫秒）');
     }
-    return deepFreeze({ targets: targets, stepDuration: stepDuration });
+    var compiledAttention = { targets: targets, stepDuration: stepDuration };
+    try {
+      Object.defineProperty(compiledAttention, 'path', { value: path, enumerable: false, writable: false, configurable: false });
+    } catch (error) { /* ignore */ }
+    return deepFreeze(compiledAttention);
   }
 
   function compileScene(input, path, bindings, issues) {
@@ -505,23 +614,47 @@
         var after = [];
         if (member.after !== undefined && member.after !== null) {
           var afterInput = isArray(member.after) ? member.after : [member.after];
-          var afterIds = {};
+          var afterKeys = {};
           for (var a = 0; a < afterInput.length; a += 1) {
-            var refId = afterInput[a];
-            if (!isNonEmptyString(refId)) {
-              issues.push(pathKey(memberPath, 'after'), '必须是 Binding ID 或 Binding ID 数组');
+            var entryPath = pathKey(memberPath, 'after') + (isArray(member.after) ? '[' + a + ']' : '');
+            var entryValue = afterInput[a];
+            var refBinding = null;
+            var refGroup = null;
+            if (isNonEmptyString(entryValue)) {
+              refBinding = entryValue;
+            } else if (isObject(entryValue)) {
+              Object.keys(entryValue).forEach(function (key) {
+                if (key !== 'binding' && key !== 'group') {
+                  issues.push(entryPath, 'after 条目只允许 {binding, group} 或 Binding ID');
+                }
+              });
+              if (!isNonEmptyString(entryValue.binding)) {
+                issues.push(pathKey(entryPath, 'binding'), '必须是非空字符串');
+              } else {
+                refBinding = entryValue.binding;
+              }
+              if (entryValue.group === undefined || entryValue.group === null) {
+                issues.push(pathKey(entryPath, 'group'), '组引用必须提供 group（等待该组 ready）');
+              } else if (!isNonEmptyString(entryValue.group)) {
+                issues.push(pathKey(entryPath, 'group'), '必须是非空字符串');
+              } else {
+                refGroup = entryValue.group;
+              }
+            } else {
+              issues.push(entryPath, '必须是 Binding ID 或 {binding, group} 对象');
+            }
+            if (!refBinding) continue;
+            if (refBinding === bindingId) {
+              issues.push(entryPath, '不得引用自身 ' + repr(refBinding));
               continue;
             }
-            if (refId === bindingId) {
-              issues.push(pathKey(memberPath, 'after'), '不得引用自身 ' + repr(refId));
+            var afterKey = refBinding + '\u0000' + (refGroup || '');
+            if (own(afterKeys, afterKey)) {
+              issues.push(entryPath, '不得重复引用 ' + repr(refBinding) + (refGroup ? ' 的组 ' + repr(refGroup) : ''));
               continue;
             }
-            if (own(afterIds, refId)) {
-              issues.push(pathKey(memberPath, 'after'), '不得重复引用 ' + repr(refId));
-              continue;
-            }
-            afterIds[refId] = true;
-            after.push(refId);
+            afterKeys[afterKey] = true;
+            after.push(deepFreeze({ binding: refBinding, group: refGroup }));
           }
         }
         var at = 'objects-settled';
@@ -561,51 +694,129 @@
         }
       }
     }
-    /* after 引用必须在同一 scene 内；并检查显式依赖与旧 objects-settled 隐含依赖的组合循环。 */
     var memberById = {};
     for (var m = 0; m < members.length; m += 1) memberById[members[m].binding] = members[m];
+    var timing = compileTimingMap(input.timing, pathKey(path, 'timing'), issues);
+    var attention = compileAttention(input.attention, pathKey(path, 'attention'), bindings, issues);
+    /* after 引用必须在同一 scene 内。 */
     for (var c = 0; c < members.length; c += 1) {
       for (var q = 0; q < members[c].after.length; q += 1) {
-        if (!own(memberById, members[c].after[q])) {
-          issues.push(pathKey(path, 'bindings'), 'after 引用了同一 scene 中不存在的 binding ' + repr(members[c].after[q]));
+        var afterEntry = members[c].after[q];
+        if (!own(memberById, afterEntry.binding)) {
+          issues.push(pathKey(path, 'bindings'), 'after 引用了同一 scene 中不存在的 binding ' + repr(afterEntry.binding));
         }
       }
     }
-    function sceneDeps(member) {
-      if (member.after.length) return member.after.slice();
-      if (member.mode === 'reveal' && member.at === 'objects-settled') {
-        return members.filter(function (other) {
-          return other.binding !== member.binding && other.mode !== 'reveal';
-        }).map(function (other) { return other.binding; });
+    /* attention 目标与 scene 成员/模式的编译期形状校验；组是否存在依赖 prepare 后的 groups()，运行期再查。 */
+    var firstContentTarget = {};
+    if (attention) {
+      for (var ti = 0; ti < attention.targets.length; ti += 1) {
+        var target = attention.targets[ti];
+        var targetMember = memberById[target.binding];
+        var targetPath = target.path || (pathKey(path, 'attention') + '.targets[' + ti + ']');
+        var hasContentGate = !(isArray(target.groups) && target.groups.length === 0);
+        if (!targetMember) {
+          if (isArray(target.groups) && target.groups.length > 0) {
+            issues.push(targetPath, '稳定参照（不参与本 scene 的 binding）不能声明 groups 非空；只观察请写 groups: []');
+          }
+          continue;
+        }
+        if (targetMember.mode === 'cut') {
+          if (hasContentGate) {
+            issues.push(targetPath, 'cut 参与者已经在同步提交时显示目标，不能作为 attention 内容门控目标；观察请用 groups: []，延后展开请改用 update/layout/reveal');
+          }
+          continue;
+        }
+        if (targetMember.mode === 'reveal' && isArray(target.groups) && target.groups.length > 0) {
+          issues.push(targetPath, 'reveal 参与者没有分组内容效果，groups 只能省略（整 Binding 门控）或 []（只观察）');
+          continue;
+        }
+        if (hasContentGate && firstContentTarget[target.binding] === undefined) {
+          firstContentTarget[target.binding] = ti;
+        }
       }
-      return [];
+    }
+    /* 联合 waits-for 图：attention 顺序 + Binding after + reveal 隐含 objects-settled。
+     * 定义期只能判定 Binding 级依赖；组级依赖在 prepare 后、commit 前用实际 groups() 再检查一次。 */
+    var edges = {};
+    function graphNode(id) { if (!own(edges, id)) edges[id] = []; return id; }
+    function graphEdge(from, to) { graphNode(from); if (edges[from].indexOf(to) < 0) edges[from].push(to); }
+    members.forEach(function (member) {
+      graphNode('start:' + member.binding);
+      graphNode('ready:' + member.binding);
+      /* 成员 ready 恒在其 start 之后（cut 同步、reveal 整块显现同理）。 */
+      graphEdge('start:' + member.binding, 'ready:' + member.binding);
+      var deps = [];
+      if (member.after.length) {
+        member.after.forEach(function (entry) {
+          if (entry.group == null) deps.push('ready:' + entry.binding);
+          else deps.push('readyGroup:' + entry.binding + ':' + entry.group);
+        });
+      } else if (member.mode === 'reveal' && member.at === 'objects-settled') {
+        members.forEach(function (other) {
+          if (other.binding === member.binding || other.mode === 'reveal') return;
+          deps.push('ready:' + other.binding);
+        });
+      }
+      deps.forEach(function (dep) { graphEdge(dep, 'start:' + member.binding); });
+    });
+    if (attention) {
+      for (var ai = 0; ai < attention.targets.length; ai += 1) {
+        graphNode('attnArrive:' + ai);
+        graphNode('attnReady:' + ai);
+        graphEdge('attnArrive:' + ai, 'attnReady:' + ai);
+        if (ai > 0) graphEdge('attnReady:' + (ai - 1), 'attnArrive:' + ai);
+        var gateTarget = attention.targets[ai];
+        var gateMember = memberById[gateTarget.binding];
+        var gateGroups = gateTarget.groups;
+        var contentGate = !(isArray(gateGroups) && gateGroups.length === 0);
+        if (gateMember && contentGate) {
+          if (firstContentTarget[gateTarget.binding] === ai) {
+            graphEdge('attnArrive:' + ai, 'start:' + gateTarget.binding);
+          }
+          if (!isArray(gateGroups)) {
+            /* 整 Binding 默认门控：目标 ready 等成员 ready（Binding 级可判定）。 */
+            graphEdge('ready:' + gateTarget.binding, 'attnReady:' + ai);
+          }
+          /* 非空 groups 的组级 ready 依赖 prepare 后才能判定，运行期联合检查。 */
+        }
+      }
+    }
+    function graphNodeLabel(id) {
+      var parts = id.split(':');
+      if (parts[0] === 'attnReady') return 'attention[' + parts[1] + '] ready';
+      if (parts[0] === 'attnArrive') return 'attention[' + parts[1] + '] 到达';
+      if (parts[0] === 'start') return 'Binding "' + parts.slice(1).join(':') + '" start';
+      if (parts[0] === 'ready') return 'Binding "' + parts.slice(1).join(':') + '" ready';
+      if (parts[0] === 'readyGroup') return 'Binding "' + parts[1] + '" 的组 "' + parts.slice(2).join(':') + '" ready';
+      return id;
     }
     var visitState = {};
     var stack = [];
+    var cycleReported = 0;
     function visit(id) {
-      if (visitState[id] === 2) return;
+      if (visitState[id] === 2 || cycleReported > 2) return;
       if (visitState[id] === 1) {
         var cycleStart = stack.indexOf(id);
         var cycle = stack.slice(cycleStart >= 0 ? cycleStart : 0).concat([id]);
-        issues.push(pathKey(path, 'bindings'), 'scene after 依赖形成循环：' + cycle.join(' → '));
+        cycleReported += 1;
+        issues.push(attention ? pathKey(path, 'attention') : pathKey(path, 'bindings'),
+          'scene 联合依赖形成循环（waits-for，attention 顺序 + after/reveal）：' + cycle.map(graphNodeLabel).join(' → '));
         return;
       }
       visitState[id] = 1;
       stack.push(id);
-      var member = memberById[id];
-      if (member) {
-        var deps = sceneDeps(member);
-        for (var d = 0; d < deps.length; d += 1) {
-          if (own(memberById, deps[d])) visit(deps[d]);
-        }
-      }
+      var next = edges[id] || [];
+      for (var e = 0; e < next.length; e += 1) visit(next[e]);
       stack.pop();
       visitState[id] = 2;
     }
-    for (var v = 0; v < members.length; v += 1) visit(members[v].binding);
-    var timing = compileTimingMap(input.timing, pathKey(path, 'timing'), issues);
-    var attention = compileAttention(input.attention, pathKey(path, 'attention'), bindings, issues);
-    return deepFreeze({ bindings: members, timing: deepFreeze(timing), attention: attention });
+    Object.keys(edges).forEach(function (id) { visit(id); });
+    var sceneResult = { bindings: members, timing: deepFreeze(timing), attention: attention };
+    try {
+      Object.defineProperty(sceneResult, 'path', { value: path, enumerable: false, writable: false, configurable: false });
+    } catch (error) { /* ignore */ }
+    return deepFreeze(sceneResult);
   }
 
   Internals.definitionCompile = {
@@ -629,6 +840,6 @@
     NoteDemoDefinitionError: NoteDemoDefinitionError,
     timingDefaults: deepFreeze(Object.assign({}, SCENE_TIMING_DEFAULTS)),
     attentionContentTiming: deepFreeze(Object.assign({}, ATTENTION_CONTENT_TIMING)),
-    attentionMotionDefaults: deepFreeze({ stepDuration: ATTENTION_STEP_DEFAULT })
+    attentionMotionDefaults: deepFreeze({ stepDuration: ATTENTION_STEP_DEFAULT, triggerHold: 0 })
   };
 })(window);

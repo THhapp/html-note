@@ -278,10 +278,13 @@
 /*!
  * 关注与范围标记 · 组件样式 v1.0.0
  * 作用域：全部选择器限定在 .nx-focus 之下；无全局选择器、无外部资源引用。
- * 令牌：--nx-accent（当前关注色）、--nx-z（层级）；宿主可写在实例根 instance.el.style 上覆盖。
+ * 令牌：--nx-accent（当前关注色）、--nx-weak（弱化/虚线强调色）、--nx-z（层级）；
+ *       宿主可写在实例根 instance.el.style 上覆盖。
+ * 会话弱化：根 data-nx-emphasis="weak" 时框转虚线、降低不透明度；过渡 ≤160ms，无循环呼吸动画。
  */
 .nx-focus {
   --nx-accent: #1f6f6a;
+  --nx-weak: #7d8a9b;
   --nx-z: 1210;
   position: fixed;
   inset: 0;
@@ -295,6 +298,9 @@
   position: absolute;
   box-sizing: border-box;
   pointer-events: none;
+  transition: opacity 140ms cubic-bezier(.4, 0, .2, 1),
+    border-color 140ms cubic-bezier(.4, 0, .2, 1),
+    background-color 140ms cubic-bezier(.4, 0, .2, 1);
 }
 
 /* 元素框选：1.5px 强调色描边画在框内侧，8px 圆角，不填充、不遮挡目标 */
@@ -310,6 +316,25 @@
   border-radius: 2px;
   background: var(--nx-accent);
   transform-origin: 0 50%;
+}
+
+/* 会话弱化：保留几何与目标，只降低强调；快速过渡，不闪烁、不呼吸。 */
+.nx-focus[data-nx-emphasis="weak"] .nx-focus__box {
+  border-style: dashed;
+  border-color: var(--nx-weak);
+  opacity: .55;
+}
+
+.nx-focus[data-nx-emphasis="weak"] .nx-focus__rule {
+  background: var(--nx-weak);
+  opacity: .45;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nx-focus__box,
+  .nx-focus__rule {
+    transition: none;
+  }
 }
 
 /* ---- source: src/expr/range.css ---- */

@@ -121,6 +121,10 @@
     var captionInitialized = false;
     var captionAnim = null;
     var stageReservePx = 0;
+    var stageLayout = null;
+    var hostStageFloorRaw = null;
+    var hostStageFloorPx = 0;
+    var lastAppliedStageMinHeight = null;
     var stableRefreshTimer = 0;
     var watched = false;
     var resizeListener = null;
@@ -200,7 +204,8 @@
       holder.setAttribute('aria-busy', running ? 'true' : 'false');
       if (running) {
         /* 本步被接受后，下一步立即不可用并阻止重复推进；整个执行与收尾期间保持。
-         * 上一步/重看/重来仍可用于取消本次运行（含从首停点启动的第一次过渡），
+         * 上一步/重看/重来仍可用于取消本次运行（含从首停点启动的第一次过渡）：
+         * 默认舞台“上一步”映射 replayPreviousStep，先取消旧运行再重播上一段步骤。
          * 不能一刀切禁用全部控制。 */
         setDisabled('next', true);
         setDisabled('prev', false);
@@ -208,6 +213,9 @@
         setDisabled('reset', false);
         return;
       }
+      /* 停稳态可用条件：首帧禁用上一步/重看；末帧禁用下一步。
+       * 末帧禁用只说明没有下一步停点，不等于 running；运行态可由
+       * data-demo-running="true" / aria-busy 区分（本函数上面的分支）。 */
       setDisabled('prev', baseIndex <= 0);
       setDisabled('replay', baseIndex <= 0);
       setDisabled('next', total > 0 && baseIndex >= total - 1);
@@ -345,20 +353,101 @@
       if ((el.style.minHeight || '') !== value) el.style.minHeight = value;
     }
 
-    /* 舞台画布稳定：会话内只增长不回缩，避免后续停点把下方字幕和操作推上推下。
-     * D01 等组件用稳定占位承担主要的高度一致性；这里兜住通用内容的高度回退。 */
+    /* 舞台画布稳定：同一布局内取各停点的商高；布局宽度变化后重新测量并释放旧预留。
+     * 测量时暂时清空内部 min-height，避免上次预留本身成为“内容高度”；
+     * 宿主显式 min-height / minStageHeight 作为下限保留，不参与内容测量。 */
+    function usableStageFloor(value) {
+      var raw = text(value).trim();
+      if (!raw || raw === 'auto' || raw === 'none' || raw === 'initial' || raw === 'inherit' || raw === 'unset') return '';
+      return raw;
+    }
+
+    function readComputedStageFloor() {
+      try {
+        var computed = global.getComputedStyle(stage.stageEl);
+        var value = computed && computed.minHeight;
+        if (!value || value === 'auto' || value === 'none') return 0;
+        var px = parseFloat(value);
+        return isFinite(px) && px > 0 ? px : 0;
+      } catch (error) {
+        return 0;
+      }
+    }
+
+    function captureStageFloor() {
+      if (!stage || !stage.stageEl || hostStageFloorRaw !== null) return;
+      var current = stage.stageEl.style.minHeight || '';
+      hostStageFloorRaw = usableStageFloor(current);
+      lastAppliedStageMinHeight = current;
+      hostStageFloorPx = readComputedStageFloor();
+    }
+
+    function stageLayoutSnapshot() {
+      var stageWidth = 0;
+      var containerWidth = 0;
+      try { stageWidth = stage.stageEl.getBoundingClientRect().width; } catch (error) { stageWidth = 0; }
+      try { containerWidth = container ? container.getBoundingClientRect().width : 0; } catch (error) { containerWidth = 0; }
+      return { stage: stageWidth, container: containerWidth };
+    }
+
+    function layoutChanged(previous, next) {
+      if (!previous || !next) return true;
+      return Math.abs(previous.stage - next.stage) > 0.5 || Math.abs(previous.container - next.container) > 0.5;
+    }
+
+    function measureStageContentHeight() {
+      var previous = stage.stageEl.style.minHeight || '';
+      var height = 0;
+      var width = 0;
+      try {
+        stage.stageEl.style.minHeight = '0px';
+        var rect = stage.stageEl.getBoundingClientRect();
+        width = rect.width;
+        height = Math.max(rect.height, stage.stageEl.scrollHeight || 0);
+      } catch (error) {
+        height = 0;
+      } finally {
+        try { stage.stageEl.style.minHeight = previous; } catch (error) { /* 保持可用 */ }
+      }
+      return width > 0 ? Math.ceil(height) : 0;
+    }
+
+    function composeStageMinHeight() {
+      var values = [];
+      if (hostStageFloorRaw) values.push(hostStageFloorRaw);
+      if (hostStageFloorPx > 0) {
+        var floor = hostStageFloorPx + 'px';
+        if (values.indexOf(floor) < 0) values.push(floor);
+      }
+      if (stageReservePx > 0) values.push(stageReservePx + 'px');
+      if (!values.length) return '';
+      return values.length === 1 ? values[0] : 'max(' + values.join(', ') + ')';
+    }
+
     function reserveStageHeight() {
       if (destroyed || !stage || !stage.stageEl) return;
-      var height = 0;
-      try { height = stage.stageEl.getBoundingClientRect().height; } catch (error) { height = 0; }
-      if (height > stageReservePx) stageReservePx = Math.ceil(height);
-      if (stageReservePx > 0) {
-        var value = stageReservePx + 'px';
-        try {
-          if (stage.stageEl.style.minHeight !== value) stage.stageEl.style.minHeight = value;
-        } catch (error) {
-          /* 画布预留失败时保持演示可用。 */
-        }
+      captureStageFloor();
+      var current = stage.stageEl.style.minHeight || '';
+      /* 宿主在挂载后直接改内联 min-height：把它当作新的下限，而不是覆盖掉。 */
+      if (lastAppliedStageMinHeight !== null && current !== lastAppliedStageMinHeight && current !== '0px') {
+        hostStageFloorRaw = usableStageFloor(current);
+        hostStageFloorPx = 0;
+        lastAppliedStageMinHeight = current;
+      }
+      var nextLayout = stageLayoutSnapshot();
+      if (layoutChanged(stageLayout, nextLayout)) {
+        stageReservePx = 0;
+        stageLayout = nextLayout;
+      }
+      var needed = measureStageContentHeight();
+      if (needed > stageReservePx) stageReservePx = needed;
+      var value = composeStageMinHeight();
+      try {
+        if ((stage.stageEl.style.minHeight || '') !== value) stage.stageEl.style.minHeight = value;
+        /* 浏览器可能把 max()/calc() 规范化；记录实际序列化值，避免下次误判为宿主改动。 */
+        lastAppliedStageMinHeight = stage.stageEl.style.minHeight || '';
+      } catch (error) {
+        /* 画布预留失败时保持演示可用。 */
       }
     }
 
@@ -486,6 +575,9 @@
       holder = null;
       if (errorBox && errorBox.parentNode) errorBox.remove();
       errorBox = null;
+      if (stage && stage.stageEl && hostStageFloorRaw !== null) {
+        try { stage.stageEl.style.minHeight = hostStageFloorRaw; } catch (error) { /* 舞台已移除 */ }
+      }
     }
 
     return {

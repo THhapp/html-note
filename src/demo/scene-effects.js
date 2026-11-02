@@ -1,13 +1,19 @@
-/* NoteDemo scene effects — 一次 scene 运行的 WAAPI 句柄、布局 FLIP、揭示与标记渐入。
+/* NoteDemo scene effects — 一次 scene 运行的 WAAPI/进度句柄、布局 FLIP、揭示与标记渐入。
  * Scope: window.NoteDemoInternals.sceneEffects
- * Depends on: NoteDemoInternals.effects（句柄/计时）、NoteDemoInternals.sceneGeometry（FLIP）。
+ * Depends on: NoteDemoInternals.effects（WAAPI/进度句柄、计时）、NoteDemoInternals.sceneGeometry（FLIP）。
  * 私有执行文件：EffectScope 拥有本次运行创建的全部句柄与临时视觉，取消/完成统一释放；
  * 不决定 after、不拥有第二套会话状态、不扫描宿主全部动画。
+ * 效果按“轨道”归集：未分组 Binding 一条 default 轨道；分组 Binding 为 layout 轨道 + 每个效果组一条轨道。
  * 经典脚本，无模块 / 无网络 / 无 eval。 */
 (function (global) {
   'use strict';
 
   var Internals = global.NoteDemoInternals = global.NoteDemoInternals || {};
+  var hasOwn = Object.prototype.hasOwnProperty;
+
+  function own(object, key) {
+    return object != null && hasOwn.call(Object(object), key);
+  }
 
   function isObject(value) {
     return !!value && typeof value === 'object' && !Array.isArray(value);
@@ -37,7 +43,8 @@
 
   function effectsModule() {
     var effects = Internals.effects;
-    if (!effects || typeof effects.createHandle !== 'function' || typeof effects.mergeTiming !== 'function') {
+    if (!effects || typeof effects.createHandle !== 'function' || typeof effects.mergeTiming !== 'function' ||
+        typeof effects.createProgressHandle !== 'function') {
       throw new Error('NoteDemo 核心加载顺序错误：scene 效果需要先加载 NoteDemoInternals.effects（src/demo/effects.js）。');
     }
     return effects;
@@ -51,8 +58,8 @@
     return geometry;
   }
 
-  /* frameId / markTiming：本次过渡的目标 Frame 与 Frame 外部标记使用的时间键；
-   * motion：'normal'（reduced 在 scene 编排层直接提交终态，不走本 Scope）。 */
+  /* frameId / markTiming：本次过渡的目标 Frame 与 Frame 外部标记使用的时间键。
+   * 轨道来自 scene 运行时（见 scene.js createTrack）：{ name, readyHandles, finishHandles }。 */
   function createScope(config) {
     var options = isObject(config) ? config : {};
     var effects = effectsModule();
@@ -74,9 +81,23 @@
       return handle;
     }
 
+    /* gate 规则：显式 gate 优先；role:'mark' 旧语义只进入 finished；其余进入 ready。 */
+    function gateOf(spec) {
+      if (spec.gate === 'ready' || spec.gate === 'finish') return spec.gate;
+      return ((spec.role || spec.track) === 'mark') ? 'finish' : 'ready';
+    }
+
+    function addHandleToTrack(trackInfo, handle, spec) {
+      if (!trackInfo) return;
+      if (gateOf(spec) === 'ready') trackInfo.readyHandles.push(handle);
+      trackInfo.finishHandles.push(handle);
+    }
+
     function planLayoutEffects(runtime, targetsByMember) {
       var member = runtime && runtime.member;
       if (!member || member.mode !== 'layout') return;
+      var trackInfo = runtime.grouped ? runtime.layoutTrack : runtime.defaultTrack;
+      if (!trackInfo) return;
       var targets = targetsByMember[member.binding] || [];
       for (var i = 0; i < targets.length; i += 1) {
         var target = targets[i];
@@ -91,9 +112,69 @@
           });
         if (!handle) continue;
         track(handle);
-        runtime.readyHandles.push(handle);
-        runtime.finishHandles.push(handle);
+        trackInfo.readyHandles.push(handle);
+        trackInfo.finishHandles.push(handle);
       }
+    }
+
+    function adapterTrack(runtime, spec, index) {
+      var member = runtime.member;
+      if (runtime.grouped) {
+        if (spec.type === 'progress' || isObject(spec)) {
+          /* 分组成员：每个 spec 必须显式归属到已声明组。 */
+          if (!isObject(spec) || typeof spec.group !== 'string' || spec.group === '') {
+            throw makeSceneError('Binding "' + member.binding + '" 的 effect[' + index +
+              '] 缺少 group 归属（该 Binding 已声明效果组：' + runtime.groupNames.join('、') + '）。', {
+              binding: member.binding,
+              path: 'scene.bindings["' + member.binding + '"].effects[' + index + ']'
+            });
+          }
+          if (runtime.groupNames.indexOf(spec.group) < 0) {
+            throw makeSceneError('Binding "' + member.binding + '" 的 effect[' + index +
+              '] 声明了未知效果组 "' + spec.group + '"（已声明：' + runtime.groupNames.join('、') + '）。', {
+              binding: member.binding,
+              group: spec.group
+            });
+          }
+          var groupTrack = runtime.groupTracks[spec.group];
+          if (!groupTrack) {
+            throw makeSceneError('Binding "' + member.binding + '" 的效果组 "' + spec.group + '" 缺少运行轨道。', {
+              binding: member.binding,
+              group: spec.group
+            });
+          }
+          return groupTrack;
+        }
+        return null;
+      }
+      if (spec && spec.group != null) {
+        throw makeSceneError('Binding "' + member.binding + '" 的 Adapter 未声明效果组，但 effect[' + index +
+          '] 声明了 group "' + String(spec.group) + '"。', {
+          binding: member.binding,
+          group: String(spec.group)
+        });
+      }
+      return runtime.defaultTrack;
+    }
+
+    /* EffectSpec.handoff：仅 WAAPI spec 支持 'hold'；progress 的终态由 update(1) 落位，显式声明定位报错。 */
+    function handoffOf(spec, member, index) {
+      if (!own(spec, 'handoff')) return null;
+      if (spec.handoff !== 'hold') {
+        throw makeSceneError('Binding "' + member.binding + '" 的 effect[' + index +
+          '] handoff 只支持 "hold"（收到 ' + JSON.stringify(spec.handoff) + '）。', {
+          binding: member.binding,
+          path: 'scene.bindings["' + member.binding + '"].effects[' + index + '].handoff'
+        });
+      }
+      if (spec.type === 'progress') {
+        throw makeSceneError('Binding "' + member.binding + '" 的 progress effect[' + index +
+          '] 不能声明 handoff：progress 的最终视觉由 update(1) 自己落位。', {
+          binding: member.binding,
+          path: 'scene.bindings["' + member.binding + '"].effects[' + index + '].handoff'
+        });
+      }
+      return 'hold';
     }
 
     function planAdapterEffects(runtime) {
@@ -105,24 +186,57 @@
         specs = member.prepared.effects({
           timing: member.finalTiming,
           motion: 'auto',
-          bindingId: member.binding
+          bindingId: member.binding,
+          attention: runtime.attention === true,
+          grouped: runtime.grouped === true,
+          groups: runtime.groupNames ? runtime.groupNames.slice() : []
         });
       } catch (error) {
+        if (error && error.name === 'NoteDemoSceneError') throw error;
         throw makeSceneError('Binding "' + member.binding + '" 的 scene effects 规划失败：' + messageOf(error), { binding: member.binding });
       }
       if (!isArray(specs)) return;
       for (var i = 0; i < specs.length; i += 1) {
         var spec = specs[i];
-        if (!spec || !isElement(spec.el)) {
-          throw makeSceneError('Binding "' + member.binding + '" 的 effect 缺少有效目标元素。', { binding: member.binding });
+        if (!isObject(spec)) {
+          throw makeSceneError('Binding "' + member.binding + '" 的 effect[' + i + '] 不是对象。', { binding: member.binding });
         }
-        var handle = effects.createHandle(spec.el, spec.keyframes,
-          Object.assign({}, spec.options || {}, { paused: true }), {
+        var targetTrack = adapterTrack(runtime, spec, i);
+        var handoff = handoffOf(spec, member, i);
+        var handle;
+        if (spec.type === 'progress') {
+          if (typeof spec.update !== 'function') {
+            throw makeSceneError('Binding "' + member.binding + '" 的 progress effect[' + i + '] 缺少 update(progress) 函数。', {
+              binding: member.binding,
+              group: spec.group || null
+            });
+          }
+          handle = effects.createProgressHandle(spec, {
             frameId: frameId,
             bindingId: member.binding,
-            effect: spec.effect || 'adapter'
+            effect: spec.effect || ('progress:' + (spec.group || i))
           });
-        track(handle);
+          addHandleToTrack(targetTrack, handle, spec);
+          track(handle);
+        } else {
+          if (!isElement(spec.el)) {
+            throw makeSceneError('Binding "' + member.binding + '" 的 effect[' + i + '] 缺少有效目标元素。', {
+              binding: member.binding,
+              group: spec.group || null
+            });
+          }
+          /* handoff:'hold' 只改该 spec 的 fill：正常完成后保持末帧到 scene 收束，
+           * cleanup 取消句柄后由 Adapter cleanup 在同一 JS 任务内释放预置隐藏值。 */
+          var settings = Object.assign({}, spec.options || {}, { paused: true });
+          if (handoff === 'hold') settings.fill = 'both';
+          handle = effects.createHandle(spec.el, spec.keyframes, settings, {
+              frameId: frameId,
+              bindingId: member.binding,
+              effect: spec.effect || 'adapter'
+            });
+          addHandleToTrack(targetTrack, handle, spec);
+          track(handle);
+        }
         if (spec.cleanupEl && isElement(spec.cleanupEl)) {
           (function (el) {
             handle.finished.then(function () {
@@ -132,12 +246,6 @@
             });
           })(spec.cleanupEl);
         }
-        /* role:'mark' 旧语义仍只进入最终 finished；新 gate:'ready' 可显式参与 ready。 */
-        var gate = spec.gate === 'ready' || spec.gate === 'finish'
-          ? spec.gate
-          : ((spec.role || spec.track) === 'mark' ? 'finish' : 'ready');
-        if (gate === 'ready') runtime.readyHandles.push(handle);
-        runtime.finishHandles.push(handle);
       }
     }
 

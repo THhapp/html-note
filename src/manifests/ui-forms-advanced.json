@@ -28,7 +28,7 @@
         "禁用原因需通过 disabledReason 或 hint 传入才会显示"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K09", "K10", "K13"],
       "docs": "docs/ui-forms-advanced.md#F09",
       "notes": "原生 button[role=switch]，Space/Enter 由浏览器触发。"
@@ -50,7 +50,7 @@
         "轨道视觉依赖 accent-color；宿主主题需保证对比度"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K09", "K10", "K13"],
       "docs": "docs/ui-forms-advanced.md#F10",
       "notes": "getValue() 单值返回 number，区间返回 [min, max]。"
@@ -73,7 +73,7 @@
         "文本/文本域/数字/复选/下拉行使用 ui-forms-basic 的 Field/TextInput/Textarea/NumberInput/Checkbox/Select；开关与滑块使用本模块"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K09", "K10", "K13"],
       "docs": "docs/ui-forms-advanced.md#F11",
       "notes": "默认校验时机为 submit + blur；可配置 submit/blur/input。"
@@ -96,7 +96,7 @@
         "浮层复用 NoteCore.floating；窄视口会被视口夹紧并可滚动"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K09", "K10", "K13"],
       "docs": "docs/ui-forms-advanced.md#F12",
       "notes": "禁用规则：min/max 含端点；disabledDates 支持 ISO 数组或 function(iso, Date)。"
@@ -119,7 +119,7 @@
         "浮层中的三个原生 select 提供选项；受限组合在确认前会给出可见错误，不静默修正"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K09", "K10", "K13"],
       "docs": "docs/ui-forms-advanced.md#F13",
       "notes": "min/max 含端点；getValue() 返回字符串或 null。"
@@ -142,7 +142,7 @@
         "非法文本显示错误，不把旧值当成当前有效值"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K09", "K10", "K13"],
       "docs": "docs/ui-forms-advanced.md#F14",
       "notes": "getValue() 返回 #rrggbb 或 null。"
@@ -166,7 +166,7 @@
         "单选模式下一次选择/拖入全部被拒绝时保留原清单，不会因拒绝而清空已有文件"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K09", "K10", "K13"],
       "docs": "docs/ui-forms-advanced.md#F15",
       "notes": "隐藏原生 input；可见的“选择文件”按钮同时是拖放区和键盘入口；每次选择后重置 input.value 以允许重复选择同一文件。"

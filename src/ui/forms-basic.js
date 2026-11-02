@@ -52,6 +52,16 @@
     }
   }
 
+  /* 可选提示承载槽：组件自建的 hint/error/message 节点可以移入宿主指定的容器，
+     仍由组件维护可见性与 aria-describedby；槽只接受单个 Element 或 null。 */
+  function optionalSlot(value, apiName, optionName) {
+    if (value == null || value === false) return null;
+    if (!value || value.nodeType !== 1) {
+      throw new TypeError(apiName + ': ' + optionName + ' 必须是 Element 或 null。');
+    }
+    return value;
+  }
+
   function binder() {
     var entries = [];
     return {
@@ -218,10 +228,12 @@
         required: false,
         error: '',
         control: null,
-        id: ''
+        id: '',
+        hintSlot: null,
+        errorSlot: null
       };
       var input = options && typeof options === 'object' ? options : {};
-      ['label', 'hint', 'required', 'error', 'control', 'id'].forEach(function (key) {
+      ['label', 'hint', 'required', 'error', 'control', 'id', 'hintSlot', 'errorSlot'].forEach(function (key) {
         if (own(input, key)) state[key] = input[key];
       });
 
@@ -260,6 +272,25 @@
       var currentIsGroup = false;
       var association = null;
       var instance = null;
+
+      state.hintSlot = optionalSlot(state.hintSlot, 'NoteUI.Field', 'hintSlot');
+      state.errorSlot = optionalSlot(state.errorSlot, 'NoteUI.Field', 'errorSlot');
+
+      /* 默认 hint/error 留在字段根内；指定 slot 后移入宿主容器，字段根只保留
+         label/控件。两个 slot 相同（且非根）时保证 hint 在 error 之前。 */
+      function placeMessages() {
+        var hintParent = state.hintSlot || root;
+        var errorParent = state.errorSlot || root;
+        if (hintParent === errorParent && hintParent !== root) {
+          hintParent.appendChild(hintEl);
+          hintParent.appendChild(errorEl);
+          return;
+        }
+        if (hintParent === root) root.insertBefore(hintEl, slot);
+        else hintParent.appendChild(hintEl);
+        if (errorParent === root) root.appendChild(errorEl);
+        else errorParent.appendChild(errorEl);
+      }
 
       function cleanAssociation() {
         if (!association) return;
@@ -439,15 +470,25 @@
           if (destroyed || !patch || typeof patch !== 'object') return;
           var controlChanged = false;
           var nextControl = state.control;
+          var slotChanged = false;
           ['label', 'hint', 'required', 'error', 'id'].forEach(function (key) {
             if (own(patch, key)) state[key] = patch[key];
           });
+          if (own(patch, 'hintSlot')) {
+            state.hintSlot = optionalSlot(patch.hintSlot, 'NoteUI.Field', 'hintSlot');
+            slotChanged = true;
+          }
+          if (own(patch, 'errorSlot')) {
+            state.errorSlot = optionalSlot(patch.errorSlot, 'NoteUI.Field', 'errorSlot');
+            slotChanged = true;
+          }
           if (own(patch, 'control')) {
             controlChanged = true;
             nextControl = patch.control;
           }
           state.error = state.error == null ? '' : String(state.error);
           state.required = Boolean(state.required);
+          if (slotChanged) placeMessages();
           if (controlChanged) {
             state.control = nextControl;
             setControl(nextControl);
@@ -465,10 +506,13 @@
           if (destroyed) return;
           destroyed = true;
           cleanAssociation();
+          if (hintEl.parentNode && hintEl.parentNode !== root) hintEl.parentNode.removeChild(hintEl);
+          if (errorEl.parentNode && errorEl.parentNode !== root) errorEl.parentNode.removeChild(errorEl);
           root.remove();
         }
       };
 
+      if (state.hintSlot || state.errorSlot) placeMessages();
       render();
       host.appendChild(root);
       state.required = Boolean(state.required);
@@ -819,10 +863,11 @@
         placeholder: '',
         clearable: false,
         onChange: null,
-        id: ''
+        id: '',
+        messageSlot: null
       };
       var input = options && typeof options === 'object' ? options : {};
-      ['value', 'min', 'max', 'step', 'precision', 'disabled', 'readonly', 'placeholder', 'clearable', 'onChange', 'id'].forEach(function (key) {
+      ['value', 'min', 'max', 'step', 'precision', 'disabled', 'readonly', 'placeholder', 'clearable', 'onChange', 'id', 'messageSlot'].forEach(function (key) {
         if (own(input, key)) state[key] = input[key];
       });
       state.value = numberOrNull(state.value);
@@ -833,6 +878,7 @@
       state.disabled = Boolean(state.disabled);
       state.readonly = Boolean(state.readonly);
       state.clearable = Boolean(state.clearable);
+      state.messageSlot = optionalSlot(state.messageSlot, 'NoteUI.NumberInput', 'messageSlot');
 
       var base = uid('nui-numberinput');
       var messageId = base + '-message';
@@ -884,6 +930,13 @@
       messageEl.hidden = true;
       root.appendChild(box);
       root.appendChild(messageEl);
+
+      /* 内部提示默认跟在数字输入下方；指定 messageSlot 后可移入宿主的固定提示区。 */
+      function placeMessage() {
+        (state.messageSlot || root).appendChild(messageEl);
+      }
+
+      if (state.messageSlot) placeMessage();
 
       function stepPrecision() {
         if (state.precision != null) return state.precision;
@@ -1185,6 +1238,10 @@
             if (state.id) control.id = text(state.id);
             else control.removeAttribute('id');
           }
+          if (own(patch, 'messageSlot')) {
+            state.messageSlot = optionalSlot(patch.messageSlot, 'NoteUI.NumberInput', 'messageSlot');
+            placeMessage();
+          }
           if (own(patch, 'value') || own(patch, 'min') || own(patch, 'max') || own(patch, 'step') || own(patch, 'precision')) clearMessage();
           if (reformat && state.value != null && !own(patch, 'value')) control.value = formatValue(state.value);
           syncAria();
@@ -1193,6 +1250,7 @@
           if (destroyed) return;
           destroyed = true;
           events.clear();
+          if (messageEl.parentNode && messageEl.parentNode !== root) messageEl.parentNode.removeChild(messageEl);
           root.remove();
         }
       };

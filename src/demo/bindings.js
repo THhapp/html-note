@@ -170,14 +170,55 @@
       return own(frame.views, bindingId) ? frame.views[bindingId] : null;
     }
 
+    /* 公共接管标记：只落到本 Binding 容器，CSS 见 src/demo/scene-control.css。
+     * 这是一次运行/一次恢复期间的内部状态，不向作者暴露第二套生命周期。 */
+    function setSceneControlled(entry, on) {
+      if (!entry || !entry.container || !entry.container.setAttribute) return;
+      if (on) {
+        entry.sceneControlled = true;
+        entry.container.setAttribute('data-note-scene-active', 'true');
+      } else {
+        entry.sceneControlled = false;
+        entry.container.removeAttribute('data-note-scene-active');
+      }
+    }
+
+    function flushControlledStyle(entry) {
+      if (!entry || !entry.container) return;
+      /* 强制让浏览器在当前任务里按 transition:none 计算受控子树，并完成布局。
+       * 只有确认受控状态下的最终样式已经生效，才允许撤掉接管；否则同一任务内的
+       * “加标记—写 restore—撤标记”可能被合并，恢复仍会启动自动补间。 */
+      try {
+        var style = global.getComputedStyle(entry.container);
+        if (style) style.getPropertyValue('transition-duration');
+        entry.container.getBoundingClientRect();
+        // 读取布局尺寸，确保恢复写入引起的 transform/几何变化已结算。
+        void entry.container.offsetWidth;
+      } catch (error) {
+        /* 容器已断开时没有可确认的样式。 */
+      }
+    }
+
+    function releaseSceneControl(entry) {
+      if (!entry || !entry.sceneControlled) return;
+      flushControlledStyle(entry);
+      setSceneControlled(entry, false);
+    }
+
     function restoreEntry(entry, view) {
       if (!view || !isObject(view)) {
         throw bindingsError(entry.id, entry.slotName, '缺少可恢复的视图 {model,cues}');
       }
+      /* 恢复本身也必须是受控写入：先暂停受控内容的 CSS transition，写入来源/目标，
+       * 确认受控样式已结算，再释放。这样 go/prev/取消恢复不会出现未登记的补间。 */
+      var held = entry.sceneControlled === true;
+      if (!held) setSceneControlled(entry, true);
       try {
         entry.handle.restore(view);
       } catch (error) {
         throw bindingsError(entry.id, entry.slotName, 'restore 失败：' + messageOf(error), error);
+      } finally {
+        if (!held) releaseSceneControl(entry);
       }
     }
 
@@ -239,6 +280,7 @@
           adapterName: bindingConfig.adapterName || adapter.name || '',
           adapter: adapter,
           handle: handle,
+          sceneControlled: false,
           container: container,
           owned: owned,
           slotName: slotName,
@@ -356,6 +398,22 @@
       },
       entry: function (bindingId) {
         return entryOf(bindingId);
+      },
+      beginSceneControl: function (ids) {
+        var list = isArray(ids) ? ids : order;
+        for (var i = 0; i < list.length; i += 1) {
+          var controlled = entryOf(list[i]);
+          if (controlled) setSceneControlled(controlled, true);
+        }
+        return bag;
+      },
+      endSceneControl: function (ids) {
+        var list = isArray(ids) ? ids : order;
+        for (var i = 0; i < list.length; i += 1) {
+          var controlled = entryOf(list[i]);
+          if (controlled) releaseSceneControl(controlled);
+        }
+        return bag;
       },
       destroy: function () {
         if (destroyed) return;

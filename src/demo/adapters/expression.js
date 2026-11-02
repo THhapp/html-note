@@ -220,13 +220,11 @@
         try { effectsCache.cleanup(); } catch (error) { /* ignore */ }
       }
       effectsCache = null;
-      try { instance.setSceneActive(false); } catch (error) { /* ignore */ }
     }
     return {
       commit: function () {
         if (committed) return;
         committed = true;
-        instance.setSceneActive(true);
         instance.update(viewPatch(targetView));
       },
       targets: function () {
@@ -235,6 +233,7 @@
       },
       effects: function (effectCtx) {
         var motion = isObject(effectCtx) && effectCtx.motion === 'never' ? 'never' : 'auto';
+        var attention = isObject(effectCtx) && effectCtx.attention === true;
         var timing = isObject(effectCtx) && isObject(effectCtx.timing) ? effectCtx.timing : effects.mergeTiming();
         if (effectsCache) return effectsCache.specs;
         if (motion === 'never') {
@@ -313,7 +312,7 @@
                 ghostJustifyContent: 'flex-start',
                 ghostKeyframes: [
                   { opacity: '1' },
-                  { opacity: '1', offset: 0.45 },
+                  { opacity: '1', offset: attention ? 0.25 : 0.45 },
                   { opacity: '0' }
                 ],
                 ghostDuration: timing.valueSwapDuration,
@@ -321,7 +320,7 @@
                 ghostEasing: 'linear',
                 targetKeyframes: [
                   { opacity: '0' },
-                  { opacity: '0', offset: 0.3 },
+                  { opacity: '0', offset: attention ? 0.15 : 0.3 },
                   { opacity: '1' }
                 ],
                 targetDuration: timing.valueSwapDuration,
@@ -383,11 +382,11 @@
       restore: function (view) {
         if (destroyed) return;
         instance.update(viewPatch(view));
-        instance.setSceneActive(false);
       },
       target: function (query) {
         if (destroyed || !isObject(query)) return null;
         if (query.part === 'root') return instance.el;
+        if (query.part === 'body') return instance.getTarget({ part: 'body' });
         if (query.id == null) return null;
         return instance.getTarget({ id: query.id, part: query.part });
       },
@@ -424,8 +423,8 @@
   }
   function adopt(instance) {
     if (!instance || typeof instance.update !== 'function' || typeof instance.getState !== 'function' ||
-        typeof instance.getMotionTargets !== 'function' || typeof instance.setSceneActive !== 'function') {
-      fail('adopt 需要一个 NoteUI.Expression 实例（含 update/getState/getMotionTargets/setSceneActive）。');
+        typeof instance.getMotionTargets !== 'function') {
+      fail('adopt 需要一个 NoteUI.Expression 实例（含 update/getState/getMotionTargets）。');
     }
     if (instance.destroyed) fail('adopt 的 expression 实例已销毁。');
     return createHandle(instance, null, false);

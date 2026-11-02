@@ -15,6 +15,22 @@
 
   function tone(value) { return ['neutral', 'accent', 'warning'].indexOf(value) === -1 ? 'neutral' : value; }
 
+  function isDomNode(value) {
+    return !!value && typeof value === 'object' && [1, 3, 11].indexOf(value.nodeType) !== -1;
+  }
+
+  /* Notice 公开契约：content 为文本或单个 DOM 节点。数组/普通对象不被静默字符串化，
+     直接给出可定位的错误；多节点必须先由宿主包进一个容器元素。 */
+  function noticeContent(value) {
+    if (value == null) return '';
+    if (isDomNode(value)) return value;
+    if (Array.isArray(value)) {
+      throw new TypeError('NoteUI.Notice: content 只接受文本或单个 DOM 节点；多个节点请先用一个容器元素包裹。');
+    }
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return value;
+    throw new TypeError('NoteUI.Notice: content 只接受文本或单个 DOM 节点；收到 ' + Object.prototype.toString.call(value) + '，多节点/对象请先用一个容器元素包裹。');
+  }
+
   function staticHandle(root, options, render, cleanup) {
     var alive = true;
     return {
@@ -52,6 +68,7 @@
     mount: function (host, input) {
       validateHost(host);
       var options = Object.assign({ title: '', content: '', tone: 'neutral' }, input);
+      noticeContent(options.content); /* 挂载时先校验，避免无效输入等到首次 render 才失败 */
       var root = element('div', 'nui-notice');
       var marker = element('span', 'nui-notice__marker');
       marker.setAttribute('aria-hidden', 'true');
@@ -68,7 +85,7 @@
         marker.textContent = currentTone === 'warning' ? '!' : currentTone === 'accent' ? 'i' : '·';
         heading.textContent = text(options.title);
         heading.hidden = !text(options.title);
-        if (!patch || own(patch, 'content')) setContent(content, options.content);
+        if (!patch || own(patch, 'content')) setContent(content, noticeContent(options.content));
       }
       render();
       host.appendChild(root);

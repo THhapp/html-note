@@ -735,6 +735,28 @@ function main() {
   if (!existsFile(preview)) reporter.issue('self-contained preview is missing: dist/组件库-预览.html');
   else lintPreview(fs.readFileSync(preview, 'utf8'), errors);
 
+  // Other single-file previews produced by scripts/build-demo-preview.mjs. They are built
+  // after the bundle, so a missing file is only a warning; an existing one must also be
+  // self-contained (same lint as the component preview).
+  const extraPreviews = [
+    '公共编排层-整合预览.html',
+    '作者装配与聚焦-预览.html',
+    '公共层复用验证-矩阵乘法.html',
+    '传播过程与局部过渡-预览.html'
+  ];
+  for (const name of extraPreviews) {
+    const file = path.join(args.out, name);
+    if (!existsFile(file)) {
+      reporter.warn('single-file preview not built yet: ' + toPosix(path.relative(args.root, file)));
+      continue;
+    }
+    const before = errors.length;
+    lintPreview(fs.readFileSync(file, 'utf8'), errors);
+    for (let index = before; index < errors.length; index += 1) {
+      errors[index] = name + ': ' + errors[index];
+    }
+  }
+
   finish();
 
   function finish() {

@@ -7,15 +7,17 @@
  *   range.show({ targets: [el1, el2], text: '这两步决定是否继续' });
  *   range.show({ targets: [el2, el3], text: '换成这一组' });   // 幂等 = 更新
  *   range.show({ targets: [el1], text: '' });                 // 只画括线，不画标签
+ *   range.show({ targets: [el1, el2], text: '外层', offset: 10, side: 'below' });
+ *   range.show({ targets: [el2], text: '内层', offset: 38, side: 'below' }); // 两层括线分层
  *   range.hide();  range.refresh();  range.destroy();
  *
  * 只读：range.el（叠加层根）/ range.visible / range.targets / range.text
  *
- * 几何契约（视口坐标；g = 目标组包围盒）：
- *   横向 below：括线 = 1px 横线，上缘 y = g.bottom + 10，x 从 g.left 到 g.right；端刺 7px 向上指向对象
- *   横向 above：括线（下缘）= g.top - 10；端刺 7px 向下
- *   纵向 right：括线 = 1px 竖线，左缘 x = g.right + 10；端刺 7px 向左
- *   纵向 left ：括线（右缘）= g.left - 10；端刺 7px 向右
+ * 几何契约（视口坐标；g = 目标组包围盒；offset = 括线与组包围盒的间距，默认 10）：
+ *   横向 below：括线 = 1px 横线，上缘 y = g.bottom + offset，x 从 g.left 到 g.right；端刺 7px 向上指向对象
+ *   横向 above：括线（下缘）= g.top - offset；端刺 7px 向下
+ *   纵向 right：括线 = 1px 竖线，左缘 x = g.right + offset；端刺 7px 向左
+ *   纵向 left ：括线（右缘）= g.left - offset；端刺 7px 向右
  *   标签：横向 = 线外侧 5px、水平居中并夹在视口内；纵向 = 线外侧 8px、与 g 垂直居中
  *   auto 排列：目标两两之间水平重叠 > 较小目标宽 60% 且纵向错开 → 纵向，否则横向
  *   auto 选边（与当前视口无关，滚动时不换边）：横向看"组下方是否还有内容"——有则 below，
@@ -137,6 +139,8 @@
     var observed = [];
     var natText = null;         /* 标签自然尺寸缓存的文字键 */
     var natSize = { width: 0, height: 0 };
+    var gap = G.gap;            /* 当前 show() 的括线外侧间距；默认 G.gap */
+    var currentOffset = G.gap;  /* 对外只读 offset 值（含默认值） */
 
     var root = null;
     var bracket = null;
@@ -425,19 +429,19 @@
 
     /* 横向 auto 选边：组下方还有内容 → below；否则 above；都不行 → below + overflow */
     function horizontalAutoSide(group, nat, lm) {
-      var need = G.gap + (lm.height > 0 ? G.labelGapH + lm.height : 0) + G.edge;
+      var need = gap + (lm.height > 0 ? G.labelGapH + lm.height : 0) + G.edge;
       var span = lm.height > 0
         ? { left: lm.left, right: lm.left + lm.width }
         : { left: group.left, right: group.right };
       var belowBand = {
         left: span.left, right: span.right,
-        top: group.bottom + G.gap + (lm.height > 0 ? G.labelGapH : 0),
-        bottom: group.bottom + G.gap + (lm.height > 0 ? G.labelGapH + lm.height : G.hair)
+        top: group.bottom + gap + (lm.height > 0 ? G.labelGapH : 0),
+        bottom: group.bottom + gap + (lm.height > 0 ? G.labelGapH + lm.height : G.hair)
       };
       var aboveBand = {
         left: span.left, right: span.right,
-        top: group.top - G.gap - (lm.height > 0 ? G.labelGapH + lm.height : 0),
-        bottom: group.top - G.gap - (lm.height > 0 ? G.labelGapH : 0)
+        top: group.top - gap - (lm.height > 0 ? G.labelGapH + lm.height : 0),
+        bottom: group.top - gap - (lm.height > 0 ? G.labelGapH : 0)
       };
       var scan = scanContent(span, belowBand, aboveBand);
       var box = contentBounds();
@@ -452,7 +456,7 @@
 
     function horizontalPlan(group, nat, vp, side, sideOverflow, lm) {
       var labelH = nat.height;
-      var bracketTop = side === 'below' ? group.bottom + G.gap : group.top - G.gap - G.hair;
+      var bracketTop = side === 'below' ? group.bottom + gap : group.top - gap - G.hair;
       var lineNear = side === 'below' ? bracketTop : bracketTop + G.hair;
       var labelTop = side === 'below' ? lineNear + G.labelGapH : lineNear - G.labelGapH - labelH;
       return {
@@ -473,7 +477,7 @@
     /* 纵向 auto 选边：右侧内容空间放得下标签 → right，否则 left（与滚动无关） */
     function verticalAutoSide(group, nat) {
       var box = contentBounds();
-      var need = G.gap + G.labelGapV + (nat.width > 0 ? nat.width : 0) + G.edge;
+      var need = gap + G.labelGapV + (nat.width > 0 ? nat.width : 0) + G.edge;
       var rightFits = box.right - group.right >= need;
       var leftFits = group.left - box.left >= need;
       if (rightFits) return { side: 'right', sideOverflow: false };
@@ -484,8 +488,8 @@
       var edge = G.edge;
       var labelW0 = nat.width;
       var labelH = nat.height;
-      var rightX = group.right + G.gap;                    /* 线的左缘 */
-      var leftX = group.left - G.gap - G.hair;             /* 线的左缘 */
+      var rightX = group.right + gap;                    /* 线的左缘 */
+      var leftX = group.left - gap - G.hair;             /* 线的左缘 */
       var bracketLeft = side === 'right' ? rightX : leftX;
       var lineNear = side === 'right' ? bracketLeft : bracketLeft + G.hair;
 
@@ -522,10 +526,10 @@
     function sideRoom(orientation, side, group, nat) {
       var box = contentBounds();
       if (orientation === 'h') {
-        var need = G.gap + (nat.height > 0 ? G.labelGapH + nat.height : 0) + G.edge;
+        var need = gap + (nat.height > 0 ? G.labelGapH + nat.height : 0) + G.edge;
         return side === 'below' ? (box.bottom - group.bottom >= need) : (group.top - box.top >= need);
       }
-      var needV = G.gap + G.labelGapV + (nat.width > 0 ? nat.width : 0) + G.edge;
+      var needV = gap + G.labelGapV + (nat.width > 0 ? nat.width : 0) + G.edge;
       return side === 'right' ? (box.right - group.right >= needV) : (group.left - box.left >= needV);
     }
 
@@ -821,7 +825,15 @@
       if (o === 'horizontal') o = 'h';
       if (o === 'vertical') o = 'v';
       if (['auto', 'h', 'v'].indexOf(o) < 0) throw new Error(ERR + 'orientation 只能是 auto/h/v');
-      return { targets: arr, text: t, side: s, orientation: o, observe: opts.observe, geometry: opts.geometry };
+      var offset = null;
+      if (opts.offset !== undefined && opts.offset !== null) {
+        var quoted = typeof opts.offset === 'string';
+        if (!quoted && typeof opts.offset !== 'number') throw new Error(ERR + 'offset 必须是非负有限数字');
+        offset = quoted ? Number(opts.offset.trim()) : opts.offset;
+        if (quoted && opts.offset.trim() === '') offset = NaN;
+        if (!isFinite(offset) || offset < 0) throw new Error(ERR + 'offset 必须是非负有限数字');
+      }
+      return { targets: arr, text: t, side: s, orientation: o, observe: opts.observe, geometry: opts.geometry, offset: offset };
     }
 
     /* ---------- show / hide / refresh ---------- */
@@ -842,6 +854,8 @@
       text = cfg.text;
       sideOpt = cfg.side;
       orientOpt = cfg.orientation;
+      gap = cfg.offset === null ? G.gap : cfg.offset;
+      currentOffset = gap;
       visible = true;
       root.setAttribute('data-nx-state', 'shown');
       ensureBracket();
@@ -918,6 +932,7 @@
     Object.defineProperty(view, 'visible', { get: function () { return visible; } });
     Object.defineProperty(view, 'targets', { get: function () { return targets.slice(); } });
     Object.defineProperty(view, 'text', { get: function () { return text; } });
+    Object.defineProperty(view, 'offset', { get: function () { return currentOffset; } });
 
     /* ---------- 初始化 ---------- */
 

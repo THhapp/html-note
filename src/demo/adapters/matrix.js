@@ -464,7 +464,6 @@
       cueChanged: JSON.stringify(sourceView.cues || {}) !== JSON.stringify(targetView.cues || {})
     };
     function cleanup() {
-      try { instance.setSceneActive(false); } catch (error) { /* ignore */ }
       for (var i = 0; i < ghostCleanups.length; i += 1) {
         try { ghostCleanups[i](); } catch (error) { /* ignore */ }
       }
@@ -478,7 +477,6 @@
       commit: function () {
         if (committed) return;
         committed = true;
-        try { instance.setSceneActive(true); } catch (error) { /* ignore */ }
         instance.update(viewCuePatch(targetView));
       },
       targets: function () {
@@ -624,9 +622,8 @@
 
   function adopt(instance) {
     if (!instance || typeof instance.update !== 'function' || typeof instance.getTarget !== 'function' ||
-        typeof instance.getState !== 'function' || typeof instance.getMotionTargets !== 'function' ||
-        typeof instance.setSceneActive !== 'function') {
-      fail('adopt 需要一个 NoteViz.Matrix 实例（含 update/getTarget/getState/getMotionTargets/setSceneActive）。');
+        typeof instance.getState !== 'function' || typeof instance.getMotionTargets !== 'function') {
+      fail('adopt 需要一个 NoteViz.Matrix 实例（含 update/getTarget/getState/getMotionTargets）。');
     }
     if (instance.destroyed) fail('adopt 的矩阵实例已销毁。');
     return createHandle(instance, null, false);

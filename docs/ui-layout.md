@@ -271,7 +271,3 @@ NoteUI.Divider.mount(host, { label: '补充条件' });
 NoteUI.ScrollArea.mount(host, { maxHeight: '12rem', content: longNode, label: '可滚动说明' });
 NoteUI.SplitPane.mount(host, { start: leftNode, end: rightNode, onChange: function (r) { console.log(r); } });
 ```
-
-## 14. 用户评价范围
-
-L01–L08 均为未获用户评价的候选组件，`userReview=not-reviewed`；技术自检不等于审美确认。参数以本文件记录为准，非硬性设计值（宽度、间距、比例、断点）按内容适配。

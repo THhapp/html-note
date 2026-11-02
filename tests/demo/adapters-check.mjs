@@ -620,7 +620,7 @@ await evalChecks('normal adapters', normal.page, async () => {
   check('sequence target unknown null', s.target({ id: 'zzz' }) === null &&
     s.target({ id: 'b', part: 'nope' }) === null && s.target(null) === null);
 
-  /* ---------- D01 getState / getMotionTargets / setSceneActive ---------- */
+  /* ---------- D01 getState / getMotionTargets ---------- */
   const compHost = makeHost();
   const comp = window.NoteViz.Sequence.mount(compHost, {
     variant: 'bytes',
@@ -667,15 +667,6 @@ await evalChecks('normal adapters', normal.page, async () => {
   const afterTargets = comp.getMotionTargets();
   check('D01 getMotionTargets refreshed after render', afterTargets.length === 1 && afterTargets[0].id === 'r0' &&
     afterTargets[0].unit !== oldCompTarget && !oldCompTarget.isConnected);
-  comp.setSceneActive(true);
-  const sceneOn = comp.el.getAttribute('data-note-scene');
-  const transitionDuring = getComputedStyle(afterTargets[0].contentEl).transitionDuration;
-  comp.setSceneActive(false);
-  const transitionAfter = getComputedStyle(afterTargets[0].contentEl).transitionDuration;
-  check('D01 setSceneActive toggles attribute', sceneOn === 'true' && comp.el.getAttribute('data-note-scene') === 'false');
-  check('D01 scene CSS pauses cell transition', transitionDuring === '0s' && transitionAfter !== '0s',
-    'during=' + transitionDuring + ',after=' + transitionAfter);
-
   /* ---------- sequence prepareChange：commit / targets / facts / effects / cleanup ---------- */
   const pcSource = sequence.normalizeView({
     items: [{ id: 'a', value: '41' }, { id: 'b', value: '7E' }, { id: 'c', value: '7D' }]
@@ -700,8 +691,7 @@ await evalChecks('normal adapters', normal.page, async () => {
     typeof change.commit === 'function' && typeof change.targets === 'function' &&
     typeof change.effects === 'function' && typeof change.facts === 'function' &&
     typeof change.cleanup === 'function' && !(change instanceof Promise));
-  check('sequence prepare does not commit early', sHost.querySelectorAll('.nviz-sequence__unit').length === unitsBeforePrepare &&
-    sHost.querySelector('.nviz-sequence').getAttribute('data-note-scene') !== 'true');
+  check('sequence prepare does not commit early', sHost.querySelectorAll('.nviz-sequence__unit').length === unitsBeforePrepare);
   const prepareTargets = change.targets();
   check('sequence targets before commit = source', prepareTargets.length === 3 &&
     prepareTargets.map((target) => target.id).join(',') === 'a,b,c' &&
@@ -722,14 +712,9 @@ await evalChecks('normal adapters', normal.page, async () => {
   window.NoteViz.Sequence.mount = function (host, options) {
     const instance = originalSequenceMount.call(window.NoteViz.Sequence, host, options);
     const originalUpdate = instance.update;
-    const originalSetSceneActive = instance.setSceneActive;
     instance.update = function (patch) {
       callLog.push('update');
       return originalUpdate.call(instance, patch);
-    };
-    instance.setSceneActive = function (on) {
-      callLog.push('scene:' + (on ? 'true' : 'false'));
-      return originalSetSceneActive.call(instance, on);
     };
     return instance;
   };
@@ -740,10 +725,9 @@ await evalChecks('normal adapters', normal.page, async () => {
   callLog.length = 0;
   const spyChange = spyHandle.prepareChange({ sourceView: pcSource, targetView: pcTarget, signal, motion: 'auto' });
   spyChange.commit();
-  check('sequence commit order scene then one update', callLog.join(',') === 'scene:true,update', callLog.join(','));
+  check('sequence commit performs one update', callLog.join(',') === 'update', callLog.join(','));
   check('sequence commit applies target', spyHandle.readView().model.items.map((item) => item.id).join(',') === 'a,e1,e2,b,c' &&
-    spyHost.querySelectorAll('.nviz-sequence__unit').length === 5 &&
-    spyHost.querySelector('.nviz-sequence').getAttribute('data-note-scene') === 'true');
+    spyHost.querySelectorAll('.nviz-sequence__unit').length === 5);
   check('sequence commit renders groups', spyHost.textContent.indexOf('转义') >= 0);
   check('sequence commit renders cues', spyHost.querySelector('.nviz-sequence__unit[data-id="b"]').getAttribute('data-mark') === 'both' &&
     spyHost.querySelector('.nviz-sequence__unit[data-id="e1"]').getAttribute('data-mark') === 'changed');
@@ -816,10 +800,9 @@ await evalChecks('normal adapters', normal.page, async () => {
     customFocus.length === 1 && customFocus[0].options.delay === 50 && customFocus[0].options.duration === 200);
   spyChange.cleanup();
   spyChange.cleanup();
-  check('sequence cleanup idempotent + scene off', spyHost.querySelector('.nviz-sequence').getAttribute('data-note-scene') === 'false' &&
-    spyHost.querySelectorAll('.nviz-sequence__unit').length === 5 &&
+  check('sequence cleanup idempotent', spyHost.querySelectorAll('.nviz-sequence__unit').length === 5 &&
     spyHost.querySelectorAll('.nviz-sequence__value--ghost').length === 0);
-  check('sequence commit/cleanup call order', callLog.join(',') === 'scene:true,update,scene:false', callLog.join(','));
+  check('sequence commit/cleanup call order', callLog.join(',') === 'update', callLog.join(','));
   spyHandle.destroy();
 
   const neverHost = makeHost();
@@ -827,8 +810,7 @@ await evalChecks('normal adapters', normal.page, async () => {
   neverHandle.restore(pcSource);
   const neverChange = neverHandle.prepareChange({ sourceView: pcSource, targetView: pcTarget, signal, motion: 'never' });
   neverChange.commit();
-  check('sequence motion:never still commits', neverHandle.readView().model.items.length === 5 &&
-    neverHost.querySelector('.nviz-sequence').getAttribute('data-note-scene') === 'true');
+  check('sequence motion:never still commits', neverHandle.readView().model.items.length === 5);
   check('sequence motion:never declares no effects', neverChange.effects().length === 0);
   neverChange.cleanup();
   neverHandle.destroy();

@@ -19,7 +19,7 @@
       "dependencies": ["core"],
       "limitations": ["不设置 body、全局标题或根字号。", "居中通过自动行内 margin 实现；根的块级外边距始终为 0。"],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K08", "K10", "K11", "K16"],
       "docs": "docs/ui-layout.md#L01",
       "notes": "content 迁移节点；也可向返回实例的 el 追加内容。"
@@ -37,7 +37,7 @@
       "dependencies": ["core"],
       "limitations": ["不管理子项内部间距。", "根类使用 .nui-vstack，不复用旧 .nui-stack。"],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K08", "K10", "K11", "K16"],
       "docs": "docs/ui-layout.md#L02",
       "notes": ""
@@ -55,7 +55,7 @@
       "dependencies": ["core"],
       "limitations": ["wrap:false 时使用局部横向滚动，不压缩子项。", "不负责子项的按钮语义或焦点样式。"],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K08", "K10", "K11", "K16"],
       "docs": "docs/ui-layout.md#L03",
       "notes": "根类使用 .nui-hstack。"
@@ -73,7 +73,7 @@
       "dependencies": ["core"],
       "limitations": ["固定列数时 minColumnWidth 不强制覆盖等分列。", "data-nui-span 只作用于直接子项；超过固定列数时自动夹到列数。"],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K08", "K10", "K11", "K16"],
       "docs": "docs/ui-layout.md#L04",
       "notes": "对直接子项变化使用 MutationObserver 重新应用跨列。"
@@ -91,7 +91,7 @@
       "dependencies": ["core"],
       "limitations": ["只装饰局部表面，不安装整页主题。", "title/description/actions/footer 为空时对应区域隐藏；body 始终可追加。"],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K08", "K10", "K11", "K16"],
       "docs": "docs/ui-layout.md#L05",
       "notes": "返回 header/body/footer；header 含 title、description 和 actions。"
@@ -109,7 +109,7 @@
       "dependencies": ["core"],
       "limitations": ["纵向分隔需要父级提供高度或拉伸上下文；默认最小高度 4rem。", "间距通过内部 padding 实现，根不添加外部 margin。"],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K08", "K10", "K11", "K16"],
       "docs": "docs/ui-layout.md#L06",
       "notes": "role=separator 与 aria-orientation；有说明时同时设置 aria-label。"
@@ -127,7 +127,7 @@
       "dependencies": ["core"],
       "limitations": ["不设置默认高度；未限定高度且内容不超高时不会出现滚动。", "滚动提示是视觉辅助并设为 aria-hidden，滚动语义由原生 viewport 承担。", "接口未列入冻结 §6.2，形状在本模块文档中定义。"],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K08", "K10", "K11", "K16"],
       "docs": "docs/ui-layout.md#L07",
       "notes": "viewport 为 tabindex=0 的 region；返回 viewport/contentEl。"
@@ -145,7 +145,7 @@
       "dependencies": ["core"],
       "limitations": ["保存比例而非像素；实际像素受最小尺寸与容器尺寸约束。", "纵向模式默认高 22rem，可由 height 或宿主 CSS 高度覆盖。", "接口未列入冻结 §6.2，形状在本模块文档中定义。"],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K08", "K10", "K11", "K16"],
       "docs": "docs/ui-layout.md#L08",
       "notes": "separator 使用 setPointerCapture；方向键、Home/End；返回 getValue/getOrientation。"

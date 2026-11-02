@@ -59,7 +59,7 @@
         "字符串内容按纯文本处理，不解析 HTML。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K08",
         "K09",
@@ -107,7 +107,7 @@
         "滚动导致的 active 变化不提供回调；宿主可读取 aria-current 或 getValue()。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K08",
         "K09",
@@ -152,7 +152,7 @@
         "折叠菜单中的 href 由本组件在点击后导航；若宿主回调调用了 event.preventDefault() 则尊重取消。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K08",
         "K09",
@@ -204,7 +204,7 @@
         "上下文菜单要按 Esc 回到目标区域时，锚点区域应可聚焦（如 tabindex=\"0\"）。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K08",
         "K09",
@@ -254,7 +254,7 @@
         "getValue() 返回 { page, pageSize }；它是本模块对未冻结接口的补充。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K08",
         "K09",
@@ -303,7 +303,7 @@
         "窄窗口在 720px 媒体断点下把横向步骤转为纵向阅读。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K08",
         "K09",
@@ -356,7 +356,7 @@
         "onSelect(selected,event) 的 selected 单选为 id、多选为 id 数组；onToggle(id,open,event)。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K08",
         "K09",

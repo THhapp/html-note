@@ -3,7 +3,7 @@ window.NOTE_LIBRARY_REGISTRY = {
   "schemaVersion": 1,
   "generatedBy": "scripts/build.mjs",
   "build": {
-    "time": "2026-10-31T03:09:02.640Z",
+    "time": "2026-11-02T07:37:55.636Z",
     "mode": "final",
     "command": "node scripts/build.mjs --final --release",
     "moduleOrder": [
@@ -41,7 +41,7 @@ window.NOTE_LIBRARY_REGISTRY = {
     "preview": {
       "path": "dist/组件库-预览.html",
       "selfContained": true,
-      "bytes": 3658285
+      "bytes": 3755382
     }
   },
   "statusLegend": {
@@ -649,7 +649,9 @@ window.NOTE_LIBRARY_REGISTRY = {
         "src/demo/authoring.js",
         "src/demo/index.js"
       ],
-      "css": [],
+      "css": [
+        "src/demo/scene-control.css"
+      ],
       "demos": [
         "gallery/demos/demo-runtime.js"
       ],
@@ -768,7 +770,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=R01 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "复用接入与变体增强，未获本批具体视觉评价；原六项组件的旧评价不自动覆盖新增变体",
+      "reviewScope": "复用接入与变体增强，未获具体视觉评价；原六项组件的旧评价不自动覆盖新增变体",
       "consensus": [
         "K06",
         "K07",
@@ -833,7 +835,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=R02 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本批未获具体视觉评价；沿用原候选接口，不因复用自动升级评价",
+      "reviewScope": "未获具体视觉评价；沿用原候选接口，不因复用自动升级评价",
       "consensus": [
         "K06",
         "K07",
@@ -892,7 +894,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=R03 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本批未获具体视觉评价",
+      "reviewScope": "未获具体视觉评价",
       "consensus": [
         "K06",
         "K07",
@@ -912,12 +914,12 @@ window.NOTE_LIBRARY_REGISTRY = {
       "purpose": "复用常驻说明块，把必要解释放在正常阅读路径；标题、正文与语气可更新，正文支持纯文本或 DOM 节点。",
       "inputs": [
         "title",
-        "content",
+        "content（文本或单个 DOM 节点；数组/普通对象抛 TypeError）",
         "tone"
       ],
       "customizable": [
         "标题",
-        "正文文字或 DOM",
+        "正文文字或单个 DOM 节点",
         "neutral/accent/warning 语气"
       ],
       "states": [
@@ -946,7 +948,7 @@ window.NOTE_LIBRARY_REGISTRY = {
       "example": "examples/run.html?id=R04",
       "limitations": [
         "常驻说明不是 Tooltip，不负责悬停触发或自动消失",
-        "字符串按纯文本写入；DOM 节点会被移入，不克隆",
+        "content 只接受文本或单个 DOM 节点：DOM 节点会被移入、不克隆；数组与普通对象抛带 NoteUI.Notice 前缀的 TypeError",
         "不内置关闭按钮或自动隐藏"
       ],
       "status": "verified",
@@ -955,7 +957,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=R04 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本批未获具体视觉评价",
+      "reviewScope": "未获具体视觉评价",
       "consensus": [
         "K06",
         "K07",
@@ -964,7 +966,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "K16"
       ],
       "docs": "docs/legacy.md#R04",
-      "notes": "未修改源码。"
+      "notes": "V05 收紧 content 契约：只接受文本或单个 DOM 节点；数组/普通对象抛 TypeError，update 同样校验。"
     },
     {
       "id": "R05",
@@ -1022,7 +1024,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=R05 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本批未获具体视觉评价",
+      "reviewScope": "未获具体视觉评价",
       "consensus": [
         "K06",
         "K07",
@@ -1089,7 +1091,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=R06 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本批未获具体视觉评价",
+      "reviewScope": "未获具体视觉评价",
       "consensus": [
         "K06",
         "K07",
@@ -1177,13 +1179,14 @@ window.NOTE_LIBRARY_REGISTRY = {
       "inputs": [
         "motion",
         "zIndex",
-        "show({ targets, text, side, orientation })"
+        "show({ targets, text, side, orientation, offset })"
       ],
       "customizable": [
         "目标组",
         "说明文字",
         "side auto/below/above/left/right",
         "orientation auto/h/v",
+        "外侧间距 offset（默认 10，只读 range.offset）",
         "动效与层级",
         "实例根上的 --nx-* 变量"
       ],
@@ -1215,7 +1218,8 @@ window.NOTE_LIBRARY_REGISTRY = {
         "旧接口是 show/hide/refresh/destroy，不伪装为 update",
         "只画视觉括线并隐藏于屏幕阅读器，不做语义分组替代",
         "仅在浅色背景、常规文档流与桌面 Chromium 下保证默认观感",
-        "不保证 transform 祖先、iframe 与超长页面滚动下的跟随"
+        "不保证 transform 祖先、iframe 与超长页面滚动下的跟随",
+        "offset 是可选的括线外侧间距，不改变目标元素几何或分组语义"
       ],
       "status": "verified",
       "verification": [
@@ -1232,7 +1236,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "K16"
       ],
       "docs": "docs/legacy.md#R08",
-      "notes": "未修改源码；原验证范围与限制沿用 archive/prototypes 中的原验证记录。"
+      "notes": "V05 增补可选 show({ offset })（默认 10，只读 range.offset，非法值抛 NoteExpr.Range 错误）；原 show/hide/refresh 语义与视觉不变。原验证范围与限制沿用 archive/prototypes 中的原验证记录。"
     },
     {
       "id": "R09",
@@ -1364,7 +1368,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=R10 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "positive-with-scope",
-      "reviewScope": "第二轮整体：这轮不错；真实笔记中的组装效果与具体尺寸/时长/停点数未获评价，不成为固定标准",
+      "reviewScope": "整体评价：满意；真实笔记中的组装效果与具体尺寸/时长/停点数未获评价，不成为固定标准",
       "consensus": [
         "K06",
         "K07",
@@ -1427,7 +1431,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=L01 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K08",
         "K10",
@@ -1490,7 +1494,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=L02 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K08",
         "K10",
@@ -1554,7 +1558,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=L03 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K08",
         "K10",
@@ -1618,7 +1622,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=L04 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K08",
         "K10",
@@ -1685,7 +1689,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=L05 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K08",
         "K10",
@@ -1745,7 +1749,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=L06 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K08",
         "K10",
@@ -1813,7 +1817,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=L07 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K08",
         "K10",
@@ -1888,7 +1892,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=L08 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K08",
         "K10",
@@ -1953,7 +1957,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=C01 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K02",
         "K09",
@@ -2021,7 +2025,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=C02 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K02",
         "K09",
@@ -2086,7 +2090,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=C03 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K02",
         "K09",
@@ -2150,7 +2154,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=C04 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K02",
         "K09",
@@ -2219,7 +2223,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=C05 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K02",
         "K09",
@@ -2298,7 +2302,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=C06 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K02",
         "K09",
@@ -2373,7 +2377,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=C07 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K02",
         "K09",
@@ -2445,7 +2449,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=C08 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K02",
         "K09",
@@ -2513,7 +2517,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=C09 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K02",
         "K09",
@@ -2577,7 +2581,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=C10 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K02",
         "K09",
@@ -2644,7 +2648,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=C11 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K02",
         "K09",
@@ -2716,7 +2720,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=C12 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K02",
         "K09",
@@ -2744,7 +2748,8 @@ window.NOTE_LIBRARY_REGISTRY = {
         "text 或 tex 项",
         "整体可读名称",
         "focus/changed 项提示",
-        "程序更新"
+        "程序更新",
+        "整段内容区域查询（getTarget({part:'body'})）"
       ],
       "states": [
         "文本项",
@@ -2786,7 +2791,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "2026-10-30 动效承接整改：Expression 改为稳定 unit→contentCarrier→valueSlot，未变项与 Math 实例复用；同 ID 换值旧副本在 contentCarrier 内跟随目标 unit，新增 cue-only 差分；gallery/矩阵演示与 public-transition 29/29 通过。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K02",
         "K09",
@@ -3072,7 +3077,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=N01 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K08",
         "K09",
@@ -3143,7 +3148,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=N02 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K08",
         "K09",
@@ -3211,7 +3216,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=N03 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K08",
         "K09",
@@ -3286,7 +3291,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=N04 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K08",
         "K09",
@@ -3359,7 +3364,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=N05 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K08",
         "K09",
@@ -3431,7 +3436,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=N06 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K08",
         "K09",
@@ -3507,7 +3512,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=N07 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K08",
         "K09",
@@ -3529,14 +3534,17 @@ window.NOTE_LIBRARY_REGISTRY = {
         "required",
         "error",
         "control",
-        "id"
+        "id",
+        "hintSlot",
+        "errorSlot"
       ],
       "customizable": [
         "标签与长说明",
         "必填标记",
         "初始/外部错误",
         "控件 DOM 或组件实例",
-        "控件 id"
+        "控件 id",
+        "外部 hint/error slot（可空）"
       ],
       "states": [
         "默认",
@@ -3567,7 +3575,8 @@ window.NOTE_LIBRARY_REGISTRY = {
         "control 可为 DOM 节点或含 .el 的组件实例；节点会被移入字段，destroy 会随字段移除该 DOM，但不调用控件实例的 destroy。",
         "不读取、不设置、不验证控件值；setError() 只负责错误呈现与 aria-invalid。",
         "label 与 hint 为纯文本；分组控件（fieldset/role=group、radiogroup）采用 aria-labelledby，普通控件优先关联内部可聚焦原生元素。",
-        "同一控件不要同时使用 Field 错误与 NumberInput 内部错误两个来源；NoteUI.Form 可能同时显示两者。"
+        "同一控件不要同时使用 Field 错误与 NumberInput 内部错误两个来源；NoteUI.Form 可能同时显示两者。",
+        "hintSlot / errorSlot 是可选的 Element：默认不传时 DOM 与布局和旧版一致；传入后节点移入对应区域，destroy 时清理。"
       ],
       "status": "verified",
       "verification": [
@@ -3575,14 +3584,14 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=F01 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K09",
         "K10",
         "K13"
       ],
       "docs": "docs/ui-forms-basic.md#F01",
-      "notes": "返回的 control 是解析后的可聚焦元素（通常是原生 input/select/textarea）；更新 control 会清理旧控件的 Field 关联。"
+      "notes": "返回的 control 是解析后的可聚焦元素（通常是原生 input/select/textarea）；更新 control 会清理旧控件的 Field 关联。V05 增补可选 hintSlot/errorSlot，默认行为不变。"
     },
     {
       "id": "F02",
@@ -3645,7 +3654,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=F02 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K09",
         "K10",
@@ -3719,7 +3728,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=F03 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K09",
         "K10",
@@ -3746,7 +3755,8 @@ window.NOTE_LIBRARY_REGISTRY = {
         "placeholder",
         "clearable",
         "onChange",
-        "id"
+        "id",
+        "messageSlot"
       ],
       "customizable": [
         "数值/空值",
@@ -3754,7 +3764,8 @@ window.NOTE_LIBRARY_REGISTRY = {
         "步长",
         "小数精度",
         "清空按钮",
-        "只读/禁用"
+        "只读/禁用",
+        "外部 message slot（可空）"
       ],
       "states": [
         "空值 null",
@@ -3787,7 +3798,8 @@ window.NOTE_LIBRARY_REGISTRY = {
         "blur/Enter 时非法文本保留并显示错误；越界文本夹紧并给出提示；精度在提交时应用。",
         "程序 update 不夹紧、不应用步长吸附，也不触发 onChange；宿主应传入符合当前范围的数字。",
         "作为 role=spinbutton 的空状态不设置 aria-valuenow，使用 aria-valuetext='未填写'，避免伪造成 0。",
-        "precision 未提供时不按 step 强制舍入用户键入值；step 的小数位只用于避免步进浮点误差。"
+        "precision 未提供时不按 step 强制舍入用户键入值；step 的小数位只用于避免步进浮点误差。",
+        "messageSlot 是可选的 Element：默认不传时工具栏与布局高度和旧版一致；传入后提示节点移入该容器。"
       ],
       "status": "verified",
       "verification": [
@@ -3795,14 +3807,14 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=F04 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K09",
         "K10",
         "K13"
       ],
       "docs": "docs/ui-forms-basic.md#F04",
-      "notes": "额外提供 getError()：当前草稿非法/越界/精度待完成时也会返回提示，供 Form 提交校验使用；上下按钮、↑↓、PageUp/PageDown、Home/End 可用。"
+      "notes": "额外提供 getError()：当前草稿非法/越界/精度待完成时也会返回提示，供 Form 提交校验使用；上下按钮、↑↓、PageUp/PageDown、Home/End 可用。V05 增补可选 messageSlot，默认行为不变。"
     },
     {
       "id": "F05",
@@ -3863,7 +3875,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=F05 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K09",
         "K10",
@@ -3931,7 +3943,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=F06 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K09",
         "K10",
@@ -4007,7 +4019,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=F07 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K09",
         "K10",
@@ -4084,7 +4096,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=F08 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K09",
         "K10",
@@ -4154,7 +4166,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=F09 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K09",
         "K10",
@@ -4230,7 +4242,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=F10 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K09",
         "K10",
@@ -4303,7 +4315,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=F11 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K09",
         "K10",
@@ -4383,7 +4395,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=F12 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K09",
         "K10",
@@ -4459,7 +4471,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=F13 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K09",
         "K10",
@@ -4531,7 +4543,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=F14 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K09",
         "K10",
@@ -4607,7 +4619,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=F15 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K09",
         "K10",
@@ -5886,7 +5898,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=M01 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K04",
         "K05",
@@ -5963,7 +5975,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=M02 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K04",
         "K05",
@@ -6040,7 +6052,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=M03 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K04",
         "K05",
@@ -6111,7 +6123,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=M04 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K04",
         "K05",
@@ -6287,7 +6299,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=X01 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K01",
         "K11",
@@ -6365,7 +6377,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=X02 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K01",
         "K11",
@@ -6439,7 +6451,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=X03 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K01",
         "K11",
@@ -6518,7 +6530,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=X04 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K01",
         "K11",
@@ -6600,7 +6612,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=X05 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K01",
         "K11",
@@ -6676,7 +6688,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=X06 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K01",
         "K11",
@@ -6749,7 +6761,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=X07 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K01",
         "K11",
@@ -6820,7 +6832,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=B01 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K03",
         "K04",
@@ -6902,7 +6914,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=B02 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K03",
         "K04",
@@ -6979,7 +6991,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=B03 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K03",
         "K04",
@@ -7059,7 +7071,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=B04 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K03",
         "K04",
@@ -7144,7 +7156,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=B05 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K03",
         "K04",
@@ -7229,7 +7241,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=B06 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K03",
         "K04",
@@ -7314,7 +7326,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=B07 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K03",
         "K04",
@@ -7394,7 +7406,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=B08 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K03",
         "K04",
@@ -7467,7 +7479,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "getTarget('detail') 返回详情面板根；其他 id 交给 TreeView.getTarget，节点 id 若为 'detail' 将无法通过本块 getTarget 取到树项。",
         "details 按节点 id 建表并整体替换；字段可为数组或键值对象，内容可为纯文本或宿主 DOM（节点被移入，不克隆）。",
         "详情滚动区单独局部滚动，目录树也有独立局部滚动；窄容器改为上下布局。",
-        "不提供异步加载、树搜索、多选或拖拽；这些不属于本轮组合范围。"
+        "不提供异步加载、树搜索、多选或拖拽；这些不属于组合范围。"
       ],
       "status": "verified",
       "verification": [
@@ -7475,7 +7487,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=B09 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K03",
         "K04",
@@ -7559,7 +7571,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "条目级证据：最终 gallery 与 examples/run.html?id=B10 均实际渲染；详见 docs；可使用 tests/checks/audit.mjs 重跑核对"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K03",
         "K04",
@@ -8026,33 +8038,25 @@ window.NOTE_LIBRARY_REGISTRY = {
       ],
       "customizable": [
         "Frame 与 Transition 定义（actions/parallel 或 scene）",
-        "Binding 布局与插槽",
-        "内置或自定义 Adapter（sceneModes / prepareChange 扩展）",
-        "字幕与三类标记",
-        "scene 的 layout/cut/reveal 与 timing（含值替换阶段）",
-        "matrix 作为 scene cut 稳定参照",
-        "默认舞台的字幕预留、字幕身份标签与稳定操作位置",
-        "结果区由宿主 layout 装配（公共舞台不强制右侧栏）",
-        "D01 的 summary/stateText/stable 显示选择",
-        "串行或并行动作组合",
-        "减少动效与受控状态",
-        "scene update 模式与 Adapter.defaultSceneMode",
-        "scene 参与者 after 依赖与 ready/finished gate",
-        "Adapter.sceneTimingDefaults 与 scene.bindings[i].timing",
-        "cueDuration 与 Matrix stateText",
-        "scene.attention 的注意顺序、观察停留与焦点框实际到达/收尾",
-        "attention 到达后才启动对应 Binding 内容效果的公共门控",
-        "attention 场景的公共内容节奏（与普通 scene 隔离）",
+        "Binding 布局与插槽；layout 可选 cleanup",
+        "内置或自定义 Adapter（sceneModes / prepareChange / groups / sourceElements）",
+        "字幕与三类标记；默认舞台字幕预留与稳定操作位置",
+        "scene 的 layout/update/cut/reveal 与 timing",
+        "scene.attention：观察顺序、groups、holdDuration、range、stepDuration",
+        "未分组 Binding 整 Binding 门控；命名效果组按组放行",
+        "PreparedChange.sourceElements 来源保持与 EffectSpec.handoff:'hold' 局部终态交接",
+        "scene update 与 Adapter.defaultSceneMode；after/ready/finished 依赖",
+        "减少动效、取消、回退、重看、重来与两会话隔离",
         "NoteDemo.compile 快照简写与 NoteDemo.collectSlots 槽位检查",
-        "自定义 layout 的 required slots 与可选 cleanup"
+        "默认舞台（mount）或自备 presentation port（create）"
       ],
       "states": [
         "初始停点恢复",
         "相邻动作过渡",
         "串行/并行动作",
-        "scene 完整目标画面过渡（layout/cut/reveal）",
+        "scene 完整目标画面过渡（layout/update/cut/reveal）",
         "scene 目标括线与 objects-settled 揭示",
-        "matrix 在 scene 中同步换关注 cues",
+        "matrix / expression 等内置 Adapter 的 scene 更新",
         "值替换的旧值→新值视觉阶段与取消清理",
         "默认舞台字幕/操作位置稳定与开发说明折叠",
         "字幕换句轻提示与取消/回退/减少动效清理",
@@ -8062,20 +8066,19 @@ window.NOTE_LIBRARY_REGISTRY = {
         "减少动效",
         "两会话隔离与销毁",
         "update 的内容/关注受控过渡与源视觉保持",
-        "after 依赖与循环拒绝",
-        "ready/finished 边界与正常完成清理",
+        "after 依赖与循环拒绝；ready/finished 边界",
         "keyed Frame.marks 延续",
-        "参数 0/未知字段/非法值的定义期拒绝",
+        "definition/timing/attention/range 非法值定义期拒绝",
         "效果创建失败定位、清理与来源恢复",
         "Matrix 源标签快照与可见/可访问状态分离",
-        "Expression 稳定载体、同 ID 换值与 cue-only",
+        "Expression 稳定载体、同 ID 换值与 {part:'body'} 内容区域",
         "DOM 根内局部值交换",
-        "作者声明的单一焦点框按 A→B→项→和→结果顺序交接",
-        "attention 场景使用较慢的公共识别节奏、局部柔光框与软出现；普通 scene 保持原默认",
-        "焦点实际到达目标前内容保持源视觉/隐藏；到达后才启动对应效果，焦点等待内容 ready 后再离开",
-        "焦点显示期间按真实 rect 跟随目标；稳定参照可重复访问"
+        "会话级焦点框按作者序列交接；到达后放行组，最后弱化保留，正常下一步承接",
+        "attention 真实到达后才启动对应内容组；未启动内容保持来源视觉",
+        "活动期跟随真实目标；weak 静止期停止逐帧，仅按布局事件重测",
+        "groups 省略/空数组/非空数组分别表示默认门控/只观察/按组放行"
       ],
-      "usage": "var session = NoteDemo.create({ definition: definition, slots: { main: host } }); session.subscribe(function (state) {}); session.next().then(function (result) {}); // scene: transitions:[{from,to,scene:{bindings:[{binding,mode:'layout'|'update'|'cut'|'reveal',after?,at?,timing?}], attention:{targets:[{binding,query,holdDuration?}],stepDuration?}}}]; // 作者简写: var def = NoteDemo.compile({bindings,initial,steps}); var slots = NoteDemo.collectSlots(root, ['main'])",
+      "usage": "var session = NoteDemo.create({ definition, slots, adapters? }); // 运行核心，自备舞台/呈现\nvar mounted = NoteDemo.mount(host, { definition, layout?, adapters?, title?, label? }); // 默认舞台，依赖 demo-ui\n// Definition: frames[...] + transitions[...]，Transition 二选一 actions/parallel 或 scene\n// scene: { bindings:[{binding, mode:'layout'|'update'|'cut'|'reveal', after?, at?, timing?}], timing?, attention?:{ targets:[{binding, query, groups?, holdDuration?, range?}], stepDuration? } }\n// 作者简写: NoteDemo.compile({bindings, initial, steps}); NoteDemo.collectSlots(root, ['main'])",
       "dependencies": [
         "core"
       ],
@@ -8100,7 +8103,8 @@ window.NOTE_LIBRARY_REGISTRY = {
         "src/demo/adapters/expression.js",
         "src/demo/adapters/index.js",
         "src/demo/authoring.js",
-        "src/demo/index.js"
+        "src/demo/index.js",
+        "src/demo/scene-control.css"
       ],
       "dist": [
         "dist/modules/demo-runtime.js",
@@ -8112,6 +8116,10 @@ window.NOTE_LIBRARY_REGISTRY = {
       "preview": "gallery/index.html#I07",
       "example": "examples/run.html?id=I07",
       "limitations": [
+        "scene.attention 只给作者明确列出的目标序列交接一个会话级焦点框；不从内容、Adapter 或数据变化自动猜教学重点。首次软出现，本步收束后弱化保留并静止，正常下一步承接；取消/回退/重看/重来/销毁按导航策略隐藏或重启，减少动效不建/不迁移。内容启动使用 Focus 真实到达句柄，ready 与观察停留由 scene 协调，最后落点不倒计时。未声明 groups 的 Binding 仍是整 Binding 门控（同一 Binding 一次 attention 只允许一个默认目标，重复目标与 cut 内容门控拒绝）；声明效果组的 Adapter 可按组放行，groups:[] 仅观察不启动内容；cut 只观察允许、不能作为内容门控；稳定参照可重复访问；未列入 attention 的成员不自动延后。",
+        "命名效果组是 Adapter opt-in 能力：未分组 Adapter 的 attention 仍以整个 Binding 为门控；组内图形/文字/提示覆盖由 Adapter 负责，公共层不自动推断。",
+        "PreparedChange.sourceElements 只恢复仍在 DOM 中的元素的 opacity/visibility/display；EffectSpec.handoff:'hold' 只用于 WAAPI 目标内容效果，progress 的终态由 update(1) 保持；两者都不替代任意作者重绘的修正。",
+        "默认舞台 NoteDemo.mount 由 demo-ui 分发模块提供；只加载 demo-runtime 的宿主需自备 slots，UI 入口仍携带 blocks 及其传递依赖。",
         "frames 为有序线性停点，不实现分支剧情、自动串播、暂停恢复或可视化编辑器。",
         "内置 Adapter 覆盖 matrix、sequence、sequence-edit、sequence-insert、dom、expression；其他图形用本地自定义 Adapter 接入（cut/reveal 可 restore-only，layout/update 需 prepareChange），不建设通用 HTML 解释器。D02 支持 cut/update，不支持 layout/reveal 与行列重排；expression 默认 layout，稳定 part 载体已接入，但退出副本仍使用私有固定坐标层。",
         "scene 只实现窄 HTML 布局过渡：布局载体只做位移，不通过 scale 处理尺寸变化，不覆盖 SVG 内部 transform，不提供任意时间轴；D02–D06 未全部迁移 scene。matrix 支持 scene cut/update，不支持 layout/reveal 与行列重排。",
@@ -8119,10 +8127,8 @@ window.NOTE_LIBRARY_REGISTRY = {
         "结果区不是默认舞台的必需结构：是否有结果、放在哪里、如何标注由宿主 layout 决定；公共层只保证字幕身份与换句提示，不会自动把宿主结果改成读数样式。字幕提示是整句淡入，不按字数延长朗读时间。",
         "值替换旧值 ghost 由各 Adapter 通过私有 effects 工具按自身波形创建，仅视觉且 aria-hidden；不改变模型、不进入读回，取消或减少动效时立即移除；自定义 Adapter 不自动获得该 staging。",
         "scene 关系提示写在目标 Frame.marks；运行期不接受 transition.marks。目标 Frame 有 marks 时自备宿主需传 presentation port；D01 离场不生成 ghost，删除证据用目标状态/标签表达。",
-        "默认舞台 NoteDemo.mount 由 demo-ui 分发模块提供；只加载 demo-runtime 的宿主需自备 slots，UI 入口仍携带 blocks 及其传递依赖。",
         "Frame 只保存数据与提示，不保存 Element、函数、像素坐标、Promise 或私有撤销历史；运行期间公共层管理受控视图，宿主不同时写同一视图。",
         "不实现跨会话共享、持久化或事务日志；动作/scene 失败只尝试恢复最近已停稳 Frame。",
-        "scene.attention 只给作者明确列出的一个目标序列交接一个焦点框；不从内容、Adapter 或数据变化自动猜教学重点。焦点框需要默认舞台 presentation/NoteExpr.Focus，减少动效时不迁移也不增加等待；结算后焦点框不保留为证据。内容启动使用 Focus 的真实到达句柄，焦点离开等待作者观察停留与 scene 成员 ready，不靠累计时长或固定 settle/exit。协调粒度是 Binding：同一参与内容变化的 Binding 在一次 attention 中只允许一个目标，重复目标与 cut 目标会明确报错；稳定参照可重复访问但不重启内容；未列入 attention 的成员不会自动延后。",
         "NoteDemo.compile 只按整个 Binding 替换视图并生成相邻 transitions；不深合并、不推断 actions、不为未声明的变化自动造 cut。layout 回调返回前抛错时，其内部已创建的局部资源仍由 layout 自行清理；公共层只能清理已返回的 cleanup。",
         "Matrix 的 update 仍是整表重建后做源/目标样式过渡，不是局部 cue 增量；Expression 已保留项载体和 Math，但退出副本仍使用私有固定坐标层。外部 Focus 自动进入目标 Binding.ready、普通非 scene 帧的 keyed 标记仍未接入；cut 不支持 after。"
       ],
@@ -8147,7 +8153,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "2026-10-31 聚焦软出现修正：发现 presentation 在启动 attention 时先 show 首目标、随后 step 又 show 一次，第二次 show 取消首帧入场动画，导致焦点框瞬间直出。删除重复首帧 show；Focus 增加 entrance:'soft'（320ms 淡入 + 上浮/缩放 .93→1），attention 使用该软出现；普通 Focus 标记保持原 220ms。真实 Edge 逐帧确认 opacity/transform 入场动画不再被取消；public-transition 35/35、ui 140/140、integration 160/160；构建/check 通过；观感仍待本轮实际观看。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增公共能力，未获用户评价；技术核验不替代观感认可",
+      "reviewScope": "新增公共能力，未获用户评价；技术核验不替代观感认可",
       "consensus": [
         "K03",
         "K04",
@@ -8157,7 +8163,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "K16"
       ],
       "docs": "docs/公共编排层.md",
-      "notes": "I07 只计一次公共能力；matrix、sequence、sequence-edit、sequence-insert、dom 适配器、scene 执行文件与 demo-ui 分发模块不另计组件 ID。"
+      "notes": "I07 只计一次公共能力；matrix、sequence、sequence-edit、sequence-insert、dom 适配器、scene 执行文件与 demo-ui 分发模块不另计组件 ID。mount 默认舞台依赖 demo-ui 及其传递依赖；只加载 demo-runtime 时使用 create 并自备 presentation port。"
     }
   ]
 };

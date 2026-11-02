@@ -30,7 +30,7 @@
         "颜色 tone 只作视觉标识，不承载状态语义。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K01", "K11", "K13"],
       "docs": "docs/ui-extended.md#X01",
       "notes": "update() 不触发用户事件；图片失败状态只影响回退呈现。"
@@ -55,7 +55,7 @@
         "窄容器中控件允许换行，当前页计数和按钮文字保持可读。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K01", "K11", "K13"],
       "docs": "docs/ui-extended.md#X02",
       "notes": "当前页使用位置文字、圆点形状和 aria-current 共同表达；隐藏页同时设置 aria-hidden 与 inert。"
@@ -79,7 +79,7 @@
         "星星同时用实心/空心字形与可见数字值表达，不只依赖颜色。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K01", "K11", "K13"],
       "docs": "docs/ui-extended.md#X03",
       "notes": "onChange(value,event) 只来自用户点击或键盘；getValue() 与 update() 不触发回调。"
@@ -103,7 +103,7 @@
         "窄视口下列面板可能横向滚动；面板高度限制为视口内局部滚动，不撑破页面。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K01", "K11", "K13"],
       "docs": "docs/ui-extended.md#X04",
       "notes": "onChange(valueArray, pathNodes, event) 的 pathNodes 是宿主原始节点对象；getValue() 返回路径值副本，update() 不触发回调。"
@@ -128,7 +128,7 @@
         "程序 update() 不触发 onChange；用户选择或显式清空才触发。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K01", "K11", "K13"],
       "docs": "docs/ui-extended.md#X05",
       "notes": "严格复用 N07 TreeView；onChange(value, selectedNodes, event) 的 selectedNodes 是按当前选择顺序找到的宿主原始节点。"
@@ -152,7 +152,7 @@
         "它是穿梭选择控件；NoteViz.Transfer 是对象传递演示，两者用途和语义不同，不互相伪装。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K01", "K11", "K13"],
       "docs": "docs/ui-extended.md#X06",
       "notes": "onChange(targetValues, movedValues, event) 的第一参数是移动后目标列值，第二参数是本次移动的原始值；getValue() 返回目标列值副本。"
@@ -177,7 +177,7 @@
         "命令面板不是业务后台、账号命令中心或远程命令代理；命令 run 必须由宿主提供本地行为。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K01", "K11", "K13"],
       "docs": "docs/ui-extended.md#X07",
       "notes": "分组按命令首次出现顺序保留；程序 update() 不触发命令执行；run 的返回值和异常由宿主处理。"

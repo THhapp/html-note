@@ -156,6 +156,8 @@
     0 10px 28px color-mix(in srgb, var(--nx-accent) 18%, transparent),
     inset 0 0 20px color-mix(in srgb, var(--nx-accent) 6%, transparent);
   will-change: left, top, width, height;
+  /* weak/restore 只改强调；≤160ms 过渡由这里承载，不新增循环。 */
+  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
 }
 
 .note-demo-attention .nx-focus__box::before {
@@ -167,6 +169,17 @@
   box-shadow: 0 0 26px color-mix(in srgb, var(--nx-accent) 20%, transparent);
   pointer-events: none;
   animation: note-demo-attention-breathe 3.2s cubic-bezier(.37, 0, .63, 1) infinite;
+}
+
+/* weak：停稳后的低强调线索。Focus 组件负责虚线/低强调基础视觉；
+ * 这里只关闭 attention 专属呼吸光晕，避免弱化后仍有循环动画。 */
+.note-demo-attention[data-nx-emphasis="weak"] .nx-focus__box::before {
+  animation: none;
+  opacity: .55;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .note-demo-attention[data-nx-emphasis="weak"] .nx-focus__box::before { animation: none; }
 }
 
 @keyframes note-demo-attention-breathe {

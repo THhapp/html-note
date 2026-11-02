@@ -69,8 +69,10 @@
     var reportError = typeof config.reportError === 'function' ? config.reportError : null;
     var onUnexpected = typeof config.onUnexpected === 'function' ? config.onUnexpected : null;
     var finishCaptionHint = typeof config.finishCaptionHint === 'function' ? config.finishCaptionHint : null;
+    var getCause = typeof config.getCause === 'function' ? config.getCause : null;
 
     var destroyed = false;
+    var currentState = null;
     var slots = [];
     var reportedMissing = {};
     var reportedCount = 0;
@@ -78,7 +80,13 @@
     var following = false;
     var followRaf = 0;
     var sceneState = null;
-    var sceneAttention = null;
+    /* 会话焦点：每个 presenter 懒创建一次，跨 attention 场景复用，由 settle/cancel/导航决定 weak/hide。 */
+    var focusSession = null;
+    var focusRegistry = typeof global.Map === 'function' ? new global.Map() : null;
+    var attentionRun = null;
+    var lastFocusDesc = null;
+    var focusShowCount = 0;
+    var navFocusBaseline = -1;
 
     /* scene 受控标记共享的几何提供器：commit 期间冻结目标几何，settle 后回到实时测量。 */
     var sceneGeometry = {
@@ -490,131 +498,399 @@
       }
     }
 
-    /* ---------------- scene attention（作者声明的注意交接） ---------------- */
+    /* ---------------- 会话焦点（attention 复用、弱化保留与承接） ---------------- */
 
-    /* 只显示一个连续 Focus 框，按作者给出的顺序迁移；不新增标签、不遮罩其他区域。 */
-    function destroySceneAttention() {
-      var ctrl = sceneAttention;
-      if (!ctrl) return;
-      sceneAttention = null;
-      ctrl.closed = true;
-      if (ctrl.timer) {
-        try { global.clearTimeout(ctrl.timer); } catch (error) { /* ignore */ }
-        ctrl.timer = 0;
+    /* Focus 实例懒创建一次，跨 attention 场景复用；weak/restore/reanchor 由 Focus 实现，
+     * presentation 只决定何时 show/weak/hide，不直接改弱化类或动画。 */
+
+    var focusGeometry = {
+      rect: function (element) {
+        return measureFocusRect(element);
       }
-      if (ctrl.instance) {
-        try { ctrl.instance.destroy(); } catch (error) { /* ignore */ }
-      }
-      if (typeof ctrl.resolve === 'function') ctrl.resolve(false);
+    };
+
+    function zeroRect() {
+      return { left: 0, top: 0, width: 0, height: 0, right: 0, bottom: 0 };
     }
 
-    function startSceneAttention(attention, frameId, coordinator) {
-      destroySceneAttention();
-      if (!attention || !Array.isArray(attention.targets) || attention.targets.length === 0) return null;
-      /* 减少动效不做迁移，也不增加执行窗口；内容和稳定终态仍完整。 */
-      if (prefersReducedMotion()) return null;
+    function rawRectOf(element) {
+      if (!element || typeof element.getBoundingClientRect !== 'function') return zeroRect();
+      var raw = element.getBoundingClientRect();
+      return {
+        left: raw.left, top: raw.top, right: raw.right, bottom: raw.bottom,
+        width: raw.width, height: raw.height
+      };
+    }
+
+    function unionRectOf(rects) {
+      if (!rects || !rects.length) return zeroRect();
+      var left = Infinity;
+      var top = Infinity;
+      var right = -Infinity;
+      var bottom = -Infinity;
+      for (var i = 0; i < rects.length; i += 1) {
+        var rect = rects[i];
+        if (!rect) continue;
+        if (rect.left < left) left = rect.left;
+        if (rect.top < top) top = rect.top;
+        if (rect.right > right) right = rect.right;
+        if (rect.bottom > bottom) bottom = rect.bottom;
+      }
+      if (!isFinite(left) || !isFinite(top)) return zeroRect();
+      return { left: left, top: top, right: right, bottom: bottom, width: Math.max(0, right - left), height: Math.max(0, bottom - top) };
+    }
+
+    function numberOr(value, fallback) {
+      var number = typeof value === 'number' ? value : Number(value);
+      return isFinite(number) ? number : fallback;
+    }
+
+    function measureFocusRect(element) {
+      if (focusRegistry) {
+        var entry = focusRegistry.get(element);
+        if (entry && typeof entry.measure === 'function') return entry.measure();
+      }
+      return rawRectOf(element);
+    }
+
+    function sessionFocusView() {
+      if (destroyed || !focusSession) return null;
+      return focusSession.view || null;
+    }
+
+    function ensureSessionFocus() {
+      if (destroyed) return null;
+      if (focusSession) return focusSession;
       var Focus = global.NoteExpr && global.NoteExpr.Focus;
       if (!Focus || typeof Focus.mount !== 'function') {
-        throw new Error('scene attention 需要先加载 NoteExpr.Focus（用于按注意顺序迁移局部焦点框）。');
+        throw new Error('scene attention 需要先加载 NoteExpr.Focus（用于会话焦点）。');
       }
-      var elements = [];
-      for (var i = 0; i < attention.targets.length; i += 1) {
-        var ref = attention.targets[i];
-        var element = resolveTarget(ref);
-        if (!element) {
-          throw new Error('Frame "' + text(frameId) + '" 的 attention 目标缺失：Binding "' +
-            text(ref && ref.binding) + '"，query ' + readQuery(ref && ref.query) + '。');
+      var view = Focus.mount({ motion: 'auto', entrance: 'soft', zIndex: 1300, geometry: focusGeometry });
+      try {
+        view.el.classList.add('note-demo-attention');
+        view.el.style.setProperty('--nx-accent', 'var(--hnv-color-accent, #315cda)');
+      } catch (error) { /* 保持默认外观 */ }
+      focusSession = { view: view };
+      return focusSession;
+    }
+
+    function hideSessionFocus() {
+      var view = sessionFocusView();
+      if (!view) return;
+      try { view.hide(); } catch (error) { logError('NoteDemo presentation：隐藏会话焦点失败。', error); }
+      lastFocusDesc = null;
+      if (focusRegistry) focusRegistry.clear();
+    }
+
+    function destroySessionFocus() {
+      var session = focusSession;
+      focusSession = null;
+      lastFocusDesc = null;
+      if (focusRegistry) focusRegistry.clear();
+      if (!session || !session.view) return;
+      try { session.view.destroy(); } catch (error) { logError('NoteDemo presentation：销毁会话焦点失败。', error); }
+    }
+
+    /* settle 时弱化保留；旧 Focus 没有 weak 生命周期时退化为隐藏，避免停稳后留活动框。 */
+    function weakSessionFocus() {
+      var view = sessionFocusView();
+      if (!view || !view.visible) return false;
+      if (typeof view.weak !== 'function') {
+        hideSessionFocus();
+        return false;
+      }
+      try {
+        view.weak();
+        return true;
+      } catch (error) {
+        logError('NoteDemo presentation：弱化会话焦点失败。', error);
+        hideSessionFocus();
+        return false;
+      }
+    }
+
+    /* ---------------- attention target resolution（range local/union） ---------------- */
+
+    function missingAttentionError(frameId, index, target, detail) {
+      return new Error('Frame "' + text(frameId) + '" 的 attention 目标缺失（第 ' + (index + 1) +
+        ' 个目标，Binding "' + text(target && target.binding) + '"，query ' + readQuery(target && target.query) + '）' +
+        (detail ? '：' + detail : '') + '。');
+    }
+
+    function makeAttentionMeasure(desc) {
+      return function measure() {
+        var main = desc.mainElement;
+        if (!main || !isConnected(main)) throw new Error('attention 目标元素已断开。');
+        var base = rawRectOf(main);
+        if (!desc.range) return base;
+        if (desc.range.kind === 'local') {
+          var dx = numberOr(desc.range.dx, 0);
+          var dy = numberOr(desc.range.dy, 0);
+          var width = Math.max(0, numberOr(desc.range.width, base.width));
+          var height = Math.max(0, numberOr(desc.range.height, base.height));
+          return {
+            left: base.left + dx, top: base.top + dy,
+            width: width, height: height,
+            right: base.left + dx + width, bottom: base.top + dy + height
+          };
         }
-        elements.push(element);
+        /* union：主元素 + refs 的并集；refs 每次重新解析以适配组件重建。 */
+        var rects = [base];
+        for (var i = 0; i < desc.unionRefs.length; i += 1) {
+          var entry = desc.unionRefs[i];
+          var element = resolveTarget(entry.ref) || entry.element;
+          if (!element || !isConnected(element)) {
+            throw new Error('attention union ref 目标已断开：Binding "' + text(entry.ref && entry.ref.binding) + '"。');
+          }
+          entry.element = element;
+          rects.push(rawRectOf(element));
+        }
+        return unionRectOf(rects);
+      };
+    }
+
+    function resolveAttentionTarget(target, frameId, index) {
+      var binding = target && typeof target.binding === 'string' ? target.binding : '';
+      var query = target ? target.query : null;
+      var main = resolveTarget({ binding: binding, query: query });
+      if (!main) throw missingAttentionError(frameId, index, target, 'Binding 目标不可解析');
+      var desc = {
+        target: target,
+        frameId: text(frameId),
+        index: index,
+        binding: binding,
+        query: query,
+        range: target && target.range ? target.range : null,
+        unionRefs: [],
+        mainElement: main,
+        measure: null
+      };
+      if (desc.range && typeof desc.range === 'object') {
+        if (desc.range.kind === 'union') {
+          var refs = Array.isArray(desc.range.refs) ? desc.range.refs : [];
+          for (var r = 0; r < refs.length; r += 1) {
+            var ref = refs[r];
+            var element = resolveTarget(ref);
+            if (!element) {
+              throw missingAttentionError(frameId, index, target, 'union ref 目标不可解析：Binding "' +
+                text(ref && ref.binding) + '"，query ' + readQuery(ref && ref.query));
+            }
+            desc.unionRefs.push({ ref: ref, element: element });
+          }
+        } else if (desc.range.kind !== 'local') {
+          throw new Error('Frame "' + text(frameId) + '" 的 attention range 未知类型：' + text(desc.range.kind) + '。');
+        }
+      }
+      desc.measure = makeAttentionMeasure(desc);
+      if (focusRegistry) focusRegistry.set(main, { measure: desc.measure });
+      return desc;
+    }
+
+    /* DOM 重建后重新解析同一逻辑目标并静默 reanchor；缺失返回 false 由调用方隐藏。 */
+    function reanchorFocusTo(desc) {
+      var view = sessionFocusView();
+      if (!view || !desc) return false;
+      var main = resolveTarget({ binding: desc.binding, query: desc.query });
+      if (!main) return false;
+      if (main !== desc.mainElement) {
+        if (focusRegistry) focusRegistry.delete(desc.mainElement);
+        desc.mainElement = main;
+        if (focusRegistry) focusRegistry.set(main, { measure: desc.measure });
+      }
+      if (typeof view.reanchor !== 'function') return true;
+      try {
+        view.reanchor({ el: main, geometry: focusGeometry });
+        return true;
+      } catch (error) {
+        logError('NoteDemo presentation：会话焦点 reanchor 失败。', error);
+        return false;
+      }
+    }
+
+    function refreshSessionFocus() {
+      if (!lastFocusDesc) return;
+      var view = sessionFocusView();
+      if (!view || !view.visible) return;
+      if (!reanchorFocusTo(lastFocusDesc)) {
+        hideSessionFocus();
+        return;
+      }
+      try { view.refresh(); } catch (error) { hideSessionFocus(); }
+    }
+
+    /* 无 attention 停点：旧目标仍可解析则保留弱线索，否则清除，不让旧框悬空。 */
+    function keepOrHideWeakFocus() {
+      if (!lastFocusDesc) return;
+      var view = sessionFocusView();
+      if (!view || !view.visible) return;
+      if (!reanchorFocusTo(lastFocusDesc)) {
+        hideSessionFocus();
+        return;
+      }
+      weakSessionFocus();
+    }
+
+    /* ---------------- attention 序列（show → whenArrived → start → ready → 迁移） ---------------- */
+
+    function stopAttention() {
+      var ctrl = attentionRun;
+      if (!ctrl) return;
+      attentionRun = null;
+      ctrl.closed = true;
+      if (ctrl.resolve) ctrl.resolve(false);
+    }
+
+    function showAttentionTarget(desc) {
+      var session;
+      try {
+        session = ensureSessionFocus();
+      } catch (error) {
+        return Promise.reject(error);
+      }
+      if (!session) return Promise.resolve(false);
+      if (focusRegistry) focusRegistry.set(desc.mainElement, { measure: desc.measure });
+      var view = session.view;
+      try {
+        view.show({ el: desc.mainElement, geometry: focusGeometry });
+        focusShowCount += 1;
+      } catch (error) {
+        return Promise.reject(error);
+      }
+      return typeof view.whenArrived === 'function' ? Promise.resolve(view.whenArrived()) : Promise.resolve(true);
+    }
+
+    function finishAttention(ctrl) {
+      if (ctrl.closed) return;
+      ctrl.closed = true;
+      if (attentionRun === ctrl) attentionRun = null;
+      if (ctrl.resolve) ctrl.resolve(true);
+    }
+
+    function failAttention(ctrl, error) {
+      if (ctrl.closed) return;
+      ctrl.closed = true;
+      if (attentionRun === ctrl) attentionRun = null;
+      logError('NoteDemo presentation：attention 协调失败。', error);
+      if (ctrl.resolve) ctrl.resolve(false);
+    }
+
+    function stepAttention(ctrl, index) {
+      if (ctrl.closed || attentionRun !== ctrl) return;
+      if (index >= ctrl.descs.length) {
+        finishAttention(ctrl);
+        return;
+      }
+      var desc = ctrl.descs[index];
+      showAttentionTarget(desc).then(function (arrived) {
+        if (ctrl.closed || attentionRun !== ctrl) return;
+        if (arrived === false) {
+          /* 到达被新的运行取代且没有走取消路径：结算本次 attention，避免运行悬挂。 */
+          failAttention(ctrl, new Error('attention 目标到达被新的运行取代。'));
+          return;
+        }
+        ctrl.current = index;
+        lastFocusDesc = desc;
+        var ready;
+        try {
+          if (ctrl.coordinator && typeof ctrl.coordinator.start === 'function') ctrl.coordinator.start(index);
+          ready = ctrl.coordinator && typeof ctrl.coordinator.ready === 'function'
+            ? Promise.resolve(ctrl.coordinator.ready(index))
+            : Promise.resolve(true);
+        } catch (error) {
+          failAttention(ctrl, error);
+          return;
+        }
+        ready.then(function () {
+          if (ctrl.closed || attentionRun !== ctrl) return;
+          stepAttention(ctrl, index + 1);
+        }, function (error) {
+          failAttention(ctrl, error);
+        });
+      }, function (error) {
+        failAttention(ctrl, error);
+      });
+    }
+
+    /* 开始本次 attention：先解析全部目标（缺失在这里明确抛错），再按顺序迁移。
+     * ready(index) 已包含观察停留与最后落点规则，这里不再叠加 waitHold。 */
+    function startSceneAttention(attention, frameId, coordinator) {
+      stopAttention();
+      if (!attention || !Array.isArray(attention.targets) || attention.targets.length === 0) return null;
+      if (prefersReducedMotion()) {
+        /* 减少动效：不解析目标、不迁移、不增加等待；本步不保留旧会话焦点。
+         * 场景仍在 settle 后落正确终态。 */
+        if (sceneState) sceneState.reducedAttention = true;
+        hideSessionFocus();
+        return null;
+      }
+      var descs = [];
+      for (var i = 0; i < attention.targets.length; i += 1) {
+        descs.push(resolveAttentionTarget(attention.targets[i], frameId, i));
       }
       var ctrl = {
-        instance: null,
-        timer: 0,
         closed: false,
         resolve: null,
-        done: null
+        done: null,
+        descs: descs,
+        current: 0,
+        coordinator: coordinator,
+        reduced: false
       };
       ctrl.done = new Promise(function (resolve) { ctrl.resolve = resolve; });
-      var instance = Focus.mount({ motion: 'auto', entrance: 'soft', zIndex: 1300 });
-      try {
-        instance.el.classList.add('note-demo-attention');
-        instance.el.style.setProperty('--nx-accent', 'var(--hnv-color-accent, #315cda)');
-      } catch (error) { /* keep default */ }
-      ctrl.instance = instance;
-      sceneAttention = ctrl;
-      var index = 0;
-      function fail(error) {
-        if (ctrl.closed) return;
-        ctrl.closed = true;
-        logError('NoteDemo presentation：attention 协调失败。', error);
-        if (typeof ctrl.resolve === 'function') ctrl.resolve(false);
-      }
-      function finish() {
-        if (ctrl.closed) return;
-        ctrl.closed = true;
-        if (instance) {
-          try { instance.hide(); } catch (error) { /* keep completion */ }
-        }
-        var hidden = instance && typeof instance.whenHidden === 'function'
-          ? Promise.resolve(instance.whenHidden()).then(function () { return true; }, function () { return true; })
-          : Promise.resolve();
-        hidden.then(function () {
-          if (typeof ctrl.resolve === 'function') ctrl.resolve(true);
-        });
-      }
-      function holdFor(i) {
-        var target = attention.targets[i];
-        var hold = target && typeof target.holdDuration === 'number' && target.holdDuration > 0
-          ? target.holdDuration : attention.stepDuration;
-        return Math.max(0, hold);
-      }
-      function waitHold(ms) {
-        return new Promise(function (resolve) {
-          ctrl.timer = global.setTimeout(function () {
-            ctrl.timer = 0;
-            resolve();
-          }, ms);
-        });
-      }
-      function step() {
-        if (ctrl.closed) return;
-        if (index >= elements.length) {
-          finish();
-          return;
-        }
-        var targetIndex = index;
-        var arrived;
-        try {
-          instance.show(elements[targetIndex]);
-          arrived = typeof instance.whenArrived === 'function' ? instance.whenArrived() : Promise.resolve(true);
-        } catch (error) {
-          fail(error);
-          return;
-        }
-        Promise.resolve(arrived).then(function (ok) {
-          if (ctrl.closed || ok === false) return;
-          var ready;
-          try {
-            if (coordinator && typeof coordinator.start === 'function') coordinator.start(targetIndex);
-            ready = coordinator && typeof coordinator.ready === 'function'
-              ? Promise.resolve(coordinator.ready(targetIndex)) : Promise.resolve(true);
-          } catch (error) {
-            fail(error);
-            return;
-          }
-          Promise.all([ready, waitHold(holdFor(targetIndex))]).then(function () {
-            if (ctrl.closed) return;
-            index += 1;
-            step();
-          }, function (error) {
-            fail(error);
-          });
-        }, function (error) {
-          fail(error);
-        });
-      }
-      step();
+      attentionRun = ctrl;
+      ensureSessionFocus();
+      lastFocusDesc = null;
+      stepAttention(ctrl, 0);
       return ctrl;
+    }
+
+    /* ---------------- 导航原因与会话焦点的取舍 ---------------- */
+
+    /* 正常 next：保留上一落点（weak）作为承接起点；replay/replayPrevious/go/reset/prev
+     * 属于回看或跳转：先 hide 并清引用，再由本次运行的 attention 重建。 */
+    function normalizeCause(info) {
+      var cause = info && (info.reason || info.cause);
+      if (typeof cause === 'string' && cause) return cause;
+      if (getCause) {
+        try {
+          var external = getCause();
+          if (typeof external === 'string' && external) return external;
+        } catch (error) { /* keep default */ }
+      }
+      if (currentState && currentState.replaying) return 'replay';
+      return 'next';
+    }
+
+    function applyFocusNavigation(state) {
+      if (!focusSession) return;
+      if (state.phase === 'running') {
+        /* 重看/上一步重播：不承接旧落点，hide 后由重播中的 attention 重新显示。
+         * 记录本次运行前的显示次数：若整次运行没有重新显示焦点（如无可运行入边的
+         * 空重看），idle 时保持隐藏，而不是留下旧弱线索。 */
+        if (state.replaying) {
+          hideSessionFocus();
+          navFocusBaseline = focusShowCount;
+        }
+        return;
+      }
+      if (state.phase === 'error' || state.phase === 'disposed') {
+        hideSessionFocus();
+        return;
+      }
+      if (state.phase !== 'idle') return;
+      var cause = null;
+      if (getCause) {
+        try { cause = getCause(); } catch (error) { cause = null; }
+      }
+      if (cause === 'go' || cause === 'reset' || cause === 'prev') {
+        hideSessionFocus();
+        navFocusBaseline = -1;
+        return;
+      }
+      if (cause === 'replay' || cause === 'replayPrevious') {
+        if (navFocusBaseline >= 0 && focusShowCount === navFocusBaseline) hideSessionFocus();
+        navFocusBaseline = -1;
+      }
     }
 
     /* ---------------- scene port（默认舞台的私有呈现服务） ---------------- */
@@ -622,7 +898,10 @@
     /* scene 引擎在目标 commit 前调用：隐藏已有标记、停跟帧、准备目标 Frame 的受控标记。 */
     function prepareScene(info) {
       if (destroyed) return null;
-      destroySceneAttention();
+      var cause = normalizeCause(info);
+      /* 新的运行开始：结束上一次 attention 序列（会话 Focus 实例保留，跨场景复用）。 */
+      stopAttention();
+      if (cause !== 'next') hideSessionFocus();
       var targetFrame = info && info.targetFrame ? info.targetFrame : null;
       stopSceneScrollFollow();
       stopFollow();
@@ -644,6 +923,10 @@
         marks: targetMarks,
         attention: info && info.attention ? info.attention : null,
         attentionCoordinator: info && info.attentionCoordinator ? info.attentionCoordinator : null,
+        attentionCtrl: null,
+        hadAttention: !!(info && info.attention && Array.isArray(info.attention.targets) && info.attention.targets.length),
+        reducedAttention: false,
+        cause: cause,
         held: false,
         heldFrameId: null
       };
@@ -655,8 +938,9 @@
          * attention 属于本次运行内容，仍按真实收尾等待。 */
         finished: function () {
           if (finishCaptionHint) finishCaptionHint();
-          var attentionDone = sceneAttention && sceneAttention.done && typeof sceneAttention.done.then === 'function'
-            ? sceneAttention.done.then(function () { return true; }, function () { return false; })
+          var ctrl = sceneState && sceneState.attentionCtrl;
+          var attentionDone = ctrl && ctrl.done && typeof ctrl.done.then === 'function'
+            ? ctrl.done.then(function () { return true; }, function () { return false; })
             : Promise.resolve(true);
           return attentionDone;
         }
@@ -741,7 +1025,9 @@
           if (previousSlots[p]) destroySlotObject(previousSlots[p]);
         }
         slots = nextSlots;
-        if (state.attention) startSceneAttention(state.attention, state.frameId, state.attentionCoordinator);
+        if (state.attention) {
+          state.attentionCtrl = startSceneAttention(state.attention, state.frameId, state.attentionCoordinator);
+        }
         return { markRoots: markRoots };
       } catch (error) {
         for (var n = 0; n < nextSlots.length; n += 1) destroySlotObject(nextSlots[n]);
@@ -754,10 +1040,14 @@
       }
     }
 
-    /* scene 全部真实效果结束：受控标记转稳定测量并保持到下一次渲染。 */
+    /* scene 全部真实效果结束：受控标记转稳定测量并保持到下一次渲染。
+     * 会话焦点在这里 weak（不销毁、不额外计时），作为下一次正常 next 的承接起点。 */
     function settleScene() {
       if (!sceneState) return;
-      destroySceneAttention();
+      stopAttention();
+      var ctrl = sceneState.attentionCtrl;
+      var hadAttention = !!sceneState.hadAttention;
+      var reducedAttention = !!sceneState.reducedAttention;
       stopSceneScrollFollow();
       sceneGeometry.frozen = false;
       for (var i = 0; i < slots.length; i += 1) {
@@ -774,13 +1064,27 @@
       sceneState.active = false;
       sceneState.held = true;
       sceneState.heldFrameId = sceneState.frameId;
+      /* 有 attention：最后落点弱化保留；减少动效不迁移也不保留本步旧框。
+       * 无 attention：若旧 attention 目标仍可解析则保留弱线索，否则清除。 */
+      if (hadAttention) {
+        if (reducedAttention) {
+          hideSessionFocus();
+        } else {
+          /* DOM 在运行中重建时，先按逻辑引用 reanchor 到当前元素再弱化。 */
+          if (lastFocusDesc) reanchorFocusTo(lastFocusDesc);
+          if (!weakSessionFocus()) hideSessionFocus();
+        }
+      } else {
+        keepOrHideWeakFocus();
+      }
       /* 结算完成后的普通滚动只平移受控标记，不重新选边。 */
       startSceneScrollFollow();
     }
 
-    /* scene 取消：隐藏受控标记的临时状态；后续稳定渲染会重新解析来源 Frame 标记。 */
+    /* scene 取消：隐藏受控标记与本次会话焦点，后续稳定渲染重新解析来源 Frame。 */
     function cancelScene() {
-      destroySceneAttention();
+      stopAttention();
+      hideSessionFocus();
       stopSceneScrollFollow();
       for (var i = 0; i < slots.length; i += 1) {
         var slot = slots[i];
@@ -837,11 +1141,10 @@
 
     /* ---------------- state pipeline ---------------- */
 
-    var currentState = null;
-
     function applyState(state) {
       if (destroyed || !state) return;
       currentState = state;
+      applyFocusNavigation(state);
       if (lastReportedFrameId !== state.settledFrameId) {
         reportedMissing = {};
         reportedCount = 0;
@@ -881,12 +1184,19 @@
       } catch (error) {
         if (onUnexpected) onUnexpected(error);
       }
+      /* DOM 重建后重新解析会话焦点的同一逻辑目标并静默 reanchor；缺失则清除弱线索。 */
+      try {
+        refreshSessionFocus();
+      } catch (error) {
+        if (onUnexpected) onUnexpected(error);
+      }
     }
 
     function teardown() {
       if (destroyed) return;
       destroyed = true;
-      destroySceneAttention();
+      stopAttention();
+      destroySessionFocus();
       stopSceneScrollFollow();
       stopFollow();
       resetSceneGeometry();

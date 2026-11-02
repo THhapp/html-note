@@ -817,6 +817,7 @@ const browser = await chromium.launch({ executablePath: edge, headless: true });
     let replayingSeen = false;
     session.subscribe((state) => { if (state.phase === 'running' && state.replaying) replayingSeen = true; });
     const root = () => host.querySelector('.nviz-sequence');
+    const controlEl = () => host.querySelector('.note-demo-binding');
 
     const first = session.next();
     const second = session.next();
@@ -826,11 +827,12 @@ const browser = await chromium.launch({ executablePath: edge, headless: true });
     });
     await sleep(80);
     check('scene 同步提交完整目标画面', JSON.stringify(orderOf(host)) === JSON.stringify(['p0','e1','p1','e2','p2','p3']), JSON.stringify(orderOf(host)));
-    check('scene 期间暂停受控 CSS transition', root() && root().getAttribute('data-note-scene') === 'true');
+    check('scene 接管实际 Binding 容器', controlEl() && controlEl().getAttribute('data-note-scene-active') === 'true', controlEl() && controlEl().getAttribute('data-note-scene-active'));
+    check('scene 受控内容暂停 CSS transition', root() && getComputedStyle(root().querySelector('.nviz-sequence__cell')).transitionDuration === '0s', root() && getComputedStyle(root().querySelector('.nviz-sequence__cell')).transitionDuration);
     check('scene 有真实布局/内层效果在播放', runningAnimations(root()) >= 4, runningAnimations(root()));
     const firstResult = await first;
     check('scene 完成回到目标停点', firstResult.status === 'completed' && firstResult.frameId === 'stuffed' && session.getState().settledFrameId === 'stuffed');
-    check('scene 完成后无残留动画与临场属性', runningAnimations(root()) === 0 && root().getAttribute('data-note-scene') === 'false');
+    check('scene 完成后无残留动画与临场属性', runningAnimations(root()) === 0 && controlEl() && !controlEl().hasAttribute('data-note-scene-active'));
     check('scene 提交后读回身份与目标值', root().querySelector('[data-id="p1"] .nviz-sequence__value').textContent === '5E' && !!root().querySelector('[data-id="e1"]'));
 
     const replayResult = await session.replay();
@@ -842,7 +844,7 @@ const browser = await chromium.launch({ executablePath: edge, headless: true });
     const cancelResult = await session.prev();
     const sceneResult = await cancelPromise;
     check('scene 中途取消回到来源停点', sceneResult.status === 'cancelled' && session.getState().settledFrameId === 'raw' && cancelResult.status === 'completed' && cancelResult.frameId === 'raw', JSON.stringify({ sceneResult, state: session.getState(), cancelResult }));
-    check('scene 取消后无残留 transform/属性', JSON.stringify(orderOf(host)) === JSON.stringify(['p0','p1','p2','p3']) && runningAnimations(root()) === 0 && root().getAttribute('data-note-scene') === 'false', JSON.stringify({ order: orderOf(host), anims: runningAnimations(root()), attr: root().getAttribute('data-note-scene') }));
+    check('scene 取消后无残留 transform/属性', JSON.stringify(orderOf(host)) === JSON.stringify(['p0','p1','p2','p3']) && runningAnimations(root()) === 0 && controlEl() && !controlEl().hasAttribute('data-note-scene-active'), JSON.stringify({ order: orderOf(host), anims: runningAnimations(root()), attr: controlEl() && controlEl().getAttribute('data-note-scene-active') }));
 
     const goResult = await session.go('raw');
     check('scene go 静态恢复来源', goResult.status === 'completed' && JSON.stringify(orderOf(host)) === JSON.stringify(['p0','p1','p2','p3']));

@@ -306,8 +306,7 @@
     function commit() {
       if (committed) return;
       committed = true;
-      /* 先切换 scene 状态（暂停受控节点原 CSS transition），再同步提交唯一一次完整目标。 */
-      instance.setSceneActive(true);
+      /* 同步提交唯一一次完整目标；公共 bindings 已在 commit 前接管受控内容。 */
       instance.update({
         items: copyItems(targetItems),
         groups: copyGroups(targetGroups),
@@ -356,7 +355,7 @@
     }
 
 
-    function collectValueEffects(specs, byId, timing) {
+    function collectValueEffects(specs, byId, timing, attention) {
       var changedIndex = 0;
       targetItems.forEach(function (item) {
         var before = sourceById[item.id];
@@ -377,7 +376,8 @@
             ghostJustifyContent: 'center',
             ghostKeyframes: [
               { opacity: '1', transform: 'translateY(0)', offset: 0 },
-              { opacity: '1', transform: 'translateY(0)', offset: 0.5 },
+              /* attention 门控时新值更早显现，旧值让位也相应提前；普通字节流程保持原波形。 */
+              { opacity: '1', transform: 'translateY(0)', offset: attention ? 0.3 : 0.5 },
               { opacity: '0', transform: 'translateY(-10px)', offset: 1 }
             ],
             ghostDuration: timing.valueSwapDuration,
@@ -385,7 +385,7 @@
             ghostEasing: 'linear',
             targetKeyframes: [
               { opacity: '0', transform: 'translateY(8px)', offset: 0 },
-              { opacity: '0', transform: 'translateY(8px)', offset: 0.55 },
+              { opacity: '0', transform: 'translateY(8px)', offset: attention ? 0.15 : 0.55 },
               { opacity: '1', transform: 'none', offset: 1 }
             ],
             targetDuration: timing.valueSwapDuration,
@@ -469,12 +469,13 @@
       }
       var ctx = isObject(effectCtx) ? effectCtx : {};
       var timing = effects.mergeTiming(null, ctx.timing, null);
+      var attention = ctx.attention === true;
       var list = instance.getMotionTargets();
       var byId = {};
       (Array.isArray(list) ? list : []).forEach(function (item) { byId[item.id] = item; });
       var specs = [];
       collectEnteredEffects(specs, byId, timing);
-      collectValueEffects(specs, byId, timing);
+      collectValueEffects(specs, byId, timing, attention);
       collectFocusEffects(specs, byId, timing);
       collectCueEffects(specs, byId, timing);
       return specs;
@@ -487,7 +488,6 @@
         try { ghostCleanups[c](); } catch (error) { /* ignore */ }
       }
       ghostCleanups = [];
-      instance.setSceneActive(false);
     }
 
     return {
@@ -520,7 +520,6 @@
         focus: Array.isArray(cues.focus) ? cues.focus.slice() : [],
         changed: Array.isArray(cues.changed) ? cues.changed.slice() : []
       });
-      instance.setSceneActive(false);
     }
 
     function doTarget(query) {
@@ -604,18 +603,18 @@
     Object.keys(provided).forEach(function (key) { mountOptions[key] = provided[key]; });
     var instance = Sequence.mount(host, mountOptions);
     if (typeof instance.getState !== 'function' || typeof instance.getMotionTargets !== 'function' ||
-        typeof instance.setSceneActive !== 'function' || typeof instance.update !== 'function') {
+        typeof instance.update !== 'function') {
       if (typeof instance.destroy === 'function') instance.destroy();
-      throw new Error('sequence Adapter 需要 D01 提供 getState / getMotionTargets / setSceneActive（请加载新版 src/viz/objects-sequence-matrix.js）。');
+      throw new Error('sequence Adapter 需要 D01 提供 getState / getMotionTargets / update（请加载新版 src/viz/objects-sequence-matrix.js）。');
     }
     return createHandle(instance, true);
   }
 
   function adopt(instance) {
     if (!instance || typeof instance.update !== 'function' || typeof instance.getState !== 'function' ||
-        typeof instance.getMotionTargets !== 'function' || typeof instance.setSceneActive !== 'function' ||
+        typeof instance.getMotionTargets !== 'function' ||
         typeof instance.getTarget !== 'function') {
-      fail('adopt 需要一个支持 getState / getMotionTargets / setSceneActive 的 NoteViz.Sequence 实例。');
+      fail('adopt 需要一个支持 getState / getMotionTargets / update 的 NoteViz.Sequence 实例。');
     }
     if (instance.destroyed) fail('adopt 的序列实例已销毁。');
     return createHandle(instance, false);

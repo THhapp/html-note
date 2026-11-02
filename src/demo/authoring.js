@@ -282,6 +282,43 @@
     };
   }
 
+  /* ---------------- 作者图形效果工具（公开包装，不暴露 Internals） ---------------- */
+
+  function effectsApi() {
+    var effects = Internals.effects;
+    if (!effects || typeof effects.captureContent !== 'function') {
+      fail('NoteDemo.effects 需要先加载 demo-runtime 的 effects（src/demo/effects.js）。');
+    }
+    return effects;
+  }
+
+  /* 这些函数是 Adapter/作者侧可用的窄工具：捕获来源内容/样式、生成局部 ghost、
+   * 规划值交换与 cue 差分、读取真实矩形。返回的 spec 仍交给 scene 统一启动/取消/清理。 */
+  NoteDemoAuthor.effects = {
+    captureContent: function (input) { return effectsApi().captureContent(input); },
+    createGhost: function (input) { return effectsApi().createGhost(input); },
+    planValueSwap: function (input) { return effectsApi().planValueSwap(input); },
+    captureStyles: function (targets, properties) { return effectsApi().captureStyles(targets, properties); },
+    planCueChanges: function (input) { return effectsApi().planCueChanges(input); },
+    rectOf: function (element) { return effectsApi().rectOf(element); },
+    /* 复用 range.union 的窄组合：用于把“移动对象 + 它的轨迹/标签”等真实元素
+     * 合成一个观察区域。只返回 Definition 数据，不创建第二套测量或动画。 */
+    unionRange: function (refs) {
+      if (!isArray(refs) || refs.length === 0) {
+        fail('NoteDemo.effects.unionRange(refs) 需要非空的 {binding,query} 数组。');
+      }
+      var output = [];
+      for (var i = 0; i < refs.length; i += 1) {
+        var ref = refs[i];
+        if (!isObject(ref) || typeof ref.binding !== 'string' || !ref.binding || ref.query == null) {
+          fail('NoteDemo.effects.unionRange(refs)[' + i + '] 必须是 {binding,query}。');
+        }
+        output.push({ binding: ref.binding, query: clone(ref.query) });
+      }
+      return { kind: 'union', refs: output };
+    }
+  };
+
   NoteDemoAuthor.collectSlots = collectSlots;
   NoteDemoAuthor.compile = compile;
   NoteDemoAuthor.version = '1.0.0';

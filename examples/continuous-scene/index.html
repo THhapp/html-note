@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>连续画面 · 局部变化与观察</title>
+<link rel="stylesheet" href="../../dist/note-library.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="cs-page">
+  <h1>同一画面里的两个局部变化</h1>
+  <p>一个 Binding 同时提交左格与右格；左格先等焦点到达再改变，右格在轮到自己之前保持来源值。上方记录是辅助信息，随提交同步更新。</p>
+  <section class="cs-demo-card" aria-label="连续画面局部变化示例">
+    <div data-demo-host></div>
+  </section>
+</main>
+<script src="../../dist/note-library.js"></script>
+<script src="scene.js"></script>
+<script src="adapter.js"></script>
+<script src="demo.js"></script>
+</body>
+</html>

@@ -451,7 +451,3 @@ node tests/checks/navigation-treeselect-integration.mjs
 - `navigation-check.mjs` 覆盖 N01–N07 的主要键盘路径、keepMounted、滚动当前项、省略菜单、Menu 子菜单/Esc/焦点返回/外点/Tab/右键/受控、Pagination 边界、Steps 不自动推进、TreeView 键盘与更新语义、卸载清理与控制台错误。
 - `navigation-demos.mjs` 真实挂载并销毁 7 个 gallery demo；`navigation-responsive.mjs` 在 390px 视口检查 7 个 demo 无页面级横向溢出；`navigation-treeselect-integration.mjs` 用真实 `NoteUI.TreeSelect` 验证 X05 消费 N07。
 - 未验证：真实屏幕阅读器矩阵、触摸设备手势、Safari/Firefox 行为、RTL 专项、跨页锚点 URL 同步。
-
-## 12. 用户评价范围
-
-N01–N07 均为未获用户评价的候选实现，`userReview=not-reviewed`。技术自检不等于用户审美认可，参数不因自检冻结；视觉继承现有 `--hnv-*` 候选值。

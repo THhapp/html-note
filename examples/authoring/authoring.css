@@ -81,6 +81,29 @@ body {
   line-height: 1.5;
 }
 
+/* 会话 phase 的可见说明：末步按钮禁用只表示导航到头，不等于正在运行。 */
+.authoring-phase {
+  flex: none;
+  margin: 0;
+  color: #5c6879;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.authoring-phase__value {
+  color: #202938;
+  font-weight: 600;
+}
+
+.authoring-phase__value[data-phase="running"] {
+  color: #315cda;
+}
+
+.authoring-phase__value[data-phase="error"] {
+  color: #b3261e;
+}
+
 .authoring-demo [data-demo-host] {
   min-width: 0;
 }
@@ -201,6 +224,94 @@ body {
   font-family: var(--hnv-font-mono, Consolas, monospace);
 }
 
+/* 普通 DOM 交接小例（自定义 Adapter，只使用公开契约）。 */
+.handoff-demo {
+  padding: 4px 0 2px;
+}
+
+.handoff-demo__board {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.handoff-demo .note-demo-adapter--handoff {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.handoff-demo__stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: min(560px, 100%);
+  min-height: 96px;
+  padding: 16px 20px;
+  border: 1px solid #e3e8ef;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.handoff-demo__label {
+  flex: 0 0 auto;
+  padding: 9px 15px;
+  border: 1px solid #c9d4e2;
+  border-radius: 9px;
+  background: #fff;
+  color: #202938;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.handoff-demo__label--source {
+  color: #5c6879;
+}
+
+.handoff-demo__label--target {
+  position: relative;
+  z-index: 1;
+  border-color: #b9c8f5;
+  background: #eef2ff;
+  color: #315cda;
+}
+
+.handoff-demo__arrow {
+  color: #9aa7b8;
+  font-size: 18px;
+}
+
+/* 目标位置：占位常驻；目标接管后真实标签以实底覆盖同一矩形，不产生空窗。 */
+.handoff-demo__slot {
+  position: relative;
+  display: inline-flex;
+}
+
+.handoff-demo__placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed #cfd8e3;
+  border-radius: 9px;
+  background: #fbfcfe;
+  color: #9aa7b8;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* 来源/目标各自隐藏时保留占位与布局，不让画面跳动。 */
+.handoff-demo__stage[data-stage="source"] .handoff-demo__label--target,
+.handoff-demo__stage[data-stage="handoff"] .handoff-demo__label--source {
+  visibility: hidden;
+  opacity: 0;
+}
+
 @media (max-width: 700px) {
   .authoring-page {
     width: min(100% - 24px, 1120px);
@@ -213,5 +324,16 @@ body {
 
   .authoring-demo-note {
     margin-top: 4px;
+  }
+
+  .authoring-phase {
+    margin-top: 4px;
+  }
+
+  .handoff-demo__stage {
+    flex-wrap: wrap;
+    gap: 10px;
+    min-height: 104px;
+    padding: 16px 12px;
   }
 }

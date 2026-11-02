@@ -30,7 +30,7 @@
         "重看期间视觉暂显旧快照，长期 DOM 引用应以停稳后的 getTarget 为准。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K04", "K05", "K06", "K12"],
       "docs": "docs/viz-mechanisms.md#M01",
       "notes": "删除使用临时 ghost；选中与变化合成为一个文字标记；插入走 R10。"
@@ -53,7 +53,7 @@
         "body 上的 SVG 路径提示是临时视觉层，按视口测量；宿主容器有缩放变换时路径可能与内部坐标不完全重合。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K04", "K05", "K06", "K12"],
       "docs": "docs/viz-mechanisms.md#M02",
       "notes": "同一对象节点移动，不克隆；路径层停稳即移除；重看重新测量。"
@@ -76,7 +76,7 @@
         "结果卡在变化前保留布局但不可见；update 数据后回到变化前，不保留旧播放阶段。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K04", "K05", "K06", "K12"],
       "docs": "docs/viz-mechanisms.md#M03",
       "notes": "连线为 aria-hidden 的 SVG，另有可访问的映射列表；动画不克隆对象节点。"
@@ -99,7 +99,7 @@
         "没有 onSettle 公共回调；update 会回到变化前，宿主不能依赖内部计时。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K04", "K05", "K06", "K12"],
       "docs": "docs/viz-mechanisms.md#M04",
       "notes": "replace 只在同一值框内换文本并保留旧值对照；reveal 只展开内部，不强制显示第二张对象图。"

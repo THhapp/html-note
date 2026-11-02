@@ -57,6 +57,7 @@
       },
       effects: function (effectCtx) {
         var motion = isObject(effectCtx) && effectCtx.motion === 'never' ? 'never' : 'auto';
+        var attention = isObject(effectCtx) && effectCtx.attention === true;
         var timing = isObject(effectCtx) && isObject(effectCtx.timing) ? effectCtx.timing : effects.mergeTiming();
         if (sourceText === targetText || motion === 'never') return [];
         var swap = effects.planValueSwap({
@@ -70,7 +71,7 @@
             ghostJustifyContent: 'flex-start',
             ghostKeyframes: [
               { opacity: '1' },
-              { opacity: '1', offset: 0.45 },
+              { opacity: '1', offset: attention ? 0.25 : 0.45 },
               { opacity: '0' }
             ],
             ghostDuration: timing.valueSwapDuration,
@@ -78,7 +79,7 @@
             ghostEasing: 'linear',
             targetKeyframes: [
               { opacity: '0' },
-              { opacity: '0', offset: 0.35 },
+              { opacity: '0', offset: attention ? 0.15 : 0.35 },
               { opacity: '1' }
             ],
             targetDuration: timing.valueSwapDuration,

@@ -1,8 +1,11 @@
 /* NoteDemo scene — 完整目标画面的受控过渡编排（layout / update / cut / reveal）。
  * Scope: window.NoteDemoInternals.scene
- * Depends on: definition（提交后读回比较）、effects（timing 合并）、sceneGeometry（FLIP/矩形）、
- *             sceneEffects（句柄/揭示/标记）、sceneAttention（注意序列门控）。
- * 一次运行拥有全部效果、延后启动、临时资源与清理；经典脚本，无模块 / 无网络 / 无 eval。 */
+ * Depends on: definition（提交后读回比较）、effects（timing 合并/进度句柄）、sceneGeometry（FLIP/矩形）、
+ *             sceneEffects（轨道化的 WAAPI/进度效果、揭示与标记）、sceneAttention（观察目标与效果组门控）。
+ * 一次运行拥有全部效果、延后启动、临时资源与清理；经典脚本，无模块 / 无网络 / 无 eval。
+ *
+ * 运行原因（reason）由 controller 传入：next | replay | replayPrevious | go | reset | prev；
+ * 缺省 'next'。它只透传给 presentation（info.reason / info.cause），scene 自身行为不变。 */
 (function (global) {
   'use strict';
 
@@ -142,6 +145,13 @@
     }
   }
 
+  function normalizeReason(options) {
+    var value = options.reason != null ? options.reason : options.cause;
+    if (value == null) return 'next';
+    var text = String(value);
+    return text || 'next';
+  }
+
   function run(config) {
     var options = isObject(config) ? config : {};
     var plan = options.plan;
@@ -150,6 +160,7 @@
     var signal = options.signal || null;
     var presentation = options.presentation || null;
     var motionName = options.motion === 'reduced' ? 'reduced' : 'normal';
+    var reason = normalizeReason(options);
 
     return new Promise(function (resolve, reject) {
       var definition;
@@ -158,15 +169,24 @@
       var sourceFrame;
       var targetFrame;
       var members = [];
+      var memberMap = {};
       var markTiming = null;
       var port = null;
       var attention = null;
       var attentionCoordinator = null;
+      var attentionEnabled = false;
+      var runtimes = {};
       var scope = null;
       var closed = false;
       var cancelled = false;
       var cleaned = false;
       var preparedList = [];
+
+      function scenePath() {
+        if (scene && scene.path) return scene.path;
+        if (transition) return 'transition "' + String(transition.from) + '" → "' + String(transition.to) + '" 的 scene';
+        return 'scene';
+      }
 
       function releasePrepared() {
         for (var p = 0; p < preparedList.length; p += 1) {
@@ -184,6 +204,11 @@
         if (signal && typeof signal.removeEventListener === 'function') {
           try { signal.removeEventListener('abort', onAbort); } catch (error) { /* ignore */ }
         }
+        if (attention && typeof attention.cancel === 'function') {
+          try { attention.cancel(); } catch (error) { /* ignore */ }
+        }
+        /* 来源可见性交接优先释放：源视觉恢复内联原值，随后句柄取消与 Adapter cleanup 在同一任务内完成。 */
+        releaseAllSourceVisibility();
         if (scope) {
           try { scope.release(); } catch (error) { /* 清理失败不阻断 */ }
         }
@@ -192,6 +217,10 @@
           try { port.cancel(); } catch (error) { /* ignore */ }
         }
         port = null;
+        /* 目标效果已收束/取消，最后释放受控载体的接管；恢复路径会在 restore 内再次短暂接管。 */
+        if (bindings && typeof bindings.endSceneControl === 'function') {
+          try { bindings.endSceneControl(members.map(function (member) { return member.binding; })); } catch (error) { /* 清理失败不阻断 */ }
+        }
       }
 
       function finish(value) {
@@ -222,6 +251,8 @@
         });
       }
 
+      /* ---------------- 收集参与者 ---------------- */
+
       function collectMembers() {
         scene = transition && isObject(transition.scene) ? transition.scene : null;
         if (!scene) throw makeSceneError('scene 执行缺少 transition.scene。');
@@ -235,13 +266,6 @@
           effectiveSceneTiming = Object.assign({}, attentionContent, isObject(scene.timing) ? scene.timing : {});
         }
         markTiming = effects.mergeTiming(null, effectiveSceneTiming, null);
-        var attentionTargets = scene.attention && isArray(scene.attention.targets) ? scene.attention.targets : [];
-        attention = attentionModule().create({
-          targets: attentionTargets,
-          enabled: motionName !== 'reduced' && !!scene.attention,
-          createError: makeSceneError,
-          startRuntime: function (runtime) { beginRuntime(runtime); }
-        });
         if (!isArray(scene.bindings) || scene.bindings.length === 0) {
           throw makeSceneError('scene 没有参与者。');
         }
@@ -261,7 +285,7 @@
               '" 是 cut；cut 在同步提交时已经显示目标，不能声明 after。请改用 update 或 reveal。',
               { binding: spec.binding });
           }
-          members.push({
+          var member = {
             binding: spec.binding,
             mode: spec.mode,
             at: spec.at || 'objects-settled',
@@ -273,15 +297,23 @@
             sourceView: sourceView,
             targetView: targetView,
             prepared: null,
-            attentionIndex: -1
-          });
+            grouped: false,
+            groups: [],
+            gatedGroups: null,
+            defaultGateIndex: null,
+            firstContentIndex: null,
+            attentionContent: false,
+            revealContainer: null,
+            sourceElements: [],
+            sourceVisibilityToken: null,
+            sourceReleased: false
+          };
+          members.push(member);
+          memberMap[member.binding] = member;
         }
-        attention.assign(members);
-        attentionCoordinator = attention.enabled ? {
-          start: function (index) { attention.start(index); },
-          ready: function (index) { return attention.ready(index); }
-        } : null;
       }
+
+      /* ---------------- 准备与校验 ---------------- */
 
       function prepareAll() {
         var waits = [];
@@ -350,6 +382,545 @@
         });
       }
 
+      /* ---------------- 来源可见性交接（PreparedChange.sourceElements） ---------------- */
+
+      function releaseSourceVisibility(member) {
+        if (!member || !member.sourceVisibilityToken) return;
+        var token = member.sourceVisibilityToken;
+        member.sourceVisibilityToken = null;
+        member.sourceReleased = true;
+        try { effects.releaseVisibility(token); } catch (error) { /* 清理失败不阻断 */ }
+      }
+
+      function releaseAllSourceVisibility() {
+        for (var i = 0; i < members.length; i += 1) releaseSourceVisibility(members[i]);
+      }
+
+      /* prepareChange 返回后、commit 前调用一次；只捕获来源视觉，不克隆/替换 DOM。 */
+      function collectSourceElements() {
+        members.forEach(function (member) {
+          if (member.mode !== 'layout' && member.mode !== 'update') return;
+          var prepared = member.prepared;
+          if (!prepared || typeof prepared.sourceElements !== 'function') return;
+          var value;
+          try {
+            value = prepared.sourceElements();
+          } catch (error) {
+            throw makeSceneError('Binding "' + member.binding + '" 的 sourceElements() 失败：' + messageOf(error), {
+              binding: member.binding,
+              path: 'scene.bindings["' + member.binding + '"].sourceElements'
+            });
+          }
+          if (value === undefined || value === null) return;
+          if (!isArray(value)) {
+            throw makeSceneError('Binding "' + member.binding + '" 的 sourceElements() 必须返回 Element[]（或省略）。', {
+              binding: member.binding,
+              path: 'scene.bindings["' + member.binding + '"].sourceElements'
+            });
+          }
+          var elements = [];
+          for (var i = 0; i < value.length; i += 1) {
+            var element = value[i];
+            if (!element || element.nodeType !== 1) {
+              throw makeSceneError('Binding "' + member.binding + '" 的 sourceElements()[' + i + '] 必须是 DOM Element。', {
+                binding: member.binding,
+                path: 'scene.bindings["' + member.binding + '"].sourceElements[' + i + ']'
+              });
+            }
+            if (!element.isConnected) {
+              throw makeSceneError('Binding "' + member.binding + '" 的 sourceElements()[' + i +
+                '] 在 commit 前已从文档断开；请在 prepare 阶段返回仍连接的真实来源对象。', {
+                binding: member.binding,
+                path: 'scene.bindings["' + member.binding + '"].sourceElements[' + i + ']'
+              });
+            }
+            if (elements.indexOf(element) < 0) elements.push(element);
+          }
+          member.sourceElements = elements;
+          member.sourceVisibilityToken = elements.length ? effects.captureVisibility(elements) : null;
+        });
+      }
+
+      function holdSourceVisibility() {
+        members.forEach(function (member) {
+          if (!member.sourceVisibilityToken) return;
+          try {
+            effects.holdVisibility(member.sourceVisibilityToken);
+          } catch (error) {
+            throw makeSceneError('Binding "' + member.binding + '" 的来源可见性保持失败：' + messageOf(error), {
+              binding: member.binding
+            });
+          }
+        });
+      }
+
+      function discoverGroups() {
+        members.forEach(function (member) {
+          if (member.mode !== 'layout' && member.mode !== 'update') return;
+          var prepared = member.prepared;
+          if (!prepared || typeof prepared.groups !== 'function') return;
+          var value;
+          try {
+            value = prepared.groups();
+          } catch (error) {
+            throw makeSceneError('Binding "' + member.binding + '" 的 groups() 失败：' + messageOf(error), { binding: member.binding });
+          }
+          if (value === undefined || value === null) return;
+          if (!isArray(value)) {
+            throw makeSceneError('Binding "' + member.binding + '" 的 groups() 必须返回 string[]（或省略）。', { binding: member.binding });
+          }
+          var names = [];
+          var seen = {};
+          for (var i = 0; i < value.length; i += 1) {
+            var name = value[i];
+            if (typeof name !== 'string' || name.trim() === '') {
+              throw makeSceneError('Binding "' + member.binding + '" 的 groups()[' + i + '] 必须是非空字符串。', { binding: member.binding });
+            }
+            if (own(seen, name)) {
+              throw makeSceneError('Binding "' + member.binding + '" 的 groups() 重复声明组 "' + name + '"。', { binding: member.binding, group: name });
+            }
+            seen[name] = true;
+            names.push(name);
+          }
+          if (names.length) {
+            member.grouped = true;
+            member.groups = names;
+          }
+        });
+      }
+
+      function setupAttention() {
+        attentionEnabled = motionName !== 'reduced' && !!scene.attention;
+        if (!scene.attention) {
+          attention = null;
+          attentionCoordinator = null;
+          return;
+        }
+        attention = attentionModule().create({
+          targets: scene.attention.targets,
+          enabled: attentionEnabled,
+          stepDuration: scene.attention.stepDuration,
+          createError: makeSceneError,
+          resolveMember: function (binding) { return memberMap[binding] || null; },
+          startDefault: function (member) {
+            var runtime = runtimes[member.binding];
+            if (!runtime) return;
+            requestStart(runtime, function () { startDefaultTrack(runtime); });
+          },
+          startGroups: function (member, groups) {
+            var runtime = runtimes[member.binding];
+            if (!runtime) return;
+            requestStart(runtime, function () { startGroupTracks(runtime, groups); });
+          },
+          readyDefault: function (member) {
+            var runtime = runtimes[member.binding];
+            return runtime ? runtime.defaultTrack.ready : Promise.resolve(true);
+          },
+          readyGroups: function (member, groups, info) {
+            var runtime = runtimes[member.binding];
+            if (!runtime) return Promise.resolve(true);
+            var list = [];
+            for (var i = 0; i < groups.length; i += 1) {
+              var trackInfo = runtime.groupTracks[groups[i]];
+              if (trackInfo) list.push(trackInfo.ready);
+            }
+            if (runtime.layoutTrack && member.firstContentIndex === info.index) list.push(runtime.layoutTrack.ready);
+            return Promise.all(list);
+          }
+        });
+        if (!attentionEnabled) {
+          attentionCoordinator = null;
+          return;
+        }
+        attention.validate();
+        attentionCoordinator = {
+          start: function (index) { attention.start(index); },
+          ready: function (index) { return attention.ready(index); }
+        };
+        var infos = attention.targetInfos();
+        infos.forEach(function (info) {
+          if (!info || !info.member) return;
+          var member = info.member;
+          if (info.kind !== 'content') return;
+          member.attentionContent = true;
+          if (info.groups == null) {
+            member.defaultGateIndex = info.index;
+          } else {
+            if (!member.gatedGroups) member.gatedGroups = {};
+            info.groups.forEach(function (name) { member.gatedGroups[name] = info.index; });
+          }
+          if (member.firstContentIndex === null || info.index < member.firstContentIndex) {
+            member.firstContentIndex = info.index;
+          }
+        });
+        /* 只被 groups: [] 观察、没有任何内容放行的 scene 成员：观察目标本身不启动内容，
+         * 按未门控成员正常调度（不会卡住完成边界）；作者若要延后内容应补内容目标。 */
+      }
+
+      /* ---------------- 轨道与运行时 ---------------- */
+
+      function createTrack(name) {
+        var resolveReady;
+        var resolveFinished;
+        var trackInfo = {
+          name: name,
+          started: false,
+          readyHandles: [],
+          finishHandles: [],
+          readyResolved: false,
+          finishedResolved: false,
+          ready: null,
+          finished: null,
+          resolveReady: null,
+          resolveFinished: null
+        };
+        trackInfo.ready = new Promise(function (resolve) { resolveReady = resolve; });
+        trackInfo.finished = new Promise(function (resolve) { resolveFinished = resolve; });
+        trackInfo.resolveReady = resolveReady;
+        trackInfo.resolveFinished = resolveFinished;
+        return trackInfo;
+      }
+
+      function createMemberRuntime(member) {
+        var runtime = {
+          member: member,
+          grouped: member.grouped === true,
+          groupNames: member.groups.slice(),
+          defaultTrack: createTrack('default'),
+          layoutTrack: null,
+          groupTracks: {},
+          trackList: [],
+          attention: member.attentionContent === true,
+          planned: false,
+          depsReady: false,
+          pending: [],
+          revealStarted: false,
+          releaseStarted: false,
+          revealContainer: member.revealContainer || null
+        };
+        if (runtime.grouped) {
+          if (member.mode === 'layout') runtime.layoutTrack = createTrack('layout');
+          runtime.groupNames.forEach(function (name) {
+            runtime.groupTracks[name] = createTrack(name);
+          });
+          if (runtime.layoutTrack) runtime.trackList.push(runtime.layoutTrack);
+          runtime.groupNames.forEach(function (name) { runtime.trackList.push(runtime.groupTracks[name]); });
+        } else {
+          runtime.trackList.push(runtime.defaultTrack);
+        }
+        runtime.memberReady = Promise.all(runtime.trackList.map(function (trackInfo) { return trackInfo.ready; }));
+        runtime.memberFinished = Promise.all(runtime.trackList.map(function (trackInfo) { return trackInfo.finished; }));
+        return runtime;
+      }
+
+      function resolveTrackReady(trackInfo) {
+        if (!trackInfo || trackInfo.readyResolved) return;
+        trackInfo.readyResolved = true;
+        trackInfo.resolveReady(true);
+      }
+
+      function resolveTrackFinished(trackInfo) {
+        if (!trackInfo || trackInfo.finishedResolved) return;
+        trackInfo.finishedResolved = true;
+        trackInfo.resolveFinished(true);
+      }
+
+      function waitHandle(handle) {
+        if (!handle || !handle.finished || typeof handle.finished.then !== 'function') {
+          return Promise.resolve();
+        }
+        return handle.finished.then(function (completed) {
+          if (completed === false && !cancelled && !closed) {
+            throw makeSceneError('scene 效果在未取消的情况下提前结束。');
+          }
+          return true;
+        });
+      }
+
+      function playTrackHandles(trackInfo) {
+        var played = [];
+        trackInfo.readyHandles.forEach(function (handle) {
+          if (handle && typeof handle.play === 'function') {
+            handle.play();
+            played.push(handle);
+          }
+        });
+        trackInfo.finishHandles.forEach(function (handle) {
+          if (played.indexOf(handle) >= 0) return;
+          if (handle && typeof handle.play === 'function') handle.play();
+        });
+      }
+
+      function startTrack(runtime, trackInfo) {
+        if (!trackInfo || trackInfo.started || closed || cancelled) return;
+        trackInfo.started = true;
+        /* 本 Binding 的第一个内容效果轨道开始接管：来源视觉交接释放。 */
+        releaseSourceVisibility(runtime.member);
+        if (!trackInfo.readyHandles.length && !trackInfo.finishHandles.length) {
+          resolveTrackReady(trackInfo);
+          resolveTrackFinished(trackInfo);
+          return;
+        }
+        try {
+          playTrackHandles(trackInfo);
+        } catch (error) {
+          fail(error);
+          return;
+        }
+        if (!trackInfo.readyHandles.length) resolveTrackReady(trackInfo);
+        else Promise.all(trackInfo.readyHandles.map(waitHandle)).then(function () {
+          if (!cancelled && !closed) resolveTrackReady(trackInfo);
+        }, function (error) {
+          if (!cancelled && !closed) fail(error);
+        });
+        if (!trackInfo.finishHandles.length) resolveTrackFinished(trackInfo);
+        else Promise.all(trackInfo.finishHandles.map(waitHandle)).then(function () {
+          if (!cancelled && !closed) resolveTrackFinished(trackInfo);
+        }, function (error) {
+          if (!cancelled && !closed) fail(error);
+        });
+      }
+
+      function startReveal(runtime) {
+        if (!runtime || runtime.revealStarted || closed || cancelled) return;
+        runtime.revealStarted = true;
+        releaseSourceVisibility(runtime.member);
+        var trackInfo = runtime.defaultTrack;
+        trackInfo.started = true;
+        var member = runtime.member;
+        if (!runtime.revealContainer) {
+          resolveTrackReady(trackInfo);
+          resolveTrackFinished(trackInfo);
+          return;
+        }
+        scope.reveal(runtime.revealContainer, member.finalTiming, {
+          frameId: transition.to,
+          bindingId: member.binding,
+          effect: 'reveal'
+        }).then(function (shown) {
+          if (cancelled || closed) return;
+          if (shown === false) {
+            fail(makeSceneError('Binding "' + member.binding + '" 的 reveal 效果在未取消的情况下提前结束。', { binding: member.binding }));
+            return;
+          }
+          resolveTrackReady(trackInfo);
+          resolveTrackFinished(trackInfo);
+        }, function (error) {
+          if (cancelled || closed) return;
+          fail(error);
+        });
+      }
+
+      function startDefaultTrack(runtime) {
+        if (!runtime || closed || cancelled) return;
+        var member = runtime.member;
+        if (member.mode === 'reveal') {
+          startReveal(runtime);
+          return;
+        }
+        if (member.mode === 'cut') {
+          resolveTrackReady(runtime.defaultTrack);
+          resolveTrackFinished(runtime.defaultTrack);
+          return;
+        }
+        startTrack(runtime, runtime.defaultTrack);
+      }
+
+      function startGroupTracks(runtime, groups) {
+        if (!runtime || !runtime.grouped || closed || cancelled) return;
+        var member = runtime.member;
+        if (!runtime.releaseStarted) {
+          runtime.releaseStarted = true;
+          if (runtime.layoutTrack) startTrack(runtime, runtime.layoutTrack);
+          runtime.groupNames.forEach(function (name) {
+            if (member.gatedGroups && own(member.gatedGroups, name)) return;
+            startTrack(runtime, runtime.groupTracks[name]);
+          });
+        }
+        groups.forEach(function (name) {
+          if (runtime.groupTracks[name]) startTrack(runtime, runtime.groupTracks[name]);
+        });
+      }
+
+      function startAllTracks(runtime) {
+        if (!runtime || closed || cancelled) return;
+        if (!runtime.grouped) {
+          startDefaultTrack(runtime);
+          return;
+        }
+        if (runtime.layoutTrack) startTrack(runtime, runtime.layoutTrack);
+        runtime.groupNames.forEach(function (name) { startTrack(runtime, runtime.groupTracks[name]); });
+      }
+
+      function flushRuntime(runtime) {
+        if (!runtime || !runtime.planned || !runtime.depsReady || closed || cancelled) return;
+        var list = runtime.pending;
+        runtime.pending = [];
+        list.forEach(function (action) {
+          if (closed || cancelled) return;
+          try { action(); } catch (error) { fail(error); }
+        });
+      }
+
+      function requestStart(runtime, action) {
+        if (!runtime || closed || cancelled) return;
+        runtime.pending.push(action);
+        flushRuntime(runtime);
+      }
+
+      /* ---------------- after / reveal 依赖 ---------------- */
+
+      function afterDependencyRefs(member) {
+        var refs = [];
+        if (member.after && member.after.length) {
+          member.after.forEach(function (entry) {
+            var targetMember = memberMap[entry && entry.binding];
+            if (!targetMember) {
+              throw makeSceneError('Binding "' + member.binding + '" 的 after 引用了本 scene 中不存在的 binding "' +
+                String(entry && entry.binding) + '"。', { binding: member.binding, path: scenePath() });
+            }
+            if (entry.group == null) {
+              refs.push({ kind: 'member', binding: entry.binding });
+              return;
+            }
+            if (!targetMember.grouped) {
+              throw makeSceneError('Binding "' + member.binding + '" 的 after 引用了 Binding "' + entry.binding +
+                '" 的组 "' + entry.group + '"，但该 Binding 的 Adapter 未声明效果组。', {
+                binding: member.binding,
+                path: scenePath()
+              });
+            }
+            if (targetMember.groups.indexOf(entry.group) < 0) {
+              throw makeSceneError('Binding "' + member.binding + '" 的 after 引用了 Binding "' + entry.binding +
+                '" 的未知效果组 "' + entry.group + '"（已声明：' + targetMember.groups.join('、') + '）。', {
+                binding: member.binding,
+                path: scenePath()
+              });
+            }
+            refs.push({ kind: 'group', binding: entry.binding, group: entry.group });
+          });
+          return refs;
+        }
+        if (member.mode === 'reveal' && member.at === 'objects-settled') {
+          members.forEach(function (other) {
+            if (other.binding === member.binding || other.mode === 'reveal') return;
+            refs.push({ kind: 'member', binding: other.binding });
+          });
+        }
+        return refs;
+      }
+
+      function dependencyNode(ref) {
+        if (ref.kind === 'group') return 'readyTrack:' + ref.binding + ':' + ref.group;
+        return 'readyMember:' + ref.binding;
+      }
+
+      function dependencyPromise(ref) {
+        var runtime = runtimes[ref.binding];
+        if (!runtime) return Promise.resolve(true);
+        if (ref.kind === 'group') {
+          return runtime.groupTracks[ref.group] ? runtime.groupTracks[ref.group].ready : Promise.resolve(true);
+        }
+        return runtime.memberReady;
+      }
+
+      /* ---------------- 联合 waits-for 图（组级，prepare 后 commit 前） ---------------- */
+
+      function graphNodeLabel(id) {
+        var parts = id.split(':');
+        if (parts[0] === 'attnArrive') return 'attention[' + parts[1] + '] 到达';
+        if (parts[0] === 'attnReady') return 'attention[' + parts[1] + '] ready';
+        if (parts[0] === 'startTrack') return 'Binding "' + parts[1] + '" 轨道 "' + parts.slice(2).join(':') + '" start';
+        if (parts[0] === 'readyTrack') return 'Binding "' + parts[1] + '" 轨道 "' + parts.slice(2).join(':') + '" ready';
+        if (parts[0] === 'readyMember') return 'Binding "' + parts[1] + '" ready';
+        return id;
+      }
+
+      function verifyJointGraph() {
+        var edges = {};
+        function node(id) { if (!own(edges, id)) edges[id] = []; return id; }
+        function edge(from, to) {
+          node(from);
+          if (edges[from].indexOf(to) < 0) edges[from].push(to);
+        }
+        function startTrackNode(member, name) { return 'startTrack:' + member.binding + ':' + name; }
+        function readyTrackNode(member, name) { return 'readyTrack:' + member.binding + ':' + name; }
+        members.forEach(function (member) {
+          var runtime = runtimes[member.binding];
+          node('readyMember:' + member.binding);
+          var deps = afterDependencyRefs(member).map(dependencyNode);
+          runtime.trackList.forEach(function (trackInfo) {
+            edge(startTrackNode(member, trackInfo.name), readyTrackNode(member, trackInfo.name));
+            edge(readyTrackNode(member, trackInfo.name), 'readyMember:' + member.binding);
+            deps.forEach(function (dep) { edge(dep, startTrackNode(member, trackInfo.name)); });
+          });
+          if (!attentionEnabled || !runtime.attention) return;
+          if (!runtime.grouped) {
+            if (member.defaultGateIndex != null) {
+              edge('attnArrive:' + member.defaultGateIndex, startTrackNode(member, 'default'));
+            }
+            return;
+          }
+          runtime.groupNames.forEach(function (name) {
+            if (member.gatedGroups && own(member.gatedGroups, name)) {
+              edge('attnArrive:' + member.gatedGroups[name], startTrackNode(member, name));
+            } else {
+              edge('attnArrive:' + member.firstContentIndex, startTrackNode(member, name));
+            }
+          });
+          if (runtime.layoutTrack) {
+            edge('attnArrive:' + member.firstContentIndex, startTrackNode(member, 'layout'));
+          }
+        });
+        if (attentionEnabled && attention) {
+          var infos = attention.targetInfos();
+          infos.forEach(function (info, index) {
+            node('attnArrive:' + index);
+            node('attnReady:' + index);
+            edge('attnArrive:' + index, 'attnReady:' + index);
+            if (index > 0) edge('attnReady:' + (index - 1), 'attnArrive:' + index);
+            if (!info || info.kind !== 'content' || !info.member) return;
+            var runtime = runtimes[info.member.binding];
+            if (!runtime) return;
+            if (info.groups == null) {
+              edge(readyTrackNode(info.member, 'default'), 'attnReady:' + index);
+              return;
+            }
+            info.groups.forEach(function (name) {
+              edge(readyTrackNode(info.member, name), 'attnReady:' + index);
+            });
+            if (runtime.layoutTrack && info.member.firstContentIndex === index) {
+              edge(readyTrackNode(info.member, 'layout'), 'attnReady:' + index);
+            }
+          });
+        }
+        var visitState = {};
+        var stack = [];
+        var cycleReported = 0;
+        function visit(id) {
+          if (visitState[id] === 2 || cycleReported > 2) return;
+          if (visitState[id] === 1) {
+            var cycleStart = stack.indexOf(id);
+            var cycle = stack.slice(cycleStart >= 0 ? cycleStart : 0).concat([id]);
+            cycleReported += 1;
+            throw makeSceneError('scene 联合依赖形成循环（waits-for，attention 顺序 + after/reveal）：' +
+              cycle.map(graphNodeLabel).join(' → '), {
+              path: scenePath(),
+              cycle: cycle.map(graphNodeLabel)
+            });
+          }
+          visitState[id] = 1;
+          stack.push(id);
+          var next = edges[id] || [];
+          for (var e = 0; e < next.length; e += 1) visit(next[e]);
+          stack.pop();
+          visitState[id] = 2;
+        }
+        Object.keys(edges).forEach(function (id) { visit(id); });
+      }
+
+      /* ---------------- 提交 ---------------- */
+
       function commitAll() {
         members.forEach(function (member) {
           try {
@@ -363,6 +934,8 @@
           var container = member.entry.container;
           if (!isElement(container)) return;
           member.revealContainer = container;
+          var runtime = runtimes[member.binding];
+          if (runtime) runtime.revealContainer = container;
           if (member.at === 'start') return;
           /* after 与旧 objects-settled 都要求目标内容先保持隐藏，启动时整块显现。 */
           scope.hideReveal(container);
@@ -387,146 +960,32 @@
         return targetsByMember;
       }
 
-      function createMemberRuntime(member) {
-        var resolveReady;
-        var resolveFinished;
-        var ready = new Promise(function (resolve) { resolveReady = resolve; });
-        var finished = new Promise(function (resolve) { resolveFinished = resolve; });
-        return {
-          member: member,
-          ready: ready,
-          finished: finished,
-          resolveReady: resolveReady,
-          resolveFinished: resolveFinished,
-          readyResolved: false,
-          finishedResolved: false,
-          started: false,
-          depsReady: false,
-          readyHandles: [],
-          finishHandles: [],
-          revealContainer: null
-        };
-      }
-
-      function resolveRuntimeReady(runtime) {
-        if (!runtime || runtime.readyResolved) return;
-        runtime.readyResolved = true;
-        runtime.resolveReady(true);
-      }
-
-      function resolveRuntimeFinished(runtime) {
-        if (!runtime || runtime.finishedResolved) return;
-        runtime.finishedResolved = true;
-        runtime.resolveFinished(true);
-      }
-
-      function waitHandle(handle) {
-        if (!handle || !handle.finished || typeof handle.finished.then !== 'function') {
-          return Promise.resolve();
-        }
-        return handle.finished.then(function (completed) {
-          if (completed === false && !cancelled && !closed) {
-            throw makeSceneError('scene 效果在未取消的情况下提前结束。');
-          }
-          return true;
+      function planEffects(targetsByMember) {
+        members.forEach(function (member) {
+          var runtime = runtimes[member.binding];
+          scope.planLayoutEffects(runtime, targetsByMember);
+          scope.planAdapterEffects(runtime);
+          runtime.planned = true;
         });
       }
 
-      function startMember(runtime) {
-        if (!runtime || runtime.started || closed || cancelled) return;
-        runtime.started = true;
-        var member = runtime.member;
-        if (member.mode === 'reveal') {
-          if (!runtime.revealContainer) {
-            resolveRuntimeReady(runtime);
-            resolveRuntimeFinished(runtime);
-            return;
-          }
-          scope.reveal(runtime.revealContainer, member.finalTiming, {
-            frameId: transition.to,
-            bindingId: member.binding,
-            effect: 'reveal'
-          }).then(function (shown) {
-            if (cancelled || closed) return;
-            if (shown === false) {
-              fail(makeSceneError('Binding "' + member.binding + '" 的 reveal 效果在未取消的情况下提前结束。', { binding: member.binding }));
-              return;
-            }
-            resolveRuntimeReady(runtime);
-            resolveRuntimeFinished(runtime);
-          }, function (error) {
-            if (cancelled || closed) return;
-            fail(error);
-          });
-          return;
-        }
-        if (member.mode === 'layout' || member.mode === 'update') {
+      function scheduleMembers() {
+        members.forEach(function (member) {
+          var runtime = runtimes[member.binding];
+          var deps;
           try {
-            runtime.readyHandles.forEach(function (handle) {
-              if (handle && typeof handle.play === 'function') handle.play();
-            });
-            runtime.finishHandles.forEach(function (handle) {
-              if (runtime.readyHandles.indexOf(handle) >= 0) return;
-              if (handle && typeof handle.play === 'function') handle.play();
-            });
+            deps = afterDependencyRefs(member).map(dependencyPromise);
           } catch (error) {
             fail(error);
             return;
           }
-          if (!runtime.readyHandles.length) resolveRuntimeReady(runtime);
-          else Promise.all(runtime.readyHandles.map(waitHandle)).then(function () {
-            if (!cancelled && !closed) resolveRuntimeReady(runtime);
-          }, function (error) {
-            if (!cancelled && !closed) fail(error);
-          });
-          if (!runtime.finishHandles.length) resolveRuntimeFinished(runtime);
-          else Promise.all(runtime.finishHandles.map(waitHandle)).then(function () {
-            if (!cancelled && !closed) resolveRuntimeFinished(runtime);
-          }, function (error) {
-            if (!cancelled && !closed) fail(error);
-          });
-          return;
-        }
-        /* cut: 主动同步提交，不补动画；ready/finished 在同一任务内完成。 */
-        resolveRuntimeReady(runtime);
-        resolveRuntimeFinished(runtime);
-      }
-
-      /* attention 到达回调与依赖放行共用同一个启动入口，避免重复启动或失败后放行下游。 */
-      function beginRuntime(runtime) {
-        if (!runtime || runtime.started || closed || cancelled) return;
-        try {
-          startMember(runtime);
-        } catch (error) {
-          fail(error);
-        }
-      }
-
-      function scheduleMembers(runtimes) {
-        members.forEach(function (member) {
-          var runtime = runtimes[member.binding];
-          var gated = attention && attention.gate(member);
-          if (gated) attention.attach(member, runtime);
-          var deps = [];
-          if (member.after && member.after.length) {
-            member.after.forEach(function (id) {
-              if (runtimes[id]) deps.push(runtimes[id].ready);
-            });
-          } else if (member.mode === 'reveal' && member.at === 'objects-settled') {
-            members.forEach(function (other) {
-              if (other.binding === member.binding) return;
-              if (other.mode === 'reveal') return;
-              if (runtimes[other.binding]) deps.push(runtimes[other.binding].ready);
-            });
-          }
           Promise.all(deps).then(function () {
             if (closed || cancelled) return;
             runtime.depsReady = true;
-            if (gated) {
-              if (attention.isArrived(member)) beginRuntime(runtime);
-              return;
+            flushRuntime(runtime);
+            if (!attentionEnabled || !runtime.attention) {
+              requestStart(runtime, function () { startAllTracks(runtime); });
             }
-            beginRuntime(runtime);
           }, function (error) {
             if (!closed && !cancelled) fail(error);
           });
@@ -561,11 +1020,9 @@
         return error;
       }
 
-      function planEffects(runtimes, targetsByMember) {
+      function createRuntimes() {
         members.forEach(function (member) {
-          var runtime = runtimes[member.binding];
-          scope.planLayoutEffects(runtime, targetsByMember);
-          scope.planAdapterEffects(runtime);
+          runtimes[member.binding] = createMemberRuntime(member);
         });
       }
 
@@ -590,6 +1047,19 @@
           }
           try {
             validatePrepared();
+            /* 提交前捕获来源可见性（sourceElements）；减少动效不建立交接，直接落终态。 */
+            if (motionName !== 'reduced') {
+              collectSourceElements();
+            }
+            if (motionName !== 'reduced') {
+              discoverGroups();
+            }
+            /* attention 先完成分组门控校验，再创建含 attention/分组信息的运行轨道。 */
+            setupAttention();
+            createRuntimes();
+            if (motionName !== 'reduced') {
+              verifyJointGraph();
+            }
             if (presentation && typeof presentation.prepareScene === 'function') {
               /* 先建立 port 与隐藏旧标记，再捕获旧布局并提交。 */
               try {
@@ -599,6 +1069,8 @@
                   attention: scene.attention,
                   attentionCoordinator: attentionCoordinator,
                   motion: motionName,
+                  reason: reason,
+                  cause: reason,
                   bindings: members.map(function (member) {
                     return { bindingId: member.binding, handle: member.handle, container: member.entry.container };
                   })
@@ -608,7 +1080,14 @@
               }
             }
             geometryModule().captureSourceRects(members);
+            /* 在任何目标/来源样式写入之前进入受控模式；commit 与第一条效果轨道之间不暴露未接管画面。 */
+            if (typeof bindings.beginSceneControl !== 'function') {
+              throw makeSceneError('scene 需要 bindings.beginSceneControl 以接管受控画面。');
+            }
+            bindings.beginSceneControl(members.map(function (member) { return member.binding; }));
             commitAll();
+            /* commit 后目标状态可能把来源对象压成不可见；在同一个同步任务里用内联覆盖恢复来源视觉。 */
+            holdSourceVisibility();
             var targetsByMember = captureTargetsByMember();
             verifyCommitted();
             if (port && typeof port.commitTargetGeometry === 'function') {
@@ -616,7 +1095,7 @@
               if (geometryInfo && isArray(geometryInfo.markRoots)) scope.setMarkRoots(geometryInfo.markRoots);
             }
             if (motionName === 'reduced') {
-              /* 减少动效：揭示与标记直接到位，不创建动画；仍执行提交后核对与收尾。 */
+              /* 减少动效：揭示与标记直接到位，不创建动画/进度；仍执行提交后核对与收尾。 */
               scope.showRevealContainers();
               scope.showMarkRoots();
               var reducedSettleError = settlePort();
@@ -630,18 +1109,12 @@
               });
               return;
             }
-            var runtimes = {};
-            members.forEach(function (member) {
-              var runtime = createMemberRuntime(member);
-              runtime.revealContainer = member.revealContainer || null;
-              runtimes[member.binding] = runtime;
-            });
-            /* 所有 update/layout 的效果在同一提交任务里预置为暂停起点；
-             * after 只决定 play 的时机，不会让目标值先闪现。 */
-            planEffects(runtimes, targetsByMember);
+            /* 所有 update/layout 的效果在同一提交任务里按轨道预置为暂停起点；
+             * after/attention 只决定各轨道 play 的时机，不会让目标值先闪现。 */
+            planEffects(targetsByMember);
             var markHandles = scope.planMarkEffects();
-            scheduleMembers(runtimes);
-            waitForAll(members.map(function (member) { return runtimes[member.binding].finished; })).then(function () {
+            scheduleMembers();
+            waitForAll(members.map(function (member) { return runtimes[member.binding].memberFinished; })).then(function () {
               if (closed || cancelled) return null;
               return waitForAll(markHandles.map(waitHandle));
             }).then(function () {

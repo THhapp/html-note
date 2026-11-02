@@ -7,8 +7,8 @@
 | --- | --- | --- | --- | --- |
 | `runtime/modules/core.js` | `dist/modules/core.js` | 80173 | `b5138aa123dde2e62b85229755bf8584622a6255ddc734c2ce6c0b0aa823c17f` | 是 |
 | `runtime/modules/core.css` | `dist/modules/core.css` | 6647 | `edc9f2c2dcddf8dc47deac10acdca355b2d8db5b20457e9685c0acf2a99c9834` | 是 |
-| `runtime/modules/legacy.js` | `dist/modules/legacy.js` | 169613 | `8e9250e1f8b35a3aac233045e749350bd8d292f6573938f2a9828c4d8c5bda43` | 是 |
-| `runtime/modules/legacy.css` | `dist/modules/legacy.css` | 30700 | `9eb5bdf8623c5896dad174f477d7fcad9a5f368be2b98c42dec7b16a81c96380` | 是 |
+| `runtime/modules/legacy.js` | `dist/modules/legacy.js` | 181983 | `0bde20934662bd66f3a3cb5639de0fdba2e7b9466beadfca5621d4c3e377bcdd` | 是 |
+| `runtime/modules/legacy.css` | `dist/modules/legacy.css` | 31503 | `36ab2e1b58702e941cc5daa642525b4b47c5c603d06649b1760250a08fbf2a3b` | 是 |
 | `runtime/modules/ui-layout.js` | `dist/modules/ui-layout.js` | 38127 | `588eab9c0753d86a80b67b2689f3fdc0a7567fc5860b55e145a10a94a932b002` | 是 |
 | `runtime/modules/ui-layout.css` | `dist/modules/ui-layout.css` | 12425 | `adfe5423464b44482ed41aa90ad30b8dd0b737a9cf11767671637d7ae6210899` | 是 |
 | `runtime/modules/ui-content.js` | `dist/modules/ui-content.js` | 395020 | `50c5a056bc4d222c41035c8491603bbeb11d37622077b99a09074a60f5a81ffe` | 是 |
@@ -23,11 +23,11 @@
 | `runtime/modules/viz-chart.css` | `dist/modules/viz-chart.css` | 12011 | `c05f5a73036b700ffbf74a359c868efad05c9b93b57456391b7a03897dcd5fcd` | 是 |
 | `runtime/modules/blocks.js` | `dist/modules/blocks.js` | 148233 | `bca134983bc58a91803a53c9f3793369f7ccd0d89975618e92735143743fddd5` | 是 |
 | `runtime/modules/blocks.css` | `dist/modules/blocks.css` | 40943 | `96e4bf142618ca6f7f812fb6d0365b9d13a436ad50f63f1a62104c3578e14c79` | 是 |
-| `runtime/THIRD_PARTY_NOTICES.md` | `THIRD_PARTY_NOTICES.md` | 2615 | `cef46d62c8750bf79ce7f60e3a748b91182356f0de3b887e5dacfe595fc4879a` | 是 |
+| `runtime/THIRD_PARTY_NOTICES.md` | `THIRD_PARTY_NOTICES.md` | 2786 | `7628e3365cf5b536b94b18450c246d0577c31736b8ef50ff972907ac1b15a03a` | 是 |
 | `runtime/licenses/KaTeX-LICENSE.txt` | `vendor/katex/LICENSE` | 1107 | `766ccc1f306c885aa45542a9846bbd0a505b27a0374f146778171c2254ce18e3` | 是 |
 | `runtime/licenses/marked-LICENSE.txt` | `vendor/marked/LICENSE` | 2942 | `8e3a3f82f59a60958f56ca08f445647c32a4733dc7ca6c2c46f6eb898471ab9c` | 是 |
 | `runtime/licenses/lucide-LICENSE.txt` | `vendor/lucide/LICENSE` | 3208 | `b495047bd93a9b06913511076f504daba17d5bbeb3e0650f3bb53a4220329c57` | 是 |
 
-核对时间：2026-10-31T03:25:14.032Z
+核对时间：2026-10-31T13:06:21.535Z
 
 全部一致：是

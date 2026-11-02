@@ -1,0 +1,12 @@
+/* NoteDemo scene controlled visuals.
+ * Scene 在同步提交前给每个参与 binding 的容器加 data-note-scene-active="true"；
+ * 公共效果接管期间，受控内容原有的 CSS transition 不能自行补间或抢先显示目标。
+ * 只作用于本 Binding 容器内部，页面其他正常动效不受影响。
+ * 由 bindings.restoreFrame / restoreBindings 在恢复写入时同样短暂接管，
+ * 目标落稳后由 scene 释放；这些属性不是作者需要维护的第二套状态。 */
+.note-demo-binding[data-note-scene-active="true"],
+.note-demo-binding[data-note-scene-active="true"] *,
+.note-demo-binding[data-note-scene-active="true"] *::before,
+.note-demo-binding[data-note-scene-active="true"] *::after {
+  transition: none !important;
+}

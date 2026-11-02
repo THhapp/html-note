@@ -81,6 +81,8 @@
     var activeOp = null;
     var activeRunOp = null;
     var pendingOps = [];
+    /* 最近一次公开导航的原因：scene 运行配置与默认舞台呈现用它区分正常下一步与回看/重播。 */
+    var navigationCause = null;
 
     /* ---------------- 状态发布 ---------------- */
 
@@ -523,7 +525,9 @@
               bindings: bindings,
               signal: op.abort ? op.abort.signal : null,
               motion: motionMode(),
-              presentation: presentation
+              presentation: presentation,
+              reason: opCause(spec),
+              cause: opCause(spec)
             });
           } catch (error) {
             if (activeRunOp === op) activeRunOp = null;
@@ -553,7 +557,9 @@
             transition: spec.transition,
             bindings: bindings,
             signal: op.abort ? op.abort.signal : null,
-            motion: motionMode()
+            motion: motionMode(),
+            reason: opCause(spec),
+            cause: opCause(spec)
           });
         } catch (error) {
           if (activeRunOp === op) activeRunOp = null;
@@ -607,9 +613,22 @@
 
     /* ---------------- 公开导航 ---------------- */
 
+    function setCause(cause) {
+      navigationCause = cause;
+    }
+
+    function getNavigationCause() {
+      return navigationCause;
+    }
+
+    function opCause(spec) {
+      return spec && typeof spec.cause === 'string' && spec.cause ? spec.cause : 'next';
+    }
+
     function next() {
       if (disposed) return Promise.resolve(disposedResult());
       if (activeOp) return Promise.resolve(makeResult('noop', state.settledFrameId, { reason: 'busy' }));
+      setCause('next');
       var currentFrameId = state.settledFrameId;
       var targetFrameId = nextFrameIdOf(currentFrameId);
       if (!targetFrameId) return Promise.resolve(makeResult('noop', currentFrameId, { reason: 'end' }));
@@ -621,7 +640,8 @@
         sourceFrameId: currentFrameId,
         targetFrameId: targetFrameId,
         transition: transition,
-        replaying: false
+        replaying: false,
+        cause: 'next'
       };
       return scheduleOp(spec, function (op) {
         return runTransition(op, spec);
@@ -630,6 +650,7 @@
 
     function prev() {
       if (disposed) return Promise.resolve(disposedResult());
+      setCause('prev');
       if (activeOp) {
         var preempted = activeRunOp;
         return scheduleOp({}, function (op) {
@@ -652,6 +673,7 @@
 
     function go(frameId) {
       if (disposed) return Promise.resolve(disposedResult());
+      setCause('go');
       var known = typeof frameId === 'string' && own(frameById, frameId);
       if (activeOp) {
         return scheduleOp({ targetFrameId: known ? frameId : null }, function (op) {
@@ -684,6 +706,7 @@
 
     function replay() {
       if (disposed) return Promise.resolve(disposedResult());
+      setCause('replay');
       var previous = activeOp;
       if (previous) {
         var preempted = activeRunOp;
@@ -696,7 +719,8 @@
             targetFrameId: preempted.targetFrameId,
             transition: preempted.transition,
             replaying: true,
-            restoreSourceFirst: true
+            restoreSourceFirst: true,
+            cause: 'replay'
           };
         }
         return scheduleOp(runningSpec || {}, function (op) {
@@ -717,15 +741,74 @@
         targetFrameId: currentFrameId,
         transition: transition,
         replaying: true,
-        restoreSourceFirst: true
+        restoreSourceFirst: true,
+        cause: 'replay'
       };
       return scheduleOp(spec, function (op) {
         return runTransition(op, spec);
       });
     }
 
+    /* 默认舞台“上一步”：从所选步骤的初态重播上一步（不是逐帧倒播）。
+     * 运行中先取消旧运行，目标是被取消运行的来源停点；否则目标为上一个停点。
+     * 目标停点有可运行入边时恢复其来源再重播该步；没有则直接恢复该停点。
+     * 两种入口都走 scheduleOp，保证运行可被再次取消/打断；session.prev() 仍保持
+     * “恢复上一停点”语义，供自定义宿主使用。 */
+    function replayStepSpec(targetFrameId) {
+      var targetIndex = frameIndexOf(targetFrameId);
+      var sourceFrameId = targetIndex > 0 ? frameOrder[targetIndex - 1] : null;
+      var transition = sourceFrameId != null && own(transitions, sourceFrameId) ? transitions[sourceFrameId] : null;
+      if (!transition || !transitionRunnable(transition) || transition.to !== targetFrameId) return null;
+      return {
+        sourceFrameId: sourceFrameId,
+        targetFrameId: targetFrameId,
+        transition: transition,
+        replaying: true,
+        restoreSourceFirst: true,
+        cause: 'replayPrevious'
+      };
+    }
+
+    function runReplayStep(op, spec) {
+      op.sourceFrameId = spec.sourceFrameId;
+      op.targetFrameId = spec.targetFrameId;
+      op.transition = spec.transition;
+      return runTransition(op, spec);
+    }
+
+    function replayPreviousStep() {
+      if (disposed) return Promise.resolve(disposedResult());
+      setCause('replayPrevious');
+      if (activeOp) {
+        var preempted = activeRunOp;
+        return scheduleOp({ cause: 'replayPrevious' }, function (op) {
+          var currentFrameId = state.settledFrameId;
+          var targetFrameId;
+          if (preempted && preempted.sourceFrameId !== undefined && preempted.sourceFrameId !== null &&
+              currentFrameId === preempted.sourceFrameId) {
+            targetFrameId = currentFrameId;
+          } else {
+            targetFrameId = prevFrameIdOf(currentFrameId);
+          }
+          if (!targetFrameId) return makeResult('noop', currentFrameId, { reason: 'start' });
+          var spec = replayStepSpec(targetFrameId);
+          if (!spec) return restoreAndIdle(targetFrameId, op);
+          return runReplayStep(op, spec);
+        });
+      }
+      var current = state.settledFrameId;
+      var target = prevFrameIdOf(current);
+      if (!target) return Promise.resolve(makeResult('noop', current, { reason: 'start' }));
+      var idleSpec = replayStepSpec(target);
+      if (!idleSpec) return Promise.resolve(restoreAndIdle(target, pseudoOp()));
+      return scheduleOp(idleSpec, function (op) {
+        return runReplayStep(op, idleSpec);
+      });
+    }
+
     function reset() {
       if (disposed) return Promise.resolve(disposedResult());
+      setCause('reset');
       if (activeOp) {
         return scheduleOp({ targetFrameId: startFrameId }, function (op) {
           return restoreAndIdle(startFrameId, op);
@@ -819,11 +902,13 @@
       prev: prev,
       go: go,
       replay: replay,
+      replayPreviousStep: replayPreviousStep,
       reset: reset,
       getState: getState,
       subscribe: subscribe,
       destroy: destroy,
-      __reportError: reportError
+      __reportError: reportError,
+      __getNavigationCause: getNavigationCause
     };
     try {
       Object.defineProperty(session, '__plan', { value: plan, enumerable: false, writable: false, configurable: false });

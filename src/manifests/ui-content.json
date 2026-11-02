@@ -50,7 +50,7 @@
         "不会把字符串当作 HTML 解析。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K02",
         "K09",
@@ -97,7 +97,7 @@
         "外部窗口是否真的新开仍受浏览器与拦截策略影响；组件提供 target=_blank、rel=noopener noreferrer 和屏幕阅读器提示。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K02",
         "K09",
@@ -141,7 +141,7 @@
         "超长词允许在任何位置断行，牺牲严格单词完整性来保证窄容器不溢出。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K02",
         "K09",
@@ -184,7 +184,7 @@
         "不解析引文中的 HTML 或 Markdown。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K02",
         "K09",
@@ -232,7 +232,7 @@
         "字符串按纯文本处理；DOM 节点会被移入列表并随重新渲染移动。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K02",
         "K09",
@@ -290,7 +290,7 @@
         "宽表在局部滚动区中查看，不压缩到不可读；宽度提示仅在真实溢出时显示。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K02",
         "K09",
@@ -344,7 +344,7 @@
         "构建的 ui-content 模块包含 marked/KaTeX，但 C07 自身只依赖 NoteCore.copy，不解析这些库。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K02",
         "K09",
@@ -395,7 +395,7 @@
         "lazy 依赖浏览器 loading 属性；不保证所有光标以下图片都会延迟请求。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K02",
         "K09",
@@ -442,7 +442,7 @@
         "块级公式自身局部横向滚动；不负责生成公式图片或远程渲染。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K02",
         "K09",
@@ -485,7 +485,7 @@
         "不执行脚本、不执行用户代码、不请求远程数据；Markdown 的解析范围以组件实现为准。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K02",
         "K09",
@@ -531,7 +531,7 @@
         "items 字符串只作为术语，解释为空；说明型并列解释请使用 C05 List 的 description 变体。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K02",
         "K09",
@@ -582,7 +582,7 @@
         "无用户事件，程序 update 不触发 onChange/onInput。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K02",
         "K09",
@@ -609,7 +609,8 @@
         "text 或 tex 项",
         "整体可读名称",
         "focus/changed 项提示",
-        "程序更新"
+        "程序更新",
+        "整段内容区域查询（getTarget({part:'body'})）"
       ],
       "states": [
         "文本项",
@@ -631,7 +632,7 @@
         "项较多时保持单行横向排布，不自动换行成多条知识结构；宿主负责容器宽度。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": [
         "K02",
         "K09",

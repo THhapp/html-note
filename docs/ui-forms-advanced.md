@@ -2,7 +2,6 @@
 
 本模块提供开关、滑块、表单组织、日期、时间、颜色与本地文件选择。组件把用户输入当作宿主配置数据，不生成测验、评分或闯关流程（K13）；尺寸、步长与范围都由调用方按内容配置（K10）；标签、格式说明、错误和禁用原因默认在正常阅读路径中可见（K09）。
 
-所有新增项仍为候选，未获用户评价。
 
 ## 加载与依赖
 
@@ -128,6 +127,38 @@ var sw = NoteUI.Switch.mount(host, {
 
 原生 range 键盘：方向键逐步调整，Home/End 到最小/最大，PageUp/PageDown 由浏览器按较大步长调整。区间模式中两个输入均可聚焦，标签为“最小值/最大值”。
 
+### 精确选择（配合 NumberInput 与预设）
+
+滑块负责“扫视范围、粗调与键盘步进”，不承诺用指针命中末端的小边界值（例如 0–1500 中的 46）。需要精确输入时，把 Slider 与 F04 NumberInput、A03 Toggle 预设组合起来，三者通过公开 API 双向同步；不要为精确命中改滑块几何或引入非线性比例：
+
+```js
+var slider = NoteUI.Slider.mount(host, {
+  label: '上层数据长度', min: 0, max: 1500, step: 1, value: 46,
+  format: function (value) { return value + ' B'; },
+  onChange: setLength
+});
+var number = NoteUI.NumberInput.mount(host, {
+  label: '精确值', min: 0, max: 1500, step: 1, value: 46,
+  onChange: setLength
+});
+var presets = NoteUI.Toggle.mount(host, {
+  label: '常用边界',
+  options: [{ value: 46, label: '46 B' }, { value: 64, label: '64 B' },
+            { value: 1500, label: '1500 B' }, { value: 1518, label: '1518 B' }],
+  exclusive: true,
+  value: 46,
+  onChange: setLength
+});
+function setLength(value) {
+  if (value == null) return;
+  slider.update({ value: value });   // 程序更新不触发 onChange
+  number.update({ value: value });
+  presets.update({ value: value });
+}
+```
+
+约束：Slider 与 NumberInput 必须使用同一 `min/max/step`，预设值应落在这个范围内；`NumberInput` 负责合法性与精度，`Slider.update({value})` 在 `step: 1` 时保留精确整数，非法/越界值仍按 Slider 自己的规则夹紧或吸附。程序 `update()` 一律不触发 `onChange`，不会互相递归。预设项也可换成分段按钮或宿主自有按钮；不新增 Slider 的非线性映射 API。
+
 ### 最小用法
 
 ```js
@@ -141,7 +172,7 @@ var slider = NoteUI.Slider.mount(host, {
 ### 限制
 
 - 两个原生 range 上下排列，不是同轨重叠的双拇指；这是为保证可靠点击与键盘可达所做的选择。
-- 不内置刻度标签或非线性比例（例如对数尺度）。
+- 不内置刻度标签或非线性比例（例如对数尺度）；精确小边界值用 NumberInput + 预设组合，而不是改滑块命中几何。
 - 格式化函数抛错时回退为普通数字，不阻塞组件。
 
 ---
@@ -587,8 +618,3 @@ var files = NoteUI.FileInput.mount(host, {
 
 - `node --check`：`src/ui/forms-advanced-internal.js`、`src/ui/forms-advanced.js`、`src/ui/forms-advanced-pickers.js`、`src/ui/forms-advanced-inputs.js`、`gallery/demos/ui-forms-advanced.js`。
 - Playwright + Edge：从 src 按 manifest 顺序直接加载 4 个脚本，运行核心 smoke、deep、narrow 与 gallery demo 检查，并补充分拆回归（Switch 提示文字误触、Form `field.custom` 识别 / `values` 副本 / disabledReason 去重 / custom 禁用恢复、FileInput 单选全拒绝保留清单、DatePicker 范围提示去重与日历网格结构、TimePicker 选择提交与焦点返回）；均无控制台错误、无浮层残留。gallery demo 通过 `gallery/demos/ui-forms-advanced.js` 真实挂载。
-- 具体命令与结果见交付报告；技术自检不等于用户评价。
-
-## 用户评价范围
-
-F09–F15 均为候选组件（`userReview: not-reviewed`），未获用户评价。技术实现、演示可用性通过不等于审美或偏好确认；本模块不应被标记为“已确认资产”。

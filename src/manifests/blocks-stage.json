@@ -71,7 +71,7 @@
         "不提供整页主题、自动播放或控件之外的全页键盘操作。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K03", "K04", "K05", "K06", "K09", "K12", "K13"],
       "docs": "docs/blocks-stage.md#B01",
       "notes": "组合 NoteUI.Stack、Inline 与 Button；返回 stageEl/captionEl，供 StepPlayer 和宿主复用。"
@@ -133,7 +133,7 @@
         "不接管整页键盘，也不自动播放；宿主级键盘快捷键需另行实现。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K03", "K04", "K05", "K06", "K09", "K12", "K13"],
       "docs": "docs/blocks-stage.md#B02",
       "notes": "每次切换先调用上一停点 render 的 cleanup，清空 stageEl 后再渲染目标快照；控件节点不随停点重建。"
@@ -190,7 +190,7 @@
         "规则内容由宿主提供，不内置任何业务规则，也不自动播放或自动判定重点。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K03", "K04", "K05", "K06", "K09", "K12", "K13"],
       "docs": "docs/blocks-stage.md#B03",
       "notes": "组合 NoteUI.Table 与 Notice；getTarget(id) 返回对应行元素。"
@@ -250,7 +250,7 @@
         "上下/并排的实际布局由 NoteViz.CompareView 在窄容器阈值下调整，本块不复制其布局实现。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K03", "K04", "K05", "K06", "K09", "K12", "K13"],
       "docs": "docs/blocks-stage.md#B04",
       "notes": "组合 NoteViz.CompareView、NoteUI.DataObject/Badge 与可选 NoteExpr.Focus；getTarget 支持左右容器与对象 ID。"

@@ -202,12 +202,20 @@
       bag: bag,
       reportError: reportError,
       onUnexpected: surfaceUnexpected,
-      finishCaptionHint: chrome.cancelCaptionHint
+      finishCaptionHint: chrome.cancelCaptionHint,
+      /* 最近一次公开导航原因：默认舞台 Focus 用它区分正常 next 承接与回看/重播 hide。 */
+      getCause: function () {
+        return typeof session.__getNavigationCause === 'function' ? session.__getNavigationCause() : null;
+      }
     });
 
     function navigate(name) {
       if (destroyed) return;
-      var method = session[name];
+      /* 默认舞台的“上一步”是步骤初态重播（replayPreviousStep）；session.prev() 的
+       * “恢复上一停点”语义仍保留给自定义宿主。旧会话没有该方法时回退 prev。 */
+      var methodName = name === 'prev' && typeof session.replayPreviousStep === 'function'
+        ? 'replayPreviousStep' : name;
+      var method = session[methodName] || session[name];
       if (typeof method !== 'function') return;
       var result;
       try {

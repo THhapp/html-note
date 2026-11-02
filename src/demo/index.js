@@ -106,6 +106,7 @@
     NoteDemo.collectSlots = global.NoteDemoAuthor.collectSlots;
     NoteDemo.compile = global.NoteDemoAuthor.compile;
     NoteDemo.author = global.NoteDemoAuthor;
+    if (global.NoteDemoAuthor.effects) NoteDemo.effects = global.NoteDemoAuthor.effects;
   }
   NoteDemo.version = VERSION;
 

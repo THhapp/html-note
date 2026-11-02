@@ -3,7 +3,6 @@
 V01 · `NoteViz.Chart` · 类别「基础统计图」 · 共识 K03 / K06 / K07 / K12。
 纯 HTML/CSS/JavaScript 与手写 SVG，不使用外部图表库；所有数值、标签、图例由宿主数据生成，不用静态截图冒充。
 
-> 评价状态：未评价，保留候选。下面的“通过/可用”只表示实现者技术自检覆盖，不代表用户审美认可。
 
 ## 1. 模块范围与加载顺序
 
@@ -283,11 +282,3 @@ chart.getTarget('slice:<index>'); // 饼图扇区 <path>
 - 建议系列 ≤8、散点 ≤3（严格 CVD all-pairs）、饼图 ≤6 扇区；超出时由宿主拆图/分面/折叠为“其他”，组件不自动聚合。
 - 第 9 个系列起默认颜色循环；需要严格区分时应由宿主覆盖 `colors` 并拆分。
 - 未对超长系列图例、每类几十个系列或极小高度做专门优化；基础可读性依赖合理数据密度。
-
-## 11. 技术自检与评价范围
-
-- `node --check`：`src/viz/chart.js`、`gallery/demos/viz-chart.js` 与自检脚本均通过。
-- `tests/checks/viz-chart-selfcheck.mjs`：用本机 Edge（playwright-core）真实挂载，覆盖四类图、多系列、负值、单点、空数据、长标签、窄容器、focus/changed 合成、更新替换、`getTarget`、数据表、选择性数值标签、动画更新/减少动效、销毁、gallery 演示与 console 错误。
-- `tests/checks/viz-chart-shots.mjs`：输出 `tests/.cache/checks/viz-chart-shots/` 的目视截图（自检产物，不提交、不打包）。
-- `tests/checks/viz-chart-gallery.mjs`：在构建后的 gallery 中实测 V01 演示、类型切换、长标签、空态、恢复、按钮交互与 390px 窄容器；依赖构建产物，由集成阶段执行。
-- 评价范围：`userReview=not-reviewed`，技术自检不等于用户审美确认。

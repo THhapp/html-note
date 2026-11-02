@@ -1,0 +1,191 @@
+#!/usr/bin/env node
+/*
+ * 一次性的本地成品观察入口。
+ * 打开给定 HTML，收集页面错误/控制台错误/外部请求，按需截图或执行作品专属 probe。
+ * 不启动服务，不生成默认文件，不自动安装依赖；执行成功不等于作品验收通过。
+ */
+import fs from 'node:fs';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { openNotePage, resolveBrowserExecutable, loadPlaywright, LIBRARY_ROOT } from './lib/note-browser.mjs';
+
+const DEFAULTS = { width: 1440, height: 1000 };
+const HELP = `本地观察入口 · inspect-note
+
+用法:
+  node scripts/inspect-note.mjs <成品HTML绝对路径> [--json]
+      [--screenshot <输出PNG绝对路径>]
+      [--probe <probe模块绝对路径>]
+      [--width <像素>] [--height <像素>]
+      [--browser <浏览器可执行文件绝对路径>]
+
+说明:
+  - 默认无头运行，直接打开本地 HTML；一次调用后关闭浏览器，无常驻服务。
+  - 默认不写截图、报告或日志；--screenshot 由调用方明确指定输出。
+  - --probe 模块导出 default async ({ page, context, browser, observations }) => JSON 值；
+    它复用同一个已打开页面，不另起浏览器。
+  - 默认浏览器为本机 Edge；找不到时用 --browser 显式指定，不自动安装或轮换通道。
+  - 输出区分工具执行成功、观察事实与 probe 结果；打开成功不等于作品验收通过。
+
+示例:
+  node scripts/inspect-note.mjs "D:/path/to/成品.html" --json
+  node scripts/inspect-note.mjs "D:/path/to/成品.html" --screenshot "D:/path/out.png" --width 860 --height 1000
+  node scripts/inspect-note.mjs "D:/path/to/成品.html" --probe "D:/path/probe.mjs" --json
+`;
+
+function coded(code, message, extra) {
+  const error = new Error(message);
+  error.code = code;
+  if (extra) Object.assign(error, extra);
+  return error;
+}
+
+function parseArgs(argv) {
+  const options = { json: false, help: false, screenshot: null, probe: null, width: null, height: null, browser: null };
+  const allowed = new Set(['json', 'help', 'screenshot', 'probe', 'width', 'height', 'browser']);
+  const positional = [];
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === '--json') { options.json = true; continue; }
+    if (arg === '--help' || arg === '-h') { options.help = true; continue; }
+    if (!arg.startsWith('--')) { positional.push(arg); continue; }
+    const eq = arg.indexOf('=');
+    const key = (eq >= 0 ? arg.slice(2, eq) : arg.slice(2));
+    if (!allowed.has(key)) throw coded('usage', '未知选项 --' + key);
+    let value = eq >= 0 ? arg.slice(eq + 1) : null;
+    if (value == null) {
+      value = argv[i + 1];
+      if (value == null || value.startsWith('--')) throw coded('usage', '选项 --' + key + ' 需要一个值');
+      i += 1;
+    }
+    if (key === 'json' || key === 'help') {
+      if (value !== 'true' && value !== '') throw coded('usage', '--' + key + ' 不接受值');
+    } else options[key] = value;
+  }
+  if (positional.length > 1) throw coded('usage', '只接受一个成品 HTML 路径；收到：' + positional.join(' '));
+  return { options, positional };
+}
+
+function absoluteRequested(value, flag) {
+  if (value == null) return null;
+  const resolved = path.resolve(value);
+  if (!path.isAbsolute(value)) throw coded('usage', flag + ' 需要绝对路径。');
+  return resolved;
+}
+
+function checkOutputPath(file, flag) {
+  if (!file) return;
+  const parent = path.dirname(file);
+  if (!fs.existsSync(parent) || !fs.statSync(parent).isDirectory()) throw coded('invalid_output', flag + ' 的父目录不存在：' + parent);
+  if (fs.existsSync(file) && fs.statSync(file).isDirectory()) throw coded('invalid_output', flag + ' 指向目录：' + file);
+}
+
+function publicObservations(observations) {
+  return {
+    pageErrors: observations.pageErrors.slice(),
+    consoleErrors: observations.consoleErrors.slice(),
+    externalRequests: observations.externalRequests.slice(),
+    requestFailures: observations.requestFailures.slice(),
+    errorCount: observations.pageErrors.length + observations.consoleErrors.length,
+    externalRequestCount: observations.externalRequests.length
+  };
+}
+
+async function run() {
+  const { options, positional } = parseArgs(process.argv.slice(2));
+  if (options.help) { console.log(HELP); return; }
+  if (!positional.length) throw coded('usage', '需要一个本地成品 HTML 路径；使用 --help 查看用法。');
+  const entry = path.resolve(positional[0]);
+  const screenshot = absoluteRequested(options.screenshot, '--screenshot');
+  const probePath = absoluteRequested(options.probe, '--probe');
+  if (screenshot) checkOutputPath(screenshot, '--screenshot');
+  if (probePath) {
+    if (!fs.existsSync(probePath) || !fs.statSync(probePath).isFile()) throw coded('invalid_probe', 'probe 文件不存在：' + probePath);
+  }
+  let session = null;
+  try {
+    session = await openNotePage({
+      root: LIBRARY_ROOT,
+      entry,
+      width: options.width || DEFAULTS.width,
+      height: options.height || DEFAULTS.height,
+      browser: options.browser || null,
+      headless: true
+    });
+    const data = {
+      ok: true,
+      tool: 'inspect-note',
+      entry: session.entry,
+      viewport: session.viewport,
+      browser: { headless: true, executablePath: resolveBrowserExecutable(LIBRARY_ROOT, options.browser) },
+      observations: null,
+      probe: null,
+      screenshot: null,
+      execution: '页面已打开并完成本次请求的观察；这不表示作品验收通过。'
+    };
+    const failures = [];
+    if (screenshot) {
+      try {
+        await session.page.screenshot({ path: screenshot, fullPage: false });
+        data.screenshot = screenshot;
+      } catch (error) {
+        failures.push(coded('screenshot_failed', '截图失败：' + error.message));
+      }
+    }
+    if (probePath) {
+      let probe = null;
+      try {
+        const module = await import(pathToFileURL(probePath).href);
+        probe = module && typeof module.default === 'function' ? module.default : null;
+        if (!probe) failures.push(coded('invalid_probe', 'probe 模块必须 export default async ({ page }) => ...'));
+      } catch (error) {
+        failures.push(coded('probe_import_failed', '无法导入 probe 模块：' + error.message));
+      }
+      if (probe) {
+        try {
+          const value = await probe({
+            page: session.page,
+            context: session.context,
+            browser: session.browser,
+            observations: session.observations,
+            entry: session.entry
+          });
+          data.probe = value === undefined ? null : value;
+        } catch (error) {
+          failures.push(coded('probe_failed', 'probe 执行失败：' + error.message));
+        }
+      }
+    }
+    /* 观察事实必须在 probe 之后汇总：probe 期间产生的页面/控制台错误也要进入最终结果。 */
+    data.observations = publicObservations(session.observations);
+    if (failures.length) {
+      data.ok = false;
+      data.execution = '页面已打开；请求的截图或 probe 未完成，观察事实仍保留。';
+      data.error = { code: failures[0].code || 'tool_failed', message: failures.map((item) => item.message).join('；') };
+      process.exitCode = 1;
+    }
+    if (options.json) console.log(JSON.stringify(data, null, 2));
+    else {
+      console.log('inspect-note: ' + data.entry);
+      console.log('viewport: ' + data.viewport.width + 'x' + data.viewport.height + ' · browser: ' + data.browser.executablePath);
+      console.log('page errors: ' + data.observations.pageErrors.length + ' · console errors: ' + data.observations.consoleErrors.length + ' · external requests: ' + data.observations.externalRequests.length);
+      if (data.observations.requestFailures.length) console.log('request failures: ' + data.observations.requestFailures.length);
+      if (data.screenshot) console.log('screenshot: ' + data.screenshot);
+      if (probePath) console.log('probe: ' + JSON.stringify(data.probe));
+      if (!data.ok) console.log('失败: ' + data.error.message);
+      console.log(data.ok ? '执行成功仅表示页面已打开并完成观察；不表示作品验收通过。' : '观察事实已保留；这不表示作品验收通过。');
+    }
+  } finally {
+    if (session) await session.close();
+  }
+}
+
+try {
+  await run();
+} catch (error) {
+  const json = process.argv.includes('--json');
+  const data = { ok: false, tool: 'inspect-note', error: { code: error.code || 'error', message: error.message } };
+  if (json) console.log(JSON.stringify(data, null, 2));
+  else console.error('inspect-note: ' + error.message);
+  process.exitCode = error.code === 'usage' ? 2 : 1;
+}

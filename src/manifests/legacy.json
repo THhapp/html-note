@@ -89,7 +89,7 @@
         "图标 DOM 会移入按钮，不会克隆；纯图标依赖 ariaLabel、label 或图标名生成可访问名称"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "复用接入与变体增强，未获本批具体视觉评价；原六项组件的旧评价不自动覆盖新增变体",
+      "reviewScope": "复用接入与变体增强，未获具体视觉评价；原六项组件的旧评价不自动覆盖新增变体",
       "consensus": [
         "K06",
         "K07",
@@ -147,7 +147,7 @@
         "程序 update({ value }) 不调用 onChange，用户换选才回调"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本批未获具体视觉评价；沿用原候选接口，不因复用自动升级评价",
+      "reviewScope": "未获具体视觉评价；沿用原候选接口，不因复用自动升级评价",
       "consensus": [
         "K06",
         "K07",
@@ -199,7 +199,7 @@
         "三档语气固定，不允许自定义颜色映射"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本批未获具体视觉评价",
+      "reviewScope": "未获具体视觉评价",
       "consensus": [
         "K06",
         "K07",
@@ -218,12 +218,12 @@
       "purpose": "复用常驻说明块，把必要解释放在正常阅读路径；标题、正文与语气可更新，正文支持纯文本或 DOM 节点。",
       "inputs": [
         "title",
-        "content",
+        "content（文本或单个 DOM 节点；数组/普通对象抛 TypeError）",
         "tone"
       ],
       "customizable": [
         "标题",
-        "正文文字或 DOM",
+        "正文文字或单个 DOM 节点",
         "neutral/accent/warning 语气"
       ],
       "states": [
@@ -251,11 +251,11 @@
       "preview": "gallery/index.html#R04",
       "limitations": [
         "常驻说明不是 Tooltip，不负责悬停触发或自动消失",
-        "字符串按纯文本写入；DOM 节点会被移入，不克隆",
+        "content 只接受文本或单个 DOM 节点：DOM 节点会被移入、不克隆；数组与普通对象抛带 NoteUI.Notice 前缀的 TypeError",
         "不内置关闭按钮或自动隐藏"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本批未获具体视觉评价",
+      "reviewScope": "未获具体视觉评价",
       "consensus": [
         "K06",
         "K07",
@@ -264,7 +264,7 @@
         "K16"
       ],
       "docs": "docs/legacy.md#R04",
-      "notes": "未修改源码。"
+      "notes": "V05 收紧 content 契约：只接受文本或单个 DOM 节点；数组/普通对象抛 TypeError，update 同样校验。"
     },
     {
       "id": "R05",
@@ -315,7 +315,7 @@
         "手风琴组是宿主组合方式，不是独立接口"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本批未获具体视觉评价",
+      "reviewScope": "未获具体视觉评价",
       "consensus": [
         "K06",
         "K07",
@@ -375,7 +375,7 @@
         "不提供编辑、比较或持久化能力"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本批未获具体视觉评价",
+      "reviewScope": "未获具体视觉评价",
       "consensus": [
         "K06",
         "K07",
@@ -455,13 +455,14 @@
       "inputs": [
         "motion",
         "zIndex",
-        "show({ targets, text, side, orientation })"
+        "show({ targets, text, side, orientation, offset })"
       ],
       "customizable": [
         "目标组",
         "说明文字",
         "side auto/below/above/left/right",
         "orientation auto/h/v",
+        "外侧间距 offset（默认 10，只读 range.offset）",
         "动效与层级",
         "实例根上的 --nx-* 变量"
       ],
@@ -492,7 +493,8 @@
         "旧接口是 show/hide/refresh/destroy，不伪装为 update",
         "只画视觉括线并隐藏于屏幕阅读器，不做语义分组替代",
         "仅在浅色背景、常规文档流与桌面 Chromium 下保证默认观感",
-        "不保证 transform 祖先、iframe 与超长页面滚动下的跟随"
+        "不保证 transform 祖先、iframe 与超长页面滚动下的跟随",
+        "offset 是可选的括线外侧间距，不改变目标元素几何或分组语义"
       ],
       "userReview": "positive-with-scope",
       "reviewScope": "总体满意，读起来比较轻松；动效衔接与视觉层次保留为精修项，不表示参数冻结",
@@ -504,7 +506,7 @@
         "K16"
       ],
       "docs": "docs/legacy.md#R08",
-      "notes": "未修改源码；原验证范围与限制沿用 archive/prototypes 中的原验证记录。"
+      "notes": "V05 增补可选 show({ offset })（默认 10，只读 range.offset，非法值抛 NoteExpr.Range 错误）；原 show/hide/refresh 语义与视觉不变。原验证范围与限制沿用 archive/prototypes 中的原验证记录。"
     },
     {
       "id": "R09",
@@ -622,7 +624,7 @@
         "未在真实笔记正文、移动端、Firefox/Safari 与打印中验证"
       ],
       "userReview": "positive-with-scope",
-      "reviewScope": "第二轮整体：这轮不错；真实笔记中的组装效果与具体尺寸/时长/停点数未获评价，不成为固定标准",
+      "reviewScope": "整体评价：满意；真实笔记中的组装效果与具体尺寸/时长/停点数未获评价，不成为固定标准",
       "consensus": [
         "K06",
         "K07",

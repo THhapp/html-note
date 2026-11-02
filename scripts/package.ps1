@@ -22,6 +22,8 @@ $tempPath = $outputPath + '.tmp'
 function Should-SkipDirectory([string]$relative, [string]$name) {
   if ($name -in @('node_modules', '.git', '__pycache__', '_dev', 'Cache', 'Code Cache', 'GPUCache')) { return $true }
   if ($name -match '^(browser-profile|profiles?)(-|$)') { return $true }
+  # Headless Edge sometimes resolves its user-data-dir into a literal '%SystemDrive%' folder under the project.
+  if ($relative -eq '%SystemDrive%' -or $relative.StartsWith('%SystemDrive%/')) { return $true }
   if ($relative -eq 'tests/.cache' -or $relative.StartsWith('tests/.cache/')) { return $true }
   if ($relative -eq 'archive/private' -or $relative.StartsWith('archive/private/')) { return $true }
   if ($relative -eq 'archive/rejected' -or $relative.StartsWith('archive/rejected/')) { return $true }
@@ -94,13 +96,23 @@ try {
   $required = @(
     'README.md', 'registry.json', 'THIRD_PARTY_NOTICES.md',
     'docs/公共编排层.md', 'docs/构建与分发.md', 'docs/架构与接口.md', 'docs/组件目录.md',
+    'docs/取用与组合.md', 'docs/查询CLI.md', 'docs/查询语料.md', 'docs/提示词撰写.md',
     'scripts/build.mjs', 'scripts/check.mjs', 'scripts/build-demo-preview.mjs',
+    'scripts/query.mjs', 'scripts/query/catalog.mjs', 'scripts/inspect-note.mjs',
+    'scripts/lib/note-browser.mjs', 'tests/checks/query-cli-check.mjs',
     'scripts/package.ps1', 'scripts/expected-ids.json', 'scripts/lib/source-order.mjs',
     'gallery/index.html', 'gallery/gallery.js', 'gallery/gallery.css',
     'examples/authoring/index.html', 'examples/demo-runtime/index.html',
     'examples/demo-scene/index.html', 'examples/reuse-matrix-product/index.html',
+    'examples/propagation/index.html', 'examples/propagation/example.css',
+    'examples/propagation/graph.js', 'examples/propagation/adapter.js', 'examples/propagation/demo.js',
+    'examples/propagation/README.md',
+    'examples/continuous-scene/index.html', 'examples/continuous-scene/style.css',
+    'examples/continuous-scene/scene.js', 'examples/continuous-scene/adapter.js',
+    'examples/continuous-scene/demo.js', 'examples/continuous-scene/README.md',
     'dist/note-library.js', 'dist/note-library.css', 'dist/registry.js',
     'dist/组件库-预览.html', 'dist/作者装配与聚焦-预览.html',
+    'dist/传播过程与局部过渡-预览.html', 'dist/连续画面局部变化-预览.html',
     'dist/modules/demo-runtime.js', 'dist/modules/demo-ui.js'
   ) + @($manifestRequired | Select-Object -Unique)
   $missing = @($required | Where-Object { $entryNames -notcontains $_ })

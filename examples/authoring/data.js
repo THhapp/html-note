@@ -1,5 +1,17 @@
 /* Authoring example data — content and attention intent only.
  * Both demos use NoteDemoRecipes.focusWorkbench; replace these data values to reuse the recipe.
+ *
+ * This round calibrates reading pace, not the observation contract:
+ * - Each pair step: the reader identifies A's current cell, then B's current cell, then looks at
+ *   the product that appears. The focus picks up from the previous product's weakened position
+ *   and only migrates to the two new source cells; it does not re-scan settled evidence.
+ * - Observation-only targets (groups: []) keep the same default stay; scene.attention.stepDuration
+ *   is tuned per demo so A/B get enough time to be read without piling up across three pairs.
+ * - Content targets start only after the focus actually arrives; their extra wait is 0 unless a
+ *   demo explicitly needs one. The last landing point is weakened and static: no final countdown.
+ * - Readout steps: the reader confirms one 读数格, then checks the right-side current readout.
+ *   Readout content is gated on its own target, so the value change cannot be missed while the
+ *   focus is still on the previous stop.
  */
 (function (global) {
   'use strict';
@@ -61,6 +73,13 @@
   function itemRef(binding, id) {
     return { binding: binding, query: { id: id } };
   }
+  /* 稳定参照：只观察、不启动内容。 */
+  function observeCell(binding, cell, holdDuration) {
+    var ref = cellRef(binding, cell);
+    ref.groups = [];
+    if (holdDuration != null) ref.holdDuration = holdDuration;
+    return ref;
+  }
 
   AuthoringDemos.matrix = function () {
     var baseA = matrixView(MATRIX_A, ROW_A);
@@ -84,8 +103,14 @@
           scene: {
             bindings: [{ binding: 'terms' }],
             attention: {
-              targets: [cellRef('matrixA', PAIRS[0].a), cellRef('matrixB', PAIRS[0].b),
-                itemRef('terms', 't1')]
+              /* 读者任务：先辨认 A₁₁=2，再辨认 B₁₂=2，最后看乘积 4 出现。
+               * stepDuration 只作为两个来源单元的辨认停顿；乘积内容到达后不再额外等待。 */
+              stepDuration: 440,
+              targets: [
+                observeCell('matrixA', PAIRS[0].a),
+                observeCell('matrixB', PAIRS[0].b),
+                { binding: 'terms', query: { id: 't1' }, holdDuration: 0 }
+              ]
             }
           }
         },
@@ -95,8 +120,13 @@
           scene: {
             bindings: [{ binding: 'terms' }],
             attention: {
-              targets: [cellRef('matrixA', PAIRS[1].a), cellRef('matrixB', PAIRS[1].b),
-                itemRef('terms', 't2')]
+              /* 读者任务：辨认 A₁₂=1 与 B₂₂=1；两个来源使用同一节奏，不再人为拖长。 */
+              stepDuration: 440,
+              targets: [
+                observeCell('matrixA', PAIRS[1].a),
+                observeCell('matrixB', PAIRS[1].b),
+                { binding: 'terms', query: { id: 't2' } }
+              ]
             }
           }
         },
@@ -106,7 +136,13 @@
           scene: {
             bindings: [{ binding: 'terms' }],
             attention: {
-              targets: [cellRef('matrixA', PAIRS[2].a), cellRef('matrixB', PAIRS[2].b), itemRef('terms', 't3')]
+              /* 读者任务：辨认 A₁₃=3 与 B₃₂=4；第三对仍按同一观察节奏收束。 */
+              stepDuration: 440,
+              targets: [
+                observeCell('matrixA', PAIRS[2].a),
+                observeCell('matrixB', PAIRS[2].b),
+                { binding: 'terms', query: { id: 't3' } }
+              ]
             }
           }
         },
@@ -115,7 +151,14 @@
           replace: { sum: THREE, result: { text: '17' } },
           scene: {
             bindings: [{ binding: 'sum' }, { binding: 'result', mode: 'reveal', after: 'sum' }],
-            attention: { targets: [{ binding: 'sum', query: { id: 'total' }, holdDuration: 1150 }, { binding: 'result', query: { part: 'value' } }], stepDuration: 600 }
+            /* 末步是最后落点：内容 ready 后由会话弱化静止，不配置观察倒计时。 */
+            attention: {
+              targets: [
+                /* 观察整段累加表达式（body 是真实内容容器），而不是只框住末端 total。 */
+                { binding: 'sum', query: { part: 'body' } },
+                { binding: 'result', query: { part: 'value' } }
+              ]
+            }
           }
         }
       ],
@@ -124,7 +167,7 @@
         { slot: 'matrixB', title: '矩阵 B', meta: '3 × 2' }
       ],
       processTitle: '当前配对',
-      processMeta: '按顺序观察这一对的来源与乘积',
+      processMeta: '先看两个来源，再看乘积出现',
       process: [{ slot: 'terms' }],
       readout: { slot: 'sum', title: '逐项相加' },
       result: { slot: 'result', title: 'C₁₂ 结果' }
@@ -162,7 +205,15 @@
           replace: { seq: seqView(1, 'b1'), readout: { text: '4' } },
           scene: {
             bindings: [{ binding: 'seq' }, { binding: 'readout' }],
-            attention: { targets: [itemRef('seq', 'b1'), { binding: 'readout', query: { part: 'value' } }] }
+            attention: {
+              /* 读者任务：确认第 1 格是 4，再看右侧读数更新为 4。
+               * stepDuration 只给这格辨认时间；读数内容到达后立即出现。 */
+              stepDuration: 400,
+              targets: [
+                { binding: 'seq', query: { id: 'b1' } },
+                { binding: 'readout', query: { part: 'value' } }
+              ]
+            }
           }
         },
         {
@@ -170,7 +221,14 @@
           replace: { seq: seqView(2, 'b2'), readout: { text: '1' } },
           scene: {
             bindings: [{ binding: 'seq' }, { binding: 'readout' }],
-            attention: { targets: [itemRef('seq', 'b2'), { binding: 'readout', query: { part: 'value' } }] }
+            attention: {
+              /* 读者任务：确认第 2 格是 1，再看读数从 4 换成 1。 */
+              stepDuration: 400,
+              targets: [
+                { binding: 'seq', query: { id: 'b2' } },
+                { binding: 'readout', query: { part: 'value' } }
+              ]
+            }
           }
         },
         {
@@ -178,7 +236,14 @@
           replace: { seq: seqView(3, 'b3'), readout: { text: '12' } },
           scene: {
             bindings: [{ binding: 'seq' }, { binding: 'readout' }],
-            attention: { targets: [itemRef('seq', 'b3'), { binding: 'readout', query: { part: 'value' } }] }
+            attention: {
+              /* 读者任务：确认第 3 格是 12，再看读数换成 12；三格到齐后才进入汇总。 */
+              stepDuration: 400,
+              targets: [
+                { binding: 'seq', query: { id: 'b3' } },
+                { binding: 'readout', query: { part: 'value' } }
+              ]
+            }
           }
         },
         {
@@ -186,7 +251,15 @@
           replace: { sum: THREE, result: { text: '17' } },
           scene: {
             bindings: [{ binding: 'sum' }, { binding: 'result', mode: 'reveal', after: 'sum' }],
-            attention: { targets: [{ binding: 'sum', query: { id: 'total' }, holdDuration: 1150 }, { binding: 'result', query: { part: 'value' } }], stepDuration: 600 }
+            /* 最后落点：内容 ready 后弱化静止，不额外等待。 */
+            attention: {
+              targets: [
+                /* 观察整段累加表达式（body 是真实内容容器），而不是只框住末端 total：
+                 * 旧值“—”先可见，随后 4 + 1 + 12 = 17 在同一框内展开。 */
+                { binding: 'sum', query: { part: 'body' } },
+                { binding: 'result', query: { part: 'value' } }
+              ]
+            }
           }
         }
       ],

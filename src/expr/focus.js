@@ -3,26 +3,40 @@
  * 依赖：无（原生 DOM + Web Animations API），file:// 直接可用。
  *
  * 挂载：
- *   var focus = NoteExpr.Focus.mount({ motion: 'auto', zIndex: 1210 });
+ *   var focus = NoteExpr.Focus.mount({ motion: 'auto', zIndex: 1210, accel: 4600 });
  *   focus.show(el);                              // 元素 → 框选
  *   focus.show({ el: p, text: '缓存是否命中' });  // 文本子串 → 下划线
- *   focus.show({ el: p, text: '...', mode: 'box' }); // 强制模式
- *   focus.show(otherEl);                         // 已有标记 → 迁移
+ *   focus.show(otherEl);                         // 已有标记 → 对称加减速迁移
  *   focus.hide();  focus.refresh();  focus.destroy();
  *   var soft = NoteExpr.Focus.mount({ entrance: 'soft' }); // attention 的软出现
  *   await focus.whenArrived();                    // 本次出现/迁移实际完成
  *   await focus.whenHidden();                     // 本次淡出实际完成
  *
- * 只读：focus.el / focus.visible / focus.target / focus.mode / focus.text
- * 显示期间按目标真实 rect 每帧跟随；动画完成由 WAAPI finished 决定，不另设计时器。
+ * 会话生命周期（默认舞台 attention 使用；独立用法可不调用）：
+ *   focus.weak();        // 仅可见时：取消迁移/逐帧，快速转虚线低强调，保留几何与目标
+ *   focus.restore();     // 回到 active；不动几何，恢复活动期逐帧跟随
+ *   focus.reanchor(el);  // DOM 重建后静默重测同一逻辑目标，保留 visible/emphasis/arrival
+ *   focus.emphasis;      // 只读 'active' | 'weak'
+ *   // weak 静止期目标因 DOM 重建临时断开时不 autoHide：保留上一几何，等宿主 reanchor/hide；
+ *   // 非 weak 活动期的断开仍按原语义 autoHide。
+ *   // 同元素换 range/geometry 有实际几何变化时走正常框迁移（从当前已渲染框承接）；
+ *   // 相同/微小抖动几何不重播；reanchor 始终静默重绑定，不因范围变化触发迁移。
+ *
+ * 只读：focus.el / focus.visible / focus.target / focus.mode / focus.text / focus.emphasis
+ * 活动期按目标真实 rect 每帧跟随；weak 静止期停止逐帧，按 resize/滚动/DOM 变更重测。
+ * 到达/隐藏句柄由真实迁移完成、WAAPI finished 或实际淡出收尾决定，不使用预计时长冒充完成。
  *
  * 几何契约（视口坐标，叠加层 position:fixed; inset:0）：
  *   框选：框 = 目标 rect 四边各外扩 6px；1.5px 描边画在框内侧（border-box），圆角 8px；
  *   下划线：Range.getClientRects() 每行盒一段（过滤宽 < 1px），
  *           left = rect.left + 1、width = rect.width - 2、top = rect.bottom - 1、高 2px。
  *
- * 动效契约（SPEC §6）：首次显示默认 220ms 淡入 + 缩放 .97→1；entrance:'soft'（attention 使用）320ms 淡入 + 上浮 5px/.93→1；下划线逐段 240ms 画出、段间 30ms；
- *   迁移 280ms 几何过渡；取消 150ms 淡出；motion:'never' 或系统减少动效 → 0ms 直落、不建动画。
+ * 动效契约（SPEC §6）：
+ *   首次显示默认 220ms 淡入 + 缩放 .97→1；entrance:'soft'（attention 使用）320ms 淡入 + 上浮 5px/.93→1；
+ *   下划线逐段 240ms 画出、段间 30ms；框→框迁移使用对称加减速
+ *   p(u)=2u² (u≤0.5)、p(u)=1-2(1-u)² (u>0.5)，T=2√(D/accel) 夹 [180,800]ms，
+ *   D 为对应角点最大位移（含宽高变化）；取消 150ms 淡出；weak/restore 视觉过渡 ≤160ms；
+ *   motion:'never' 或系统减少动效 → 0ms 直落、不建动画/rAF 迁移。
  *
  * 职责边界：只做“当前关注”这一种标记的几何与动效；不判断重点、不自动播放、不显示文字；
  * 不做全局样式、不引用外部资源。实例之间、与 B/C 组件之间不共享 DOM / 变量。
@@ -32,7 +46,6 @@
 
   var VERSION = '1.0.0';
 
-  var EASE = 'cubic-bezier(.22,.7,.25,1)';   /* 迁移：前段快、尾段稳（SPEC §6） */
   var EASE_OUT = 'cubic-bezier(.4,0,.2,1)';  /* 淡入 / 淡出 / 下划线画出：可感知的匀速收尾 */
 
   /* 几何与动效基线（SPEC §4 / §6），集中在此便于核对 */
@@ -44,7 +57,9 @@
     showBoxSoftDur: 320, // attention 的软收束出现
     showRuleDur: 240, // 下划线单段画出
     ruleStagger: 30,  // 段间延迟
-    migrateBoxDur: 280,
+    migrateMinDur: 180,
+    migrateMaxDur: 800,
+    accelDefault: 4600, // 对称迁移默认加速度 px/s²（mount.accel 可覆盖；依据 100/300/600/900px 实测校准）
     migrateOutDur: 120, // 迁移时旧下划线淡出
     hideDur: 150,
     eps: 0.5          // 重测量比较阈值
@@ -261,7 +276,10 @@
     var motionMode = options.motion === 'never' || options.motion === 'always' ? options.motion : 'auto';
     var entranceMode = options.entrance === 'soft' ? 'soft' : 'default';
     var observeEnabled = options.observe !== false;
-    var geometryProvider = normalizeGeometry(options.geometry);
+    var mountGeometry = normalizeGeometry(options.geometry);
+    var specGeometry = null;   // 本次 show/reanchor 的 spec.geometry；为空时回退 mountGeometry
+    var accel = Number(options.accel);
+    if (!isFinite(accel) || accel <= 0) accel = G.accelDefault;
     var reduceMq = null;
     try {
       reduceMq = global.matchMedia ? global.matchMedia('(prefers-reduced-motion: reduce)') : null;
@@ -272,6 +290,7 @@
     var root = h('div', 'nx-focus');
     root.setAttribute('data-nx-component', 'focus');
     root.setAttribute('data-nx-state', 'idle');
+    root.setAttribute('data-nx-emphasis', 'active');
     root.setAttribute('aria-hidden', 'true');
     if (typeof options.zIndex === 'number' && isFinite(options.zIndex)) {
       root.style.zIndex = String(Math.round(options.zIndex));
@@ -295,6 +314,8 @@
     var currentArrival = null;
     var currentHide = null;
     var hideWaiters = [];
+    var emphasis = 'active';   // 'active' | 'weak'
+    var migration = null;      // 框→框对称迁移的当前句柄 { raf, startRect, duration, startTime, arrival }
     var listenersOn = false;
     var resizeObserver = null;
     var mutationObserver = null;
@@ -471,6 +492,143 @@
       lastGeo = geo;
     }
 
+    /* ---------- 强调状态（会话 Focus 的 weak/restore） ---------- */
+
+    function applyEmphasis(value) {
+      if (emphasis === value) return;
+      emphasis = value;
+      root.setAttribute('data-nx-emphasis', value);
+    }
+
+    function currentGeometry() {
+      return specGeometry || mountGeometry;
+    }
+
+    /* 当前已渲染框几何：迁移中 lastGeo 仍是上一次终点，必须读实际 DOM；
+       reanchor/show 从渲染中间态承接，避免先跳到旧终点。 */
+    function renderedBoxRect() {
+      if (!boxEl) return null;
+      var style = boxEl.style;
+      var left = parseFloat(style.left);
+      var top = parseFloat(style.top);
+      var width = parseFloat(style.width);
+      var height = parseFloat(style.height);
+      if (!isFinite(left) || !isFinite(top) || !isFinite(width) || !isFinite(height)) return null;
+      return { left: left, top: top, width: width, height: height };
+    }
+
+    /* 当前框的几何快照：优先渲染值；无框时用 lastGeo（两者都为视口坐标）。 */
+    function currentBoxGeo() {
+      var rendered = renderedBoxRect();
+      if (rendered) return { kind: 'box', box: rendered };
+      if (lastGeo && lastGeo.kind === 'box') return lastGeo;
+      return null;
+    }
+
+    /* ---------- 对称加减速框迁移 ---------- */
+
+    var BOX_CORNERS = [[0, 0], [1, 0], [1, 1], [0, 1]];
+
+    function boxDistance(from, to) {
+      var max = 0;
+      for (var i = 0; i < BOX_CORNERS.length; i += 1) {
+        var c = BOX_CORNERS[i];
+        var ax = from.left + from.width * c[0];
+        var ay = from.top + from.height * c[1];
+        var bx = to.left + to.width * c[0];
+        var by = to.top + to.height * c[1];
+        var d = Math.sqrt((bx - ax) * (bx - ax) + (by - ay) * (by - ay));
+        if (d > max) max = d;
+      }
+      return max;
+    }
+
+    function symmetricProgress(u) {
+      if (u <= 0) return 0;
+      if (u >= 1) return 1;
+      if (u <= 0.5) return 2 * u * u;
+      var rest = 1 - u;
+      return 1 - 2 * rest * rest;
+    }
+
+    function lerpBox(from, to, p) {
+      return {
+        left: from.left + (to.left - from.left) * p,
+        top: from.top + (to.top - from.top) * p,
+        width: from.width + (to.width - from.width) * p,
+        height: from.height + (to.height - from.height) * p
+      };
+    }
+
+    function migrationDuration(distance) {
+      var seconds = 2 * Math.sqrt(distance / accel);
+      var ms = seconds * 1000;
+      if (!isFinite(ms)) return G.migrateMaxDur;
+      return Math.max(G.migrateMinDur, Math.min(G.migrateMaxDur, ms));
+    }
+
+    function cancelMigration() {
+      var m = migration;
+      migration = null;
+      if (!m) return null;
+      if (m.raf) {
+        try { global.cancelAnimationFrame(m.raf); } catch (err) { /* ignore */ }
+        m.raf = 0;
+      }
+      return m;
+    }
+
+    function finishMigration(finalBox) {
+      var m = migration;
+      if (!m) return;
+      migration = null;
+      if (finalBox) applyGeoNoMotion({ kind: 'box', box: finalBox });
+      if (m.arrival) resolveArrival(m.arrival, true);
+      startFollow();
+    }
+
+    function beginBoxMigration(fromBox, toBox, arrival) {
+      var distance = boxDistance(fromBox, toBox);
+      if (!(distance >= G.eps)) return false;
+      var m = {
+        raf: 0,
+        startRect: { left: fromBox.left, top: fromBox.top, width: fromBox.width, height: fromBox.height },
+        duration: migrationDuration(distance),
+        startTime: 0,
+        arrival: arrival
+      };
+      var box = ensureBox();
+      setBoxGeometry(box, m.startRect);
+      migration = m;
+      stopFollow();
+      function tick(timestamp) {
+        if (migration !== m || destroyed || !visible || hiding || emphasis !== 'active' || !spec) return;
+        m.raf = 0;
+        if (!m.startTime) m.startTime = timestamp;
+        var geo;
+        try {
+          geo = measureSpec(spec, currentGeometry());
+        } catch (err) {
+          autoHide();
+          return;
+        }
+        if (geo.kind !== 'box') {
+          applyGeoNoMotion(geo);
+          finishMigration(null);
+          return;
+        }
+        var u = m.duration > 0 ? Math.min(1, (timestamp - m.startTime) / m.duration) : 1;
+        setBoxGeometry(ensureBox(), lerpBox(m.startRect, geo.box, symmetricProgress(u)));
+        if (u < 1) {
+          m.raf = global.requestAnimationFrame(tick);
+          return;
+        }
+        finishMigration(geo.box);
+      }
+      m.raf = global.requestAnimationFrame(tick);
+      return true;
+    }
+
     function drawRules(nodes, baseDelay) {
       for (var i = 0; i < nodes.length; i++) {
         play(nodes[i], [
@@ -511,18 +669,8 @@
       if (animate) drawRules(ruleNodes, 0);
     }
 
+    /* 同模式不同文本的下划线：旧段淡出、新段逐行画出；框→框走 beginBoxMigration */
     function showMigrate(geo, animate) {
-      var old = lastGeo;
-      if (geo.kind === 'box') {
-        var box = ensureBox();
-        setBoxGeometry(box, geo.box);
-        if (!animate || !old || old.kind !== 'box') return;
-        play(box, [
-          { left: px(old.box.left), top: px(old.box.top), width: px(old.box.width), height: px(old.box.height) },
-          { left: px(geo.box.left), top: px(geo.box.top), width: px(geo.box.width), height: px(geo.box.height) }
-        ], { duration: G.migrateBoxDur, easing: EASE });
-        return;
-      }
       var oldRules = ruleNodes;
       ruleNodes = createRules(geo.rects);
       if (!animate) {
@@ -570,12 +718,14 @@
 
     function startFollow() {
       if (followId || destroyed || !visible || hiding || !observeEnabled) return;
+      if (emphasis !== 'active' || migration) return;   // weak 静止期与迁移中不跑逐帧
       followId = global.requestAnimationFrame(followTick);
     }
 
     function followTick() {
       followId = 0;
       if (destroyed || !visible || hiding || !spec) return;
+      if (emphasis !== 'active' || migration) return;
       if (!isConnected(targetEl)) {
         autoHide();
         return;
@@ -583,7 +733,7 @@
       if (!animations.length) {
         var geo;
         try {
-          geo = measureSpec(spec, geometryProvider);
+          geo = measureSpec(spec, currentGeometry());
         } catch (err) {
           autoHide();
           return;
@@ -611,8 +761,11 @@
 
     /* 滚动 / 尺寸变化 / DOM 变化的统一重定位：不播动画；几何变了就取消进行中的动画落终态 */
     function measureNow() {
-      if (destroyed || !visible || !spec) return;
+      if (destroyed || !visible || !spec || migration) return;
       if (!isConnected(targetEl)) {
+        /* weak 静止期由宿主在 DOM 重建后 reanchor；这里保留上一可见几何与目标引用，
+           不把“临时断开”误判成结束。非 weak 的活动期仍保持原 autoHide。 */
+        if (emphasis === 'weak') return;
         autoHide();
         return;
       }
@@ -620,7 +773,7 @@
       if (followId) return;
       var geo;
       try {
-        geo = measureSpec(spec, geometryProvider);
+        geo = measureSpec(spec, currentGeometry());
       } catch (err) {
         autoHide();
         return;
@@ -695,7 +848,20 @@
         finishHide();
         return;
       }
-      if (visible) settleMotion();
+      if (visible) {
+        var interrupted = cancelMigration();
+        settleMotion();
+        if (spec) {
+          try {
+            applyGeoNoMotion(measureSpec(spec, currentGeometry()));
+            if (interrupted) resolveArrival(currentArrival, true);
+          } catch (err) {
+            autoHide();
+            return;
+          }
+        }
+        startFollow();
+      }
     }
 
     /* ---------- 状态收尾 ---------- */
@@ -703,6 +869,7 @@
     function resetStateAttributes() {
       root.setAttribute('data-nx-state', 'idle');
       root.removeAttribute('data-nx-mode');
+      applyEmphasis('active');
     }
 
     function resetTarget() {
@@ -715,6 +882,7 @@
 
     function finishHide() {
       if (destroyed) return;
+      cancelMigration();
       var hidden = currentHide;
       hiding = false;
       cancelAnimations();
@@ -730,6 +898,7 @@
     function autoHide() {
       if (destroyed) return;
       if (!visible && !hiding) return;
+      cancelMigration();
       visible = false;
       hiding = false;
       detach();
@@ -744,6 +913,64 @@
       resolveHideWaiters(true);
     }
 
+    /* ---------- 会话生命周期：weak / restore / reanchor ---------- */
+
+    function weak(options) {
+      if (destroyed || !visible || !spec) return view;
+      var interrupted = cancelMigration();
+      stopFollow();
+      var geo = null;
+      try {
+        geo = measureSpec(spec, currentGeometry());
+      } catch (err) {
+        if (!isConnected(targetEl)) {
+          /* DOM 重建导致的临时断开：保留上一可见几何，由宿主 reanchor/hide 决定。 */
+          if (interrupted) resolveArrival(currentArrival, true);
+          applyEmphasis('weak');
+          return view;
+        }
+        autoHide();
+        return view;
+      }
+      applyGeoNoMotion(geo);
+      applyEmphasis('weak');
+      if (interrupted) resolveArrival(currentArrival, true); // 迁移被取消视为已落当前几何
+      return view;
+    }
+
+    function restore(options) {
+      if (destroyed || !visible || !spec) return view;
+      if (!isConnected(targetEl)) {
+        /* weak 期间 DOM 重建导致 target 仍未连通：保持 weak 与上一几何，不替宿主决定
+           “报错还是隐藏”；宿主应先 reanchor(newEl) 再 restore，或直接 hide。 */
+        return view;
+      }
+      applyEmphasis('active');
+      startFollow();
+      return view;
+    }
+
+    function reanchor(arg) {
+      if (destroyed) return view;
+      var specIsObject = arg && typeof arg === 'object' && !isEl(arg);
+      var next = arg == null ? spec : normalizeSpec(arg);
+      if (!next) fail('reanchor() 需要目标元素或 { el, text, mode }');
+      if (specIsObject && Object.prototype.hasOwnProperty.call(arg, 'geometry')) {
+        specGeometry = normalizeGeometry(arg.geometry);
+      }
+      var geo = measureSpec(next, currentGeometry());   // 缺失/断开先抛，不改内部状态
+      targetEl = next.el;
+      spec = next;
+      mode = next.mode;
+      text = next.text;
+      if (!visible) return view;
+      root.setAttribute('data-nx-mode', mode);
+      attach();
+      if (migration) return view;   // 迁移循环下一帧起沿用新目标，不重启、不改 arrival
+      if (!animations.length && !hiding) applyGeoNoMotion(geo);
+      return view;
+    }
+
     /* ---------- 公开方法 ---------- */
 
     function show(arg) {
@@ -751,23 +978,31 @@
       var previousHide = currentHide;
       if (previousHide) resolveHidden(previousHide, true);
       var next = normalizeSpec(arg); // 校验失败先抛，不改内部状态
-      if (arg && typeof arg === 'object' && !isEl(arg)) {
+      var specIsObject = arg && typeof arg === 'object' && !isEl(arg);
+      if (specIsObject) {
         if (Object.prototype.hasOwnProperty.call(arg, 'observe')) observeEnabled = arg.observe !== false;
-        if (Object.prototype.hasOwnProperty.call(arg, 'geometry')) geometryProvider = normalizeGeometry(arg.geometry);
+        if (Object.prototype.hasOwnProperty.call(arg, 'geometry')) specGeometry = normalizeGeometry(arg.geometry);
+      } else {
+        specGeometry = null;   // 纯元素：回退 mount geometry / 原生 rect
       }
-      var geo = measureSpec(next, geometryProvider);   // 找不到文本同样先抛
+      var geo = measureSpec(next, currentGeometry());   // 找不到文本同样先抛
       var prevVisible = visible;
       var prevMode = mode;
+      var prevGeo = lastGeo;
+      var renderedGeo = currentBoxGeo();   // 迁移中为当前已渲染框，而不是旧终点
       var same = prevVisible && !!spec && targetEl === next.el &&
-        mode === next.mode && (text || '') === (next.text || '');
+        mode === next.mode && (text || '') === (next.text || '') &&
+        geoSame(geo, renderedGeo || prevGeo);   // 同对象换 range/geometry 有实际变化要走迁移
       var animate = canAnimate();
       var arrival = deferred();
       var previousArrival = currentArrival;
       currentArrival = arrival;
       if (previousArrival && !previousArrival.resolved) resolveDeferred(previousArrival, false);
 
+      cancelMigration();
       settleMotion();
       hiding = false;
+      applyEmphasis('active');   // weak → active 同步完成，不另等恢复动画
       if (!prevVisible) clearMarker();
       resolveHideWaiters(true);
 
@@ -779,18 +1014,24 @@
       root.setAttribute('data-nx-state', 'shown');
       root.setAttribute('data-nx-mode', mode);
 
+      var migrating = false;
       if (same) {
         applyGeoNoMotion(geo);
       } else if (!prevVisible) {
-        showFirst(geo, animate);
-        lastGeo = geo;
+        showFirst(geo, animate);   // hide() 后再 show：完整首次出现（soft 320ms / 普通 220ms）
+      } else if (prevMode === mode && mode === 'box') {
+        var fromBox = renderedGeo && renderedGeo.kind === 'box' ? renderedGeo.box
+          : (prevGeo && prevGeo.kind === 'box' ? prevGeo.box : null);
+        migrating = !!(animate && fromBox && beginBoxMigration(fromBox, geo.box, arrival));
+        if (!migrating) applyGeoNoMotion(geo);
       } else if (prevMode === mode) {
         showMigrate(geo, animate);
-        lastGeo = geo;
       } else {
         showCrossfade(geo, animate);
-        lastGeo = geo;
       }
+      if (!migrating) lastGeo = geo;
+      attach();
+      if (migrating) return view;   // 到达句柄由迁移完成结算
       var created = animations.slice();
       if (!animate || !created.length) {
         resolveArrival(arrival, true);
@@ -804,7 +1045,6 @@
           created[ai].finished.then(done, done);
         }
       }
-      attach();
       startFollow();
       return view;
     }
@@ -826,6 +1066,7 @@
         resolveHidden(hideToken, true);
         return view;
       }
+      cancelMigration();
       resolveArrival(currentArrival, false);
       visible = false;
       detach();
@@ -855,15 +1096,18 @@
         autoHide();
         return view;
       }
+      var interrupted = cancelMigration();
       settleMotion();
       var geo;
       try {
-        geo = measureSpec(spec, geometryProvider);
+        geo = measureSpec(spec, currentGeometry());
       } catch (err) {
         autoHide();
         return view;
       }
       applyGeoNoMotion(geo);
+      if (interrupted && currentArrival) resolveArrival(currentArrival, true);
+      startFollow();
       return view;
     }
 
@@ -872,6 +1116,8 @@
       destroyed = true;
       visible = false;
       hiding = false;
+      cancelMigration();
+      applyEmphasis('active');
       detach();
       cancelAnimations();
       purgeStale();
@@ -894,6 +1140,9 @@
     view.show = show;
     view.hide = hide;
     view.refresh = refresh;
+    view.weak = weak;
+    view.restore = restore;
+    view.reanchor = reanchor;
     view.destroy = destroy;
     view.whenArrived = function () {
       return currentArrival ? currentArrival.promise : Promise.resolve(visible);
@@ -905,6 +1154,7 @@
     Object.defineProperty(view, 'target', { get: function () { return targetEl; }, enumerable: true });
     Object.defineProperty(view, 'mode', { get: function () { return mode; }, enumerable: true });
     Object.defineProperty(view, 'text', { get: function () { return text; }, enumerable: true });
+    Object.defineProperty(view, 'emphasis', { get: function () { return emphasis; }, enumerable: true });
 
     if (reduceMq) {
       try {

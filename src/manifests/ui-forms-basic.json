@@ -12,8 +12,8 @@
       "cn": "字段外壳",
       "category": "输入与表单",
       "purpose": "为单个控件或分组提供默认可见的标签、辅助说明、必填和错误区域，并建立 label/aria 关联，不替控件决定值。",
-      "inputs": ["label", "hint", "required", "error", "control", "id"],
-      "customizable": ["标签与长说明", "必填标记", "初始/外部错误", "控件 DOM 或组件实例", "控件 id"],
+      "inputs": ["label", "hint", "required", "error", "control", "id", "hintSlot", "errorSlot"],
+      "customizable": ["标签与长说明", "必填标记", "初始/外部错误", "控件 DOM 或组件实例", "控件 id", "外部 hint/error slot（可空）"],
       "states": ["默认", "必填 + 长说明", "错误默认可见", "控件替换", "无控件外壳", "窄容器长文本"],
       "usage": "NoteUI.Field.mount(host, { label: '标题', hint: '默认可见的填写说明', required: true, error: '', control: textInputInstance })",
       "dependencies": ["core"],
@@ -21,13 +21,14 @@
         "control 可为 DOM 节点或含 .el 的组件实例；节点会被移入字段，destroy 会随字段移除该 DOM，但不调用控件实例的 destroy。",
         "不读取、不设置、不验证控件值；setError() 只负责错误呈现与 aria-invalid。",
         "label 与 hint 为纯文本；分组控件（fieldset/role=group、radiogroup）采用 aria-labelledby，普通控件优先关联内部可聚焦原生元素。",
-        "同一控件不要同时使用 Field 错误与 NumberInput 内部错误两个来源；NoteUI.Form 可能同时显示两者。"
+        "同一控件不要同时使用 Field 错误与 NumberInput 内部错误两个来源；NoteUI.Form 可能同时显示两者。",
+        "hintSlot / errorSlot 是可选的 Element：默认不传时 DOM 与布局和旧版一致；传入后节点移入对应区域，destroy 时清理。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K09", "K10", "K13"],
       "docs": "docs/ui-forms-basic.md#F01",
-      "notes": "返回的 control 是解析后的可聚焦元素（通常是原生 input/select/textarea）；更新 control 会清理旧控件的 Field 关联。"
+      "notes": "返回的 control 是解析后的可聚焦元素（通常是原生 input/select/textarea）；更新 control 会清理旧控件的 Field 关联。V05 增补可选 hintSlot/errorSlot，默认行为不变。"
     },
     {
       "id": "F02",
@@ -47,7 +48,7 @@
         "清空按钮只在 clearable 且存在内容时显示；原生 WebKit 搜索取消按钮被隐藏以避免重复。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K09", "K10", "K13"],
       "docs": "docs/ui-forms-basic.md#F02",
       "notes": "getValue() 直接读取原生 input.value。"
@@ -70,7 +71,7 @@
         "不添加 keydown 监听，不拦截 Tab、Ctrl+S 等宿主快捷键；Enter 保持正常换行。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K09", "K10", "K13"],
       "docs": "docs/ui-forms-basic.md#F03",
       "notes": "自动增高按容器宽度与内容测量；程序 update 不触发 onChange。"
@@ -81,8 +82,8 @@
       "cn": "数字输入",
       "category": "输入与表单",
       "purpose": "带上下限、步长与可选精度的数字输入；空值保持 null，非法输入不提交假值。",
-      "inputs": ["value", "min", "max", "step", "precision", "disabled", "readonly", "placeholder", "clearable", "onChange", "id"],
-      "customizable": ["数值/空值", "上下限", "步长", "小数精度", "清空按钮", "只读/禁用"],
+      "inputs": ["value", "min", "max", "step", "precision", "disabled", "readonly", "placeholder", "clearable", "onChange", "id", "messageSlot"],
+      "customizable": ["数值/空值", "上下限", "步长", "小数精度", "清空按钮", "只读/禁用", "外部 message slot（可空）"],
       "states": ["空值 null", "有效数值", "越界夹紧并提示", "非法文本保留 + 错误", "精度调整", "禁用/只读"],
       "usage": "NoteUI.NumberInput.mount(host, { value: null, min: 0, max: 100, step: 0.5, precision: null, onChange: fn })",
       "dependencies": ["core"],
@@ -92,13 +93,14 @@
         "blur/Enter 时非法文本保留并显示错误；越界文本夹紧并给出提示；精度在提交时应用。",
         "程序 update 不夹紧、不应用步长吸附，也不触发 onChange；宿主应传入符合当前范围的数字。",
         "作为 role=spinbutton 的空状态不设置 aria-valuenow，使用 aria-valuetext='未填写'，避免伪造成 0。",
-        "precision 未提供时不按 step 强制舍入用户键入值；step 的小数位只用于避免步进浮点误差。"
+        "precision 未提供时不按 step 强制舍入用户键入值；step 的小数位只用于避免步进浮点误差。",
+        "messageSlot 是可选的 Element：默认不传时工具栏与布局高度和旧版一致；传入后提示节点移入该容器。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K09", "K10", "K13"],
       "docs": "docs/ui-forms-basic.md#F04",
-      "notes": "额外提供 getError()：当前草稿非法/越界/精度待完成时也会返回提示，供 Form 提交校验使用；上下按钮、↑↓、PageUp/PageDown、Home/End 可用。"
+      "notes": "额外提供 getError()：当前草稿非法/越界/精度待完成时也会返回提示，供 Form 提交校验使用；上下按钮、↑↓、PageUp/PageDown、Home/End 可用。V05 增补可选 messageSlot，默认行为不变。"
     },
     {
       "id": "F05",
@@ -118,7 +120,7 @@
         "label 为纯文本；未提供 label 时需由宿主给 input 添加可访问名称。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K09", "K10", "K13"],
       "docs": "docs/ui-forms-basic.md#F05",
       "notes": "onChange(checked, event) 只由用户 change 触发；程序 update 静默。"
@@ -141,7 +143,7 @@
         "方向键、Home/End 等行为由原生 radio 组提供，不额外接管快捷键。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K09", "K10", "K13"],
       "docs": "docs/ui-forms-basic.md#F06",
       "notes": "getValue() 返回选中选项的原始值或 null；onChange 只由用户改变触发。"
@@ -166,7 +168,7 @@
         "不提供可搜索下拉；需要输入过滤时使用 F08 Combobox。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K09", "K10", "K13"],
       "docs": "docs/ui-forms-basic.md#F07",
       "notes": "不使用自绘 listbox；多选摘要通过 role=status 提供可见与可读状态。"
@@ -192,7 +194,7 @@
         "输入框保持焦点，列表项通过 aria-activedescendant 高亮；禁用的列表项不参与高亮。"
       ],
       "userReview": "not-reviewed",
-      "reviewScope": "本轮新增候选，未获用户评价",
+      "reviewScope": "新增候选，未获用户评价",
       "consensus": ["K09", "K10", "K13"],
       "docs": "docs/ui-forms-basic.md#F08",
       "notes": "内联列表与输入同宽，最大高度受视口/滚动限制；列表 mousedown 阻止默认聚焦以保持输入焦点；滚动依赖原生容器，触控与经典滚动条拖动未单独验证；不使用或依赖 NoteUI.Select。"

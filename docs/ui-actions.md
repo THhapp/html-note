@@ -158,7 +158,3 @@ NoteUI.ButtonGroup.mount(host, { items: [{ label: '保存', variant: 'primary' }
 NoteUI.CopyButton.mount(host, { text: '要复制的文本', label: '复制文本' });
 NoteUI.Toggle.mount(host, { label: '加粗', pressed: false, onChange: function (v) { console.log(v); } });
 ```
-
-## 8. 用户评价范围
-
-A01–A03 均为候选组件，`userReview=not-reviewed`，未获用户评价；依赖的旧 Button 评价仍按其自身范围记录，不自动覆盖 A 组新增行为。技术自检不等于审美确认。

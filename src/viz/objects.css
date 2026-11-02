@@ -492,10 +492,6 @@
   color: var(--hnv-color-accent, #315cda);
 }
 
-.nviz-matrix[data-note-scene="true"] .nviz-matrix__cell {
-  transition: none;
-}
-
 .nviz-matrix__cell {
   min-width: 4.5em;
   max-width: 32ch;
@@ -1605,19 +1601,6 @@
   .nviz-demo__btn {
     transition: none !important;
   }
-}
-
-/* =====================================================================
-   D01 scene 接入：统一效果接管期间暂停受控节点的原 CSS transition
-   （由 scene 的完成边界统一恢复；稳定状态下原规则不变）
-   ===================================================================== */
-
-.nviz-sequence[data-note-scene="true"] .nviz-sequence__cell {
-  transition: none !important;
-}
-
-.nviz-sequence[data-note-scene="true"] .nviz-sequence__mark {
-  transition: none !important;
 }
 
 /* D01 稳定排布（stable:true）：标签行、状态行与可见摘要始终占位，

@@ -115,6 +115,10 @@
       var state = normalizeState(input || {});
       var root = createElement('span', 'nui-expression');
       root.setAttribute('data-component', 'expression');
+      /* 表达式内容区：所有 part 都在这个真实容器内；它比 root 更接近“可见内容整体”，
+       * 可供 Focus/attention 观察整段表达式，而不是只框住某个即将出现的末端节点。 */
+      var body = createElement('span', 'nui-expression__body');
+      root.appendChild(body);
       var records = new Map();
       var instance = {
         el: root,
@@ -147,6 +151,7 @@
         getTarget: function (query) {
           if (instance.destroyed || !isObject(query)) return null;
           if (query.part === 'root') return root;
+          if (query.part === 'body') return body;
           if (query.id == null) return null;
           var record = records.get(String(query.id));
           if (!record) return null;
@@ -168,10 +173,6 @@
               valueEl: record.value
             } : null;
           }).filter(Boolean);
-        },
-        setSceneActive: function (on) {
-          if (instance.destroyed) return;
-          root.setAttribute('data-note-scene', on === false ? 'false' : 'true');
         }
       };
 
@@ -230,7 +231,6 @@
       }
 
       function render() {
-        root.setAttribute('data-note-scene', root.getAttribute('data-note-scene') || 'false');
         root.setAttribute('role', 'group');
         var label = state.label || state.parts.map(function (part) {
           return part.tex !== undefined ? '公式项' : part.text;
@@ -258,7 +258,7 @@
             renderContent(record, part);
             record.part = { id: part.id, tex: part.tex, text: part.text };
           }
-          root.appendChild(record.unit);
+          body.appendChild(record.unit);
         });
         records.forEach(function (record, id) {
           if (wanted.has(id)) return;

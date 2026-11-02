@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>传播过程与局部过渡 · 自定义图形接入</title>
+  <link rel="stylesheet" href="../../dist/note-library.css">
+  <link rel="stylesheet" href="example.css">
+</head>
+<body>
+  <main class="propagation-page">
+    <header class="propagation-head">
+      <p class="propagation-kicker">NOTE DEMO · CUSTOM SVG ADAPTER</p>
+      <h1 class="propagation-title">传播过程与局部过渡</h1>
+      <p class="propagation-lede">
+        一个自定义 SVG 图形只暴露一个 Binding：attention 只指向本步真实运动对象（发送前沿、B 命中事件点、回传前沿），
+        不重复巡视基站；连续 next 从上一停点的弱化位置直接承接。<code>EffectSpec type:'progress'</code> 连续驱动 SVG 带宽与前沿位置，
+        文字标签与图形同属一个效果组，<code>handoff:'hold'</code> 让局部淡入的末帧保持到收束。每步内容约 0.9s，给辨认时间，
+        但只覆盖本示例的 scene。每个停点只追加自己的历史证据层，不整图重建、不叠画重复信号带。
+      </p>
+    </header>
+
+    <section class="propagation-demo" aria-label="传播过程分步演示">
+      <div data-demo-host></div>
+    </section>
+
+    <p class="propagation-note">
+      画面默认静止；请用演示下方控件推进。一次“下一步”只增加一个理解停点：看前沿走到哪、事件出现在哪；
+      焦点从上一停稳位置承接，不重新巡视。运行中可取消，重看/重来不会叠加历史层；系统开启减少动效时直接落到目标停点。
+    </p>
+
+    <section class="propagation-grid" aria-label="这个示例用到的公共能力">
+      <article class="propagation-card">
+        <h2>同一 Binding 的局部交接</h2>
+        <p>
+          连续 next 时，上一停点的弱化焦点直接承接为下一步起点；T2 的新前沿从同位置启动，
+          再用两个内容目标分别放行 <code>lead</code> 与 <code>event</code> 两个局部组；同一组只被一个目标门控，不重复启动。
+        </p>
+      </article>
+      <article class="propagation-card">
+        <h2>前沿与范围连续展开</h2>
+        <p>
+          发送段/回传段的 <code>x</code>、<code>width</code> 与前沿圆点的 <code>cx</code> 由 progress 句柄逐帧更新，
+          位置连续；取消后不再回调，不会残留中间几何。
+        </p>
+      </article>
+      <article class="propagation-card">
+        <h2>文字与图形同组</h2>
+        <p>
+          事件标签和历史刻度都带 <code>spec.group</code>，与对应图形同组启动、同组 ready；
+          局部淡入声明 <code>handoff:'hold'</code>，完成后保持末帧到 scene 收束；未放行的组保持来源视觉（带宽 0、标签隐藏）。
+        </p>
+      </article>
+      <article class="propagation-card">
+        <h2>历史证据分层</h2>
+        <p>
+          每个停点只追加自己的 <code>.pg-layer</code>（发送段、命中事件、回传段），历史层保留且互不覆盖；
+          焦点始终跟随真实运动对象；观察区域用公共 `NoteDemo.effects.unionRange` 组合移动前沿、轨迹条与标签，随 band 增长连续包住变化段，不框整图或整条轴。
+        </p>
+      </article>
+    </section>
+
+    <pre class="propagation-code"><code>var session = NoteDemo.mount(host, {
+  definition: PropagationDemo.definition,
+  layout: PropagationDemo.layout,
+  adapters: { 'propagation-graph': PropagationAdapter }
+});</code></pre>
+
+    <footer class="propagation-foot">
+      <p>这是自定义图形接入示例（非逐组件视觉认可资产）；源码在 examples/propagation/，公共契约见 docs/公共编排层.md 与 docs/聚焦与图形过渡整改方案.md。</p>
+      <p>离线单文件预览：node scripts/build-demo-preview.mjs --template examples/propagation/index.html --output dist/传播过程与局部过渡-预览.html（由整合方执行）。</p>
+    </footer>
+  </main>
+
+  <script src="../../dist/note-library.js"></script>
+  <script src="graph.js"></script>
+  <script src="adapter.js"></script>
+  <script src="demo.js"></script>
+</body>
+</html>

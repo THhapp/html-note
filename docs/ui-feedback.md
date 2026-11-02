@@ -341,7 +341,3 @@ loadContent().then(function (contentNode) {
 ```
 
 （`loadContent` 是宿主自己的数据流程；本组件库不包含网络加载或请求逻辑。）
-
-## 用户评价范围
-
-S01–S06 均为候选组件，`userReview: not-reviewed`。文档只记录技术实现、演示与已知限制；未获用户逐项评价。技术完成不等于审美确认，也不等于参数冻结。

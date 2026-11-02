@@ -4,12 +4,10 @@
 
 组件与运行代码在 `src`，分发在 `dist`，可执行示例在 `examples` 与 `gallery`，现行文档在 `docs`，工程检查在 `tests`。克隆仓库后在工程根执行构建与检查。
 
-## 当前清单与状态
+## 组件范围
 
-- **101 条、17 个构建模块**：84 项组件能力（10 项复用 + 74 项新增）、10 项可复用组合块、7 项共享基础（I01–I07）。
+- **101 条、17 个构建模块**：84 项组件能力、10 项可复用组合块、7 项共享基础（I01–I07）。
 - 计数与类别由 `scripts/expected-ids.json`、`src/manifests` 和构建生成的 `registry.json` 共同约束，不在文档或脚本里另立一份清单。
-- 当前构建、静态检查与 demo 检查通过；公共聚焦机制按“大体通过”保留，具体门控与限制见[公共编排层 API](docs/公共编排层.md)。
-- **技术核验不等于用户审美认可**：用户已认可的部分公共呈现与旧组件按既有范围保留，新增组件仍为候选；技术状态与用户评价分别维护在 `src/status.json` 与 manifest/registry 中。
 
 ## 最小使用
 
@@ -43,26 +41,57 @@ NoteDemo.mount(document.querySelector('[data-demo-host]'), {
 | 目的 | 入口 |
 | --- | --- |
 | 看全部组件 | [离线组件预览](dist/组件库-预览.html) · [gallery](gallery/index.html) |
-| 看公共编排层 | [整合预览](dist/公共编排层-整合预览.html) · [矩阵乘法旧对照](dist/公共层复用验证-矩阵乘法.html) |
+| 看公共编排层 | [整合预览](dist/公共编排层-整合预览.html) · [矩阵乘法对照](dist/公共层复用验证-矩阵乘法.html) |
 | 作者装配与聚焦 | [作者入口](examples/authoring/index.html) · [作者预览](dist/作者装配与聚焦-预览.html) · [配方源码](src/demo/recipes.js) |
-| 查能力与依赖 | [组件目录](docs/组件目录.md) · [registry](registry.json) |
+| 自定义图形接入 | [传播示例入口](examples/propagation/index.html) · [传播预览](dist/传播过程与局部过渡-预览.html) · [接入说明](examples/propagation/README.md) |
+| 最小连续画面接法 | [示例入口](examples/continuous-scene/index.html) · [离线预览](dist/连续画面局部变化-预览.html) · [说明](examples/continuous-scene/README.md) |
+| 查能力与依赖 | `node scripts/query.mjs` · [组件目录](docs/组件目录.md) · [registry](registry.json) |
+| 本地打开与量测 | `node scripts/inspect-note.mjs <成品.html> --json` · [观察入口说明](docs/公共编排层.md#author-inspect-note) |
 | 学会调用与组装 | [取用与组合](docs/取用与组合.md) · [公共编排层 API](docs/公共编排层.md) |
-| 看实际源码用法 | [作者入口](examples/authoring/index.html) · [scene 示例](examples/demo-scene/index.html) · [矩阵旧示例](examples/reuse-matrix-product/index.html) · [单项示例](examples/run.html?id=L01) |
+| 制作指导 | [制作 Skill](skills/html-note-authoring/SKILL.md) · [制作底稿](docs/提示词撰写.md) |
+| 看实际源码用法 | [作者入口](examples/authoring/index.html) · [scene 示例](examples/demo-scene/index.html) · [矩阵示例](examples/reuse-matrix-product/index.html) · [单项示例](examples/run.html?id=L01) |
 | 下载完整资料 | GitHub 的 Code → Download ZIP；本地离线分发包通过 `scripts/package.ps1` 生成 |
+
+## 查资料（查询 CLI）
+
+工程内或工程外都可以调用，默认按脚本所属位置找库；一次查询启动、读取本地资料、输出后退出，不启动服务或浏览器：
+
+```powershell
+node scripts/query.mjs info
+node scripts/query.mjs search 矩阵
+node scripts/query.mjs search dialog --json
+node scripts/query.mjs show D01
+node scripts/query.mjs show recipe:focusWorkbench --context recipe
+node scripts/query.mjs show public:progress
+node scripts/query.mjs read public:progress api
+node scripts/query.mjs show public:attention
+node scripts/query.mjs show example:continuous-scene
+node scripts/query.mjs show tool:inspect-note
+node scripts/query.mjs read D01 api
+node scripts/query.mjs read D01 source --limit 80
+```
+
+`info` 是接手入口，`search` 用于按名称/ID/用途/别名找候选，`show` 一次取多个条目的开工包，`read` 再沿条目引用读取完整 API 小节、源码或示例；`progress`/`attention` 直接进入作者小节，`example`/`fragment`/`source` 分别表示完整示例、局部片段和实现源码。使用 `--json` 得到稳定 JSON；退出码 `0` 成功、`1` 未找到/读取失败、`2` 参数错误。实际参数、资料覆盖、维护方式和代表包见[查询 CLI](docs/查询CLI.md)，作者检索元数据见[查询语料](docs/查询语料.md)。
+
+本地验证可用 `node scripts/inspect-note.mjs "<成品.html>" --json` 一次打开并收集观察结果；需要截图或作品专属量测时加 `--screenshot`/`--probe`。它复用工程现有 `playwright-core` 与本机 Edge，不启动常驻服务，也不把打开成功写成验收通过。详见[观察入口](docs/公共编排层.md#author-inspect-note)。
 
 ## 文档地图
 
 | 文档 | 回答什么 |
 | --- | --- |
 | [取用与组合](docs/取用与组合.md) | 怎么选入口、加载、调用和组合；模块依赖与宿主责任 |
+| [查询 CLI](docs/查询CLI.md) | 实际命令、JSON、上下文、分页、资料覆盖与维护方式 |
+| [查询语料](docs/查询语料.md) | 作者别名、用途、适用边界与引用；CLI 的检索元数据 |
+| [提示词撰写](docs/提示词撰写.md) | 将 MD 预留组织为制作任务，提供通用底稿和按需条款 |
 | [公共编排层 API](docs/公共编排层.md) | NoteDemo 的 Definition、scene、Adapter、会话 API、生命周期与已知限制 |
 | [公共过渡能力设计](docs/公共过渡能力设计.md) | 公共层为什么这样分工、执行契约、timing/焦点交接与引擎取舍 |
 | [组件目录](docs/组件目录.md) | 按类别定位组件，链接到模块文档与示例 |
 | [架构与接口](docs/架构与接口.md) | 源码布局、分层职责、数据流与公开接口边界 |
 | [构建与分发](docs/构建与分发.md) | 真实命令、产物、模块顺序、离线预览与打包边界 |
 | [设计共识](docs/设计共识.md) | 阅读目标与设计原则 |
+| [公共库扩充与作者体验设计](docs/公共库扩充与作者体验设计.md) | 扩充图形、机制、接入与工具的目标、职责和协同边界；具体可用接口仍查模块 API |
 | 模块 API（`docs/ui-*.md` 等） | 各组件的实际参数、状态、事件与限制 |
-| 研究记录（`docs/*研究*.md`、`docs/公共层开源*`） | 历史取舍与源码证据；不是现行 API |
+| 研究材料（`docs/*研究*.md`、`docs/公共层开源*`） | 设计取舍与源码证据；不是现行 API |
 
 ## 构建、检查与打包
 
@@ -75,6 +104,8 @@ node scripts/check.mjs
 # 自包含预览（作者入口 / 公共编排层）
 node scripts/build-demo-preview.mjs --template examples/authoring/index.html --output dist/作者装配与聚焦-预览.html
 node scripts/build-demo-preview.mjs --template examples/reuse-matrix-product/standalone.html --output dist/公共层复用验证-矩阵乘法.html
+node scripts/build-demo-preview.mjs --template examples/propagation/index.html --output dist/传播过程与局部过渡-预览.html
+node scripts/build-demo-preview.mjs --template examples/continuous-scene/index.html --output dist/连续画面局部变化-预览.html
 node scripts/build-demo-preview.mjs
 
 # 完整候选包
@@ -93,8 +124,8 @@ gallery/      组件浏览外壳与各模块真实演示
 docs/         现行 API、设计取舍、组件目录与工程说明
 tests/        工程检查、公共层检查与可复现消费测试
 scripts/      构建、核对、预览内联与打包
+skills/       制作 Skill、参考正文与必要脚本
 vendor/       本地第三方资源及许可
-archive/      可选本地历史资料（不参与构建，不纳入 Git）
 registry.json 构建产物，不手工维护
 ```
 
@@ -102,7 +133,6 @@ registry.json 构建产物，不手工维护
 
 - 运行依赖均为本地相对路径，支持经典脚本与 `file://`；不支持 CDN、运行时构建服务或 ES module 顺序语义。
 - 浏览器验证以本机 Edge（Chromium）的桌面视口为主；Firefox/Safari、移动触屏、屏幕阅读器、打印/RTL 等按各模块限制分别表述，不默认为已覆盖。
-- `archive/` 与历史研究只解释来路，不是构建输入、待执行任务或第二套组件清单。
 - 第三方资源与许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)；`vendor/` 许可文件随分发保留。
 
 ## 许可

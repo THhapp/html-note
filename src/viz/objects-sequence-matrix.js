@@ -369,11 +369,6 @@
         });
         return list;
       };
-      instance.setSceneActive = function (on) {
-        if (instance.destroyed) return instance;
-        root.setAttribute('data-note-scene', on ? 'true' : 'false');
-        return instance;
-      };
       return instance;
     }
   };
@@ -845,10 +840,6 @@
         return output;
       };
 
-      instance.setSceneActive = function (on) {
-        if (instance.destroyed) return;
-        root.setAttribute('data-note-scene', on === false ? 'false' : 'true');
-      };
       return instance;
     }
   };

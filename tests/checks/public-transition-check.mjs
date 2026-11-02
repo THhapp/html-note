@@ -189,7 +189,8 @@ const expression = await page.evaluate(async () => {
   rootEl.innerHTML = '<div id="e"></div>';
   const host = document.getElementById('e');
   const expr = NoteUI.Expression.mount(host, { parts: [{ id: 'a', text: '4' }, { id: 'plus', text: '+' }, { id: 'b', text: '1' }], label: '四加一' });
-  const before = { state: expr.getState(), labels: expr.el.querySelectorAll('.nui-expression__part').length, aria: expr.el.getAttribute('aria-label'), targets: expr.getMotionTargets().map((t) => t.id) };
+  const bodyEl = expr.getTarget({ part: 'body' });
+  const before = { state: expr.getState(), labels: expr.el.querySelectorAll('.nui-expression__part').length, aria: expr.el.getAttribute('aria-label'), targets: expr.getMotionTargets().map((t) => t.id), bodyParts: bodyEl ? bodyEl.querySelectorAll('.nui-expression__part').length : -1, bodyParent: bodyEl ? bodyEl.parentNode === expr.el : false };
   expr.update({ parts: [{ id: 'a', text: '4' }, { id: 'plus', text: '+' }, { id: 'b', text: '1' }, { id: 'c', text: '12' }], changed: ['c'] });
   const after = { parts: expr.el.querySelectorAll('.nui-expression__part').length, targets: expr.getMotionTargets().map((t) => t.id), state: expr.getState() };
   const exprRoot = expr.el;
@@ -212,7 +213,15 @@ const expression = await page.evaluate(async () => {
   session.destroy();
   return { before, after, scene, destroyed: exprRoot.isConnected };
 });
-check('Expression 静态 mount/update/查询正常', expression.before.labels === 3 && expression.before.aria === '四加一' && expression.after.parts === 4 && expression.after.targets.join(',') === 'a,plus,b,c' && expression.before.state.parts[0].id === 'a', JSON.stringify(expression.before));
+check('Expression 静态 mount/update/查询正常', expression.before.labels === 3 && expression.before.aria === '四加一' && expression.after.parts === 4 && expression.after.targets.join(',') === 'a,plus,b,c' && expression.before.state.parts[0].id === 'a' && expression.before.bodyParts === 3 && expression.before.bodyParent === true, JSON.stringify(expression.before));
+
+const unionRange = await page.evaluate(() => {
+  const range = NoteDemo.effects.unionRange([{ binding: 'x', query: { part: 'a' } }, { binding: 'y', query: { part: 'b' } }]);
+  let error = '';
+  try { NoteDemo.effects.unionRange([]); } catch (failure) { error = String(failure.message); }
+  return { range, error };
+});
+check('NoteDemo.effects.unionRange 组合真实引用并拒绝空数组', unionRange.range && unionRange.range.kind === 'union' && unionRange.range.refs.length === 2 && unionRange.range.refs[1].binding === 'y' && /unionRange/.test(unionRange.error), JSON.stringify(unionRange));
 check('Expression 默认 layout scene 完成', expression.scene.parts === 2 && expression.scene.text.includes('+2') && expression.scene.phase === 'idle' && expression.scene.aria === '一加二', JSON.stringify(expression.scene));
 
 /* 5b. timing 继承、0、非法字段与 cut+after */
@@ -506,10 +515,15 @@ const authoring = await page.evaluate(() => {
     }]
   });
   const attentionPlan = NoteDemoInternals.definition.prepare(attentionDef);
+  // T1 最终 normalized shape：groups/holdDuration 省略即无键；常量含 triggerHold。
+  const attentionTargets = attentionPlan.transitions.f0.scene.attention.targets;
   out.attention = attentionPlan.transitions.f0.scene.attention.stepDuration === 120 &&
-    attentionPlan.transitions.f0.scene.attention.targets.length === 2 &&
-    attentionPlan.transitions.f0.scene.attention.targets[0].holdDuration === 600 &&
+    attentionTargets.length === 2 &&
+    attentionTargets[0].holdDuration === 600 &&
+    !('groups' in attentionTargets[0]) && !('range' in attentionTargets[0]) &&
+    !('holdDuration' in attentionTargets[1]) && !('groups' in attentionTargets[1]) &&
     NoteDemoInternals.definition.attentionMotionDefaults.stepDuration === 560 &&
+    NoteDemoInternals.definition.attentionMotionDefaults.triggerHold === 0 &&
     NoteDemoInternals.definition.attentionContentTiming.enterDuration === 560 &&
     NoteDemoInternals.definition.attentionContentTiming.valueSwapDelay === 0;
   rootEl.innerHTML = '<div data-demo-slot="a"></div><div data-demo-slot="b"></div>';

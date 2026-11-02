@@ -466,6 +466,25 @@ metric.update({
 - 默认关闭 live region；开启后组件不节流，宿主应避免高频更新造成重复播报。
 - 无用户事件。变化不是自动计算的趋势。
 
+窄容器与长标签的宿主适配（不新增组件参数）：
+
+- C12 的字号全部走 tokens：标签/说明用 `--hnv-font-size-label`，数值用 `--hnv-font-size-data`，单位用 `--hnv-font-size-reading`。宿主在指标网格容器上限定这些变量即可局部紧凑，**不要在 `:root` 全局缩小**，也不要给所有说明统一降字号。
+- 长标签、长说明和变化文字本身会 `overflow-wrap:anywhere` 换行；数值与单位使用 flex-wrap，不会把网格列撑破。宿主只需保证列宽 `minmax(0, 1fr)` 之类的可收缩轨道。
+
+```css
+.v05-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: 12px 18px;
+  --hnv-font-size-data: 20px;    /* 只影响本网格内的 C12 数值 */
+  --hnv-font-size-label: 12px;   /* 只影响本网格内的标签/说明 */
+  --hnv-font-size-reading: 13px; /* 只影响本网格内的单位 */
+  --hnv-font-line-reading: 1.55;
+}
+```
+
+有效性验证：在 140px 宽列内放入长标签、`1518 B`、长 caption 与变化 pill，`scrollWidth` 不超过 `clientWidth`，上面三个覆盖值分别落到 12px/20px/12px。若需要整页统一字号，应先确认是哪一级信息在争夺空间，而不是把所有 Metric 一起缩小。
+
 ## 14. C13 NoteUI.Expression
 
 <a id="C13"></a>
@@ -505,9 +524,8 @@ expr.update({
 | `mount(host, options) -> instance` | 创建静态表达式；不自带播放器。 |
 | `update(patch)` | 替换 parts/focus/changed/label；程序更新不触发事件。 |
 | `getState()` | 返回实际已渲染的 parts/focus/changed/label 副本。 |
-| `getTarget({id, part?})` | 返回对应项元素；`part:'unit'|'content'|'value'` 分别返回布局项、内容载体和值槽，省略 part 返回 unit；`{part:'root'}` 返回根。 |
+| `getTarget({id, part?})` | 返回对应项元素；`part:'unit'|'content'|'value'` 分别返回布局项、内容载体和值槽，省略 part 返回 unit；`{part:'root'}` 返回根；`{part:'body'}` 返回包住全部项的表达式内容容器（用于观察整段算式，而不是只框住某个末端项）。 |
 | `getMotionTargets()` | 返回每个当前项的 `{id, element, layoutEl, unit, contentEl, valueEl}`；unit/content/value 是不同职责载体，不再都指向同一个 span。 |
-| `setSceneActive(on)` | 受控状态开关；scene 期间暂停组件自身过渡，由公共层效果接管。 |
 | `destroy()` | 幂等移除根。 |
 
 - 根是 inline-flex 单项排布，项之间保留可读间距；窄容器仍保持单行，由宿主处理横向空间。
@@ -566,7 +584,3 @@ expr.update({
 ```
 
 构建后使用 `dist/modules/ui-content.js|css` 时，第三方脚本、KaTeX CSS 与字体已包含在模块包中；加载顺序为 core 样式/脚本 → `ui-content.css` → `ui-content.js`。不得从 CDN 或远程字体补充依赖。
-
-## 18. 用户评价范围
-
-C01–C13 均为新增候选，`userReview: not-reviewed`。未获得用户视觉或使用评价，技术实现与自检结果不能视为审美认可，也不代表参数已冻结；评价变化只通过 registry/status 维护。
