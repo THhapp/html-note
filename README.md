@@ -45,7 +45,7 @@ NoteDemo.mount(document.querySelector('[data-demo-host]'), {
 | 作者装配与聚焦 | [作者入口](examples/authoring/index.html) · [作者预览](dist/作者装配与聚焦-预览.html) · [配方源码](src/demo/recipes.js) |
 | 自定义图形接入 | [传播示例入口](examples/propagation/index.html) · [传播预览](dist/传播过程与局部过渡-预览.html) · [接入说明](examples/propagation/README.md) |
 | 流程与连接图形 | [中性示例入口](examples/flow-kit/index.html) · [中性示例预览](dist/图形扩展-中性示例.html) · [接入说明](examples/flow-kit/README.md) |
-| 流程组合配方 | [组合示例入口](examples/flow-composition/index.html) · [组合预览](dist/流程组合-预览.html) · [说明](examples/flow-composition/README.md) |
+| 流程组合配方（compact 同屏） | [组合示例入口](examples/flow-composition/index.html) · [组合预览](dist/流程组合-预览.html) · [说明](examples/flow-composition/README.md) |
 | 最小连续画面接法 | [示例入口](examples/continuous-scene/index.html) · [离线预览](dist/连续画面局部变化-预览.html) · [说明](examples/continuous-scene/README.md) |
 | 查能力与依赖 | `node scripts/query.mjs` · [组件目录](docs/组件目录.md) · [registry](registry.json) |
 | 本地打开与量测 | `node scripts/inspect-note.mjs <成品.html> --json` · [观察入口说明](docs/公共编排层.md#author-inspect-note) |
@@ -121,7 +121,7 @@ pwsh -NoProfile -File scripts/package.ps1
 
 `dist/` 与根 `registry.json` 都是构建产物，不手改。开发模式可先跑 `node scripts/build.mjs`，缺失项只警告；`--final` 与 `check.mjs` 严格失败。浏览器检查复用本机 Edge 与 `tests/tools` 中已有的 playwright-core，不下载另一套浏览器，也不需要新增 `npm test` 工具链。
 
-依赖闭包与稳定布局的定向入口：`node tests/checks/query-cli-check.mjs`、`node tests/checks/query-closure-host-check.mjs`（按语料 `模块依赖` 生成最小宿主）、`node tests/checks/flow-kit-check.mjs`、`node tests/checks/flow-scene-check.mjs`、`node tests/checks/flow-geometry-check.mjs`（StageTrack/PacketFlow 几何）、`node tests/checks/stable-layout-check.mjs`（流程组合多宽度/多停点）、`node tests/checks/attention-composition-check.mjs`（当前报文 attention）。Table 的 `stableStateLabels` 在独立 Table 默认 `false`、`table` Adapter 默认 `true`（每行常驻隐藏槽，5 行表约 261→361px）；PacketFlow `layoutCount` 与 StageTrack 同源几何在 `examples/flow-kit/index.html`、`examples/flow-composition/index.html` 中直接观察。
+依赖闭包与稳定布局的定向入口：`node tests/checks/query-cli-check.mjs`、`node tests/checks/query-closure-host-check.mjs`（按语料 `模块依赖` 生成最小宿主）、`node tests/checks/flow-kit-check.mjs`、`node tests/checks/flow-scene-check.mjs`、`node tests/checks/flow-geometry-check.mjs`（StageTrack/PacketFlow 几何）、`node tests/checks/stable-layout-check.mjs`（流程组合多宽度/多停点）、`node tests/checks/density-config-check.mjs`（compact 真实几何/运行时密度重测）、`node tests/checks/density-screen-check.mjs`（1366×768/1280×900 section 起点同屏）、`node tests/checks/attention-composition-check.mjs`（当前报文 attention）。`examples/flow-composition` 两段使用 compact：1366×768 对齐 section 起点时上段 host top≈46.3、next bottom≈753.6；下段 host top≈46.1、next bottom≈622.4；1280×900 上段 next bottom≈753.6，两段同屏。t2 的 stage 顶对齐 715.1 仅作另一口径；密度变化后重跑 `density-config-check.mjs`、`density-screen-check.mjs`、`stable-layout-check.mjs` 并重新量测。Table 的 `stableStateLabels` 在独立 Table 默认 `false`、`table` Adapter 默认 `true`（每行常驻隐藏槽，5 行表约 261→361px）；PacketFlow `layoutCount` 与 StageTrack 同源几何在 `examples/flow-kit/index.html`、`examples/flow-composition/index.html` 中直接观察。
 
 ## 目录
 

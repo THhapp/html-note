@@ -75,6 +75,19 @@
   background: var(--hnv-color-surface, #ffffff);
 }
 
+/* 紧凑密度只缩容器/阶段留白，圆点、线高、徽标槽仍用同一组变量。 */
+.nviz-flow-stagetrack--compact {
+  --nviz-flow-stagetrack-stage-pad-top: 4px;
+  --nviz-flow-stagetrack-stage-pad-bottom: 6px;
+  padding: var(--hnv-space-2, 8px);
+}
+
+.nviz-flow-stagetrack--compact .nviz-flow-stagetrack__stage {
+  gap: 2px;
+  padding-left: 2px;
+  padding-right: 2px;
+}
+
 .nviz-flow-stagetrack__list {
   display: grid;
   grid-template-columns: repeat(var(--nviz-flow-stagetrack-count), minmax(0, 1fr));
@@ -246,6 +259,10 @@
   border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
   border-radius: var(--hnv-radius-object, 10px);
   background: var(--hnv-color-surface, #ffffff);
+}
+
+.nviz-flow-packetflow--compact {
+  padding: var(--hnv-space-2, 8px);
 }
 
 .nviz-flow-packetflow__viewport,

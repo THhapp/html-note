@@ -136,6 +136,8 @@
     var watched = false;
     var resizeListener = null;
     var resizeObserver = null;
+    var densityObserver = null;
+    var forceStageRelayout = false;
     var mutationObserver = null;
 
     /* ---------------- controls ---------------- */
@@ -442,8 +444,9 @@
         lastAppliedStageMinHeight = current;
       }
       var nextLayout = stageLayoutSnapshot();
-      if (layoutChanged(stageLayout, nextLayout)) {
+      if (forceStageRelayout || layoutChanged(stageLayout, nextLayout)) {
         stageReservePx = 0;
+        forceStageRelayout = false;
         stageLayout = nextLayout;
       }
       var needed = measureStageContentHeight();
@@ -543,6 +546,23 @@
           mutationObserver = null;
         }
       }
+      /* 组件密度切换不改宽度，只改 data-density；显式识别并重新测量预留，避免旧的大预留锁住。 */
+      if (stage && stage.stageEl && typeof global.MutationObserver === 'function') {
+        try {
+          densityObserver = new global.MutationObserver(function (records) {
+            var changed = false;
+            for (var i = 0; i < records.length; i += 1) {
+              if (records[i].type === 'attributes' && records[i].attributeName === 'data-density') changed = true;
+            }
+            if (!changed) return;
+            forceStageRelayout = true;
+            scheduleRevalidate();
+          });
+          densityObserver.observe(stage.stageEl, { subtree: true, attributes: true, attributeFilter: ['data-density'] });
+        } catch (error) {
+          densityObserver = null;
+        }
+      }
     }
 
     /* ---------------- lifecycle ---------------- */
@@ -568,6 +588,10 @@
       if (resizeObserver) {
         try { resizeObserver.disconnect(); } catch (error) { /* ignore */ }
         resizeObserver = null;
+      }
+      if (densityObserver) {
+        try { densityObserver.disconnect(); } catch (error) { /* ignore */ }
+        densityObserver = null;
       }
       if (mutationObserver) {
         try { mutationObserver.disconnect(); } catch (error) { /* ignore */ }
@@ -2434,6 +2458,15 @@
     return value == null ? '' : String(value);
   }
 
+  /* 配方密度：只压缩配方外壳的间距/内边距，不改变领域数据、停点或动效节奏。 */
+  function densityOf(options) {
+    var density = isObject(options) ? options.density : null;
+    if (density == null || density === 'default') return 'default';
+    if (density === 'compact') return 'compact';
+    fail('density 只支持省略/"default" 或 "compact"。');
+    return 'default';
+  }
+
   function el(tag, className, content) {
     var node = global.document.createElement(tag);
     if (className) node.className = className;
@@ -2662,6 +2695,8 @@
   /* 主区（图形/表格/阶段/报文）+ 可选页脚区。允许省略任一区域；槽位只收集真实声明的 slot。 */
   function buildRegionsLayout(container, options) {
     var UI = requireGridStack();
+    var density = densityOf(options);
+    var compact = density === 'compact';
     var context = {
       required: [],
       pendingMounts: [],
@@ -2669,7 +2704,8 @@
       cleanups: [],
       released: false
     };
-    var root = el('div', 'nd-recipe' + (options.className ? ' ' + options.className : ''));
+    var root = el('div', 'nd-recipe' + (options.className ? ' ' + options.className : '') +
+      (compact ? ' nd-recipe--compact' : ''));
     var release = function () {
       if (context.released) return;
       context.released = true;
@@ -2679,7 +2715,7 @@
     try {
       var mainNode = null;
       if (options.mode === 'stack') {
-        mainNode = UI.Stack.mount(root, { gap: 'md', align: 'stretch' });
+        mainNode = UI.Stack.mount(root, { gap: compact ? 'sm' : 'md', align: 'stretch' });
         context.cleanups.push(function () { mainNode.destroy(); });
         var mainList = el('div', 'nd-recipe__process-body');
         mainNode.append(mainList);
@@ -2691,7 +2727,7 @@
         mainNode = UI.Grid.mount(root, {
           columns: 'auto',
           minColumnWidth: options.mainMinWidth || '20rem',
-          gap: 'md'
+          gap: compact ? 'sm' : 'md'
         });
         context.cleanups.push(function () { mainNode.destroy(); });
         (options.main || []).forEach(function (entry) {
@@ -2763,6 +2799,7 @@
   /* 图形 + 状态表：主区两块（任一可省），页脚可放读数/状态。 */
   function diagramTable(options) {
     if (!isObject(options)) fail('diagramTable 需要一个配置对象。');
+    var density = densityOf(options);
     var regions = {
       diagram: normalizeRegion(options.diagram, 'diagram'),
       table: normalizeRegion(options.table, 'table'),
@@ -2776,6 +2813,7 @@
       layout: function (container) {
         return buildRegionsLayout(container, {
           className: 'nd-recipe--diagram-table',
+          density: density,
           mode: 'grid',
           mainMinWidth: options.mainMinWidth,
           footerMinWidth: options.footerMinWidth,
@@ -2797,6 +2835,7 @@
   /* 阶段 + 报文/读数：主区纵向排列，任何区域可省。 */
   function stagePacket(options) {
     if (!isObject(options)) fail('stagePacket 需要一个配置对象。');
+    var density = densityOf(options);
     var regions = {
       stage: normalizeRegion(options.stage, 'stage'),
       packet: normalizeRegion(options.packet, 'packet'),
@@ -2810,6 +2849,7 @@
       layout: function (container) {
         return buildRegionsLayout(container, {
           className: 'nd-recipe--stage-packet',
+          density: density,
           mode: 'stack',
           mainMinWidth: options.mainMinWidth,
           footerMinWidth: options.footerMinWidth,

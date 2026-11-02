@@ -129,6 +129,8 @@
     var watched = false;
     var resizeListener = null;
     var resizeObserver = null;
+    var densityObserver = null;
+    var forceStageRelayout = false;
     var mutationObserver = null;
 
     /* ---------------- controls ---------------- */
@@ -435,8 +437,9 @@
         lastAppliedStageMinHeight = current;
       }
       var nextLayout = stageLayoutSnapshot();
-      if (layoutChanged(stageLayout, nextLayout)) {
+      if (forceStageRelayout || layoutChanged(stageLayout, nextLayout)) {
         stageReservePx = 0;
+        forceStageRelayout = false;
         stageLayout = nextLayout;
       }
       var needed = measureStageContentHeight();
@@ -536,6 +539,23 @@
           mutationObserver = null;
         }
       }
+      /* 组件密度切换不改宽度，只改 data-density；显式识别并重新测量预留，避免旧的大预留锁住。 */
+      if (stage && stage.stageEl && typeof global.MutationObserver === 'function') {
+        try {
+          densityObserver = new global.MutationObserver(function (records) {
+            var changed = false;
+            for (var i = 0; i < records.length; i += 1) {
+              if (records[i].type === 'attributes' && records[i].attributeName === 'data-density') changed = true;
+            }
+            if (!changed) return;
+            forceStageRelayout = true;
+            scheduleRevalidate();
+          });
+          densityObserver.observe(stage.stageEl, { subtree: true, attributes: true, attributeFilter: ['data-density'] });
+        } catch (error) {
+          densityObserver = null;
+        }
+      }
     }
 
     /* ---------------- lifecycle ---------------- */
@@ -561,6 +581,10 @@
       if (resizeObserver) {
         try { resizeObserver.disconnect(); } catch (error) { /* ignore */ }
         resizeObserver = null;
+      }
+      if (densityObserver) {
+        try { densityObserver.disconnect(); } catch (error) { /* ignore */ }
+        densityObserver = null;
       }
       if (mutationObserver) {
         try { mutationObserver.disconnect(); } catch (error) { /* ignore */ }

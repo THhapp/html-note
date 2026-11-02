@@ -71,11 +71,14 @@ var track = NoteViz.Flow.StageTrack.mount(host, {
 | `skipped` / `failed` | 阶段 id 或 id 数组；用于显式跳过/失败。 |
 | `bypass` | `Array<{from,to,label?}>`；只画宿主声明的阶段旁路，两个端点都必须是已有阶段。 |
 | `statusLabels` | 覆盖状态文案对象，例如 `{ current: '进行中' }`。 |
+| `density` | `'normal'`（默认）或 `'compact'`；compact 缩小上下 padding 与阶段间距，圆点/连接线/徽标仍使用同一套同源几何。 |
 | `label` | 根容器可访问名称，默认“阶段轨”。 |
 
 状态：`pending | current | done | skipped | failed`。阶段自带 `status` 优先；否则 `failed`/`skipped` 集合优先，`current` 为当前阶段，当前阶段之前默认 `done`，之后默认 `pending`。状态写成 `data-status`；当前阶段同时有 `aria-current="step"`。
 
 圆点、连接线与文本槽使用同源 CSS 几何：节点尺寸、节点边框、阶段上下 padding 与连接线高度由 `--nviz-flow-stagetrack-*` 变量提供，连接线 top 为 `padding-top + node-size/2 - line-height/2`，因此圆点圆心与连接线中心始终对齐。目标徽标槽常驻：未命中目标时 `data-empty="true"` 且不可见，但仍占位；阶段标签/状态换行、容器宽度变化时行高与徽标位置保持对齐。旁路端点按已声明阶段数量与 `from`/`to` 计算，只画作者显式声明的端点。
+
+`density:'compact'` 只压缩阶段上下 padding 与阶段间距，圆点尺寸/边框、连接线与徽标槽仍按同一套变量推导；切换到 compact 后仍保持圆点圆心=连接线中心，但轨道整体高度变小，宿主应在密度变化后重新量测同屏位置。
 
 `getTarget(id)`：阶段 id 返回对应 `<li>`；`bypass:<from>><to>`（如 `bypass:s2>s4`）返回旁路行；`track` 返回阶段列表容器；`bypasses` 返回旁路容器。未知阶段端点的旁路会被跳过，并在图下提示跳过数量；旁路不自动推断分支剧情。
 
@@ -114,7 +117,10 @@ var flow = NoteViz.Flow.PacketFlow.mount(host, {
 | `focus` | 当前关注的消息 id，写入 `data-focus="true"` 并显示焦点带；不是显现开关。 |
 | `showIndexes` | 布尔，默认 `false`；为 `true` 时在每条消息前显示序号。 |
 | `layoutCount` | 可选整数，覆盖消息流布局行数；实际取 `max(1, validMessages.length, floor(layoutCount))`。用于预留额外行，不会少于完整已知消息数。 |
+| `density` | `'normal'`（默认）或 `'compact'`；compact 使用更紧的内部 SVG 几何，viewBox/height 随配置真实改变。 |
 | `label` | 根容器可访问名称，默认“消息流”。 |
+
+`density:'compact'` 的内部几何：参与者盒 `y=8、height=52`，label/note 基线 `26/43`，生命线顶 `66`，`messageTop=88`、`step=48`、底部留白 `14`；默认 normal 仍为 `y=14、height=64`、label/note `34/52`、生命线顶 `82`、`messageTop=116`、`step=56`、底部 `20`。compact 下 `viewBox`/height 真实变小，但 `layoutCount` 仍按完整 valid 消息集合计算，显现只改 `data-hidden`。
 
 消息方向由参与者顺序与 `from`/`to` 决定，写成 `data-direction="left|right|self"`，箭头指向 `to`；消息的 `data-target` 是目标参与者 id，另有 `data-type` 与 `data-dashed` 供样式和检查读取。未显现的消息保留节点并标记 `data-hidden="true"`，以便宿主逐步揭示；组件本身不创建计时器、自动下一帧或播放循环。长标签最多两行，完整文本进入 SVG `<title>` 与可访问名称。
 

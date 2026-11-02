@@ -29,10 +29,10 @@
         <h2 id="fc-a-title">阶段 + 报文 + 读数</h2>
         <p class="fc-phase">会话状态：<span data-flow-phase="stage-packet" data-phase="unknown">未知</span></p>
       </div>
+      <div data-flow-host="stage-packet"></div>
       <p class="fc-note">
         <code>stagePacket</code> 负责区域骨架与清理；阶段轨的当前/目标、PacketFlow 的显现条数和右侧读数都来自同一个停点快照。
       </p>
-      <div data-flow-host="stage-packet"></div>
     </section>
 
     <section class="fc-demo" aria-labelledby="fc-b-title">
@@ -40,10 +40,10 @@
         <h2 id="fc-b-title">图形 + 状态表</h2>
         <p class="fc-phase">会话状态：<span data-flow-phase="diagram-table" data-phase="unknown">未知</span></p>
       </div>
+      <div data-flow-host="diagram-table"></div>
       <p class="fc-note">
         <code>diagramTable</code> 放报文流和状态表；表格只重算行数据，不改列结构。状态表与按序显现的报文共用同一个停点快照。
       </p>
-      <div data-flow-host="diagram-table"></div>
     </section>
 
     <section class="fc-demo" aria-labelledby="fc-c-title">

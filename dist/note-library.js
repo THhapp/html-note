@@ -30209,6 +30209,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       failed: null,
       bypass: [],
       statusLabels: null,
+      density: 'normal',
       label: '阶段轨'
     }, options || {});
 
@@ -30269,6 +30270,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 
     function render() {
       setAttributeIf(root, 'aria-label', textOrEmpty(model.label) || '阶段轨');
+      var compact = model.density === 'compact';
+      setAttributeIf(root, 'class', 'nviz-flow-stagetrack' + (compact ? ' nviz-flow-stagetrack--compact' : ''));
+      setAttributeIf(root, 'data-density', compact ? 'compact' : 'normal');
       var labels = statusLabels();
       var stages = normalizeStages();
       var stageIndexById = Object.create(null);
@@ -30541,6 +30545,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       focus: null,
       showIndexes: false,
       layoutCount: null,
+      density: 'normal',
       label: '消息流'
     }, options || {});
 
@@ -30635,17 +30640,27 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       var width = 1000;
       var margin = 76;
       var span = width - margin * 2;
+      var compact = model.density === 'compact';
       var boxWidth = 144;
-      var boxHeight = 64;
+      var boxHeight = compact ? 52 : 64;
+      var boxY = compact ? 8 : 14;
+      var participantLabelY = compact ? 26 : 34;
+      var participantNoteY = compact ? 43 : 52;
+      var lifelineTop = compact ? 66 : 82;
       var xs = participants.map(function (participant, index) {
         if (participants.length <= 1) return width / 2;
         return margin + (span * index) / (participants.length - 1);
       });
-      var messageTop = 116;
-      var step = 56;
+      var messageTop = compact ? 88 : 116;
+      var step = compact ? 48 : 56;
+      var bottom = compact ? 14 : 20;
+      var lifelineGap = compact ? 24 : 30;
+      var rootClass = 'nviz-flow-packetflow' + (compact ? ' nviz-flow-packetflow--compact' : '');
+      if (root.className !== rootClass) root.className = rootClass;
+      setAttributeIf(root, 'data-density', compact ? 'compact' : 'normal');
       /* 布局按完整已知消息分配；revealed/visibleCount 只控制 data-hidden，不改变坐标/高度。 */
       var layoutCount = Math.max(1, validMessages.length, Math.floor(numberOr(model.layoutCount, validMessages.length)));
-      var lifelineEnd = messageTop + layoutCount * step - 30;
+      var lifelineEnd = messageTop + layoutCount * step - lifelineGap;
 
       var seenParticipants = Object.create(null);
       var desiredParticipants = [];
@@ -30653,9 +30668,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         var node = participantNodes.get(participant.id);
         if (!node) {
           node = svgEl('g', { class: 'nviz-flow-packetflow__participant', 'data-id': participant.id });
-          node.appendChild(svgEl('rect', { class: 'nviz-flow-packetflow__participant-box', x: 0, y: 14, width: boxWidth, height: boxHeight, rx: 9 }));
-          node.appendChild(svgEl('text', { class: 'nviz-flow-packetflow__participant-label', 'text-anchor': 'middle', x: 0, y: 34 }));
-          node.appendChild(svgEl('text', { class: 'nviz-flow-packetflow__participant-note', 'text-anchor': 'middle', x: 0, y: 52 }));
+          node.appendChild(svgEl('rect', { class: 'nviz-flow-packetflow__participant-box', x: 0, y: boxY, width: boxWidth, height: boxHeight, rx: 9 }));
+          node.appendChild(svgEl('text', { class: 'nviz-flow-packetflow__participant-label', 'text-anchor': 'middle', x: 0, y: participantLabelY }));
+          node.appendChild(svgEl('text', { class: 'nviz-flow-packetflow__participant-note', 'text-anchor': 'middle', x: 0, y: participantNoteY }));
           node.appendChild(svgEl('title'));
           node.__nvizFlowCache = Object.create(null);
           participantLayer.appendChild(node);
@@ -30671,13 +30686,18 @@ if(__exports != exports)module.exports = exports;return module.exports}));
           node.setAttribute('transform', transform);
           cache.transform = transform;
         }
+        var boxNode = node.querySelector('.nviz-flow-packetflow__participant-box');
+        setAttributeIf(boxNode, 'y', String(boxY));
+        setAttributeIf(boxNode, 'height', String(boxHeight));
         var labelNode = node.querySelector('.nviz-flow-packetflow__participant-label');
         setAttributeIf(labelNode, 'x', String(boxWidth / 2));
+        setAttributeIf(labelNode, 'y', String(participantLabelY));
         var labelLines = wrapText(participant.label || participant.id, 16, 2);
         setLinesIf(labelNode, labelLines.lines.join('\u0001'), labelLines.lines);
         var noteNode = node.querySelector('.nviz-flow-packetflow__participant-note');
         var noteLines = wrapText(participant.note, 18, 1);
         setAttributeIf(noteNode, 'x', String(boxWidth / 2));
+        setAttributeIf(noteNode, 'y', String(participantNoteY));
         setTextIf(noteNode, noteLines.lines[0] || '');
         setAttributeIf(noteNode, 'display', participant.note ? null : 'none');
         var titleText = [participant.label, participant.note].filter(Boolean).join(' · ') || participant.id;
@@ -30694,7 +30714,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         var xText = x.toFixed(1);
         var endText = lifelineEnd.toFixed(1);
         setAttributeIf(line, 'x1', xText);
-        setAttributeIf(line, 'y1', '82');
+        setAttributeIf(line, 'y1', String(lifelineTop));
         setAttributeIf(line, 'x2', xText);
         setAttributeIf(line, 'y2', endText);
       });
@@ -30825,7 +30845,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         setAttributeIf(focusBand, 'display', 'none');
       }
 
-      var height = messageTop + layoutCount * step + 20;
+      var height = messageTop + layoutCount * step + bottom;
       setAttributeIf(svg, 'viewBox', '0 0 ' + width + ' ' + height);
       if (svg.hasAttribute('height')) svg.removeAttribute('height');
       setViewportMessage(note, invalid ? '已跳过 ' + invalid + ' 条引用未知参与者的消息。' : '');
@@ -50294,7 +50314,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     var config = isObject(options) ? options : {};
     var attachment = { label: config.label == null ? '阶段轨' : text(config.label), statusLabels: isObject(config.statusLabels) ? config.statusLabels : null };
     var api = componentApi();
-    var component = api.mount(host, config);
+    var componentOptions = Object.assign({}, config);
+    if (config.density != null) componentOptions.density = config.density;
+    var component = api.mount(host, componentOptions);
     var destroyed = false;
     function apply(model) {
       component.update({
@@ -50569,7 +50591,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     var config = isObject(options) ? options : {};
     var attachment = { label: config.label == null ? '消息流' : text(config.label), showIndexes: config.showIndexes === true };
     var api = componentApi();
-    var component = api.mount(host, config);
+    var componentOptions = Object.assign({}, config);
+    if (config.density != null) componentOptions.density = config.density;
+    var component = api.mount(host, componentOptions);
     var destroyed = false;
     function apply(model) {
       component.update({
@@ -51794,6 +51818,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     var watched = false;
     var resizeListener = null;
     var resizeObserver = null;
+    var densityObserver = null;
+    var forceStageRelayout = false;
     var mutationObserver = null;
 
     /* ---------------- controls ---------------- */
@@ -52100,8 +52126,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         lastAppliedStageMinHeight = current;
       }
       var nextLayout = stageLayoutSnapshot();
-      if (layoutChanged(stageLayout, nextLayout)) {
+      if (forceStageRelayout || layoutChanged(stageLayout, nextLayout)) {
         stageReservePx = 0;
+        forceStageRelayout = false;
         stageLayout = nextLayout;
       }
       var needed = measureStageContentHeight();
@@ -52201,6 +52228,23 @@ if(__exports != exports)module.exports = exports;return module.exports}));
           mutationObserver = null;
         }
       }
+      /* 组件密度切换不改宽度，只改 data-density；显式识别并重新测量预留，避免旧的大预留锁住。 */
+      if (stage && stage.stageEl && typeof global.MutationObserver === 'function') {
+        try {
+          densityObserver = new global.MutationObserver(function (records) {
+            var changed = false;
+            for (var i = 0; i < records.length; i += 1) {
+              if (records[i].type === 'attributes' && records[i].attributeName === 'data-density') changed = true;
+            }
+            if (!changed) return;
+            forceStageRelayout = true;
+            scheduleRevalidate();
+          });
+          densityObserver.observe(stage.stageEl, { subtree: true, attributes: true, attributeFilter: ['data-density'] });
+        } catch (error) {
+          densityObserver = null;
+        }
+      }
     }
 
     /* ---------------- lifecycle ---------------- */
@@ -52226,6 +52270,10 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       if (resizeObserver) {
         try { resizeObserver.disconnect(); } catch (error) { /* ignore */ }
         resizeObserver = null;
+      }
+      if (densityObserver) {
+        try { densityObserver.disconnect(); } catch (error) { /* ignore */ }
+        densityObserver = null;
       }
       if (mutationObserver) {
         try { mutationObserver.disconnect(); } catch (error) { /* ignore */ }
@@ -54092,6 +54140,15 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     return value == null ? '' : String(value);
   }
 
+  /* 配方密度：只压缩配方外壳的间距/内边距，不改变领域数据、停点或动效节奏。 */
+  function densityOf(options) {
+    var density = isObject(options) ? options.density : null;
+    if (density == null || density === 'default') return 'default';
+    if (density === 'compact') return 'compact';
+    fail('density 只支持省略/"default" 或 "compact"。');
+    return 'default';
+  }
+
   function el(tag, className, content) {
     var node = global.document.createElement(tag);
     if (className) node.className = className;
@@ -54320,6 +54377,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   /* 主区（图形/表格/阶段/报文）+ 可选页脚区。允许省略任一区域；槽位只收集真实声明的 slot。 */
   function buildRegionsLayout(container, options) {
     var UI = requireGridStack();
+    var density = densityOf(options);
+    var compact = density === 'compact';
     var context = {
       required: [],
       pendingMounts: [],
@@ -54327,7 +54386,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       cleanups: [],
       released: false
     };
-    var root = el('div', 'nd-recipe' + (options.className ? ' ' + options.className : ''));
+    var root = el('div', 'nd-recipe' + (options.className ? ' ' + options.className : '') +
+      (compact ? ' nd-recipe--compact' : ''));
     var release = function () {
       if (context.released) return;
       context.released = true;
@@ -54337,7 +54397,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     try {
       var mainNode = null;
       if (options.mode === 'stack') {
-        mainNode = UI.Stack.mount(root, { gap: 'md', align: 'stretch' });
+        mainNode = UI.Stack.mount(root, { gap: compact ? 'sm' : 'md', align: 'stretch' });
         context.cleanups.push(function () { mainNode.destroy(); });
         var mainList = el('div', 'nd-recipe__process-body');
         mainNode.append(mainList);
@@ -54349,7 +54409,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         mainNode = UI.Grid.mount(root, {
           columns: 'auto',
           minColumnWidth: options.mainMinWidth || '20rem',
-          gap: 'md'
+          gap: compact ? 'sm' : 'md'
         });
         context.cleanups.push(function () { mainNode.destroy(); });
         (options.main || []).forEach(function (entry) {
@@ -54421,6 +54481,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   /* 图形 + 状态表：主区两块（任一可省），页脚可放读数/状态。 */
   function diagramTable(options) {
     if (!isObject(options)) fail('diagramTable 需要一个配置对象。');
+    var density = densityOf(options);
     var regions = {
       diagram: normalizeRegion(options.diagram, 'diagram'),
       table: normalizeRegion(options.table, 'table'),
@@ -54434,6 +54495,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       layout: function (container) {
         return buildRegionsLayout(container, {
           className: 'nd-recipe--diagram-table',
+          density: density,
           mode: 'grid',
           mainMinWidth: options.mainMinWidth,
           footerMinWidth: options.footerMinWidth,
@@ -54455,6 +54517,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   /* 阶段 + 报文/读数：主区纵向排列，任何区域可省。 */
   function stagePacket(options) {
     if (!isObject(options)) fail('stagePacket 需要一个配置对象。');
+    var density = densityOf(options);
     var regions = {
       stage: normalizeRegion(options.stage, 'stage'),
       packet: normalizeRegion(options.packet, 'packet'),
@@ -54468,6 +54531,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       layout: function (container) {
         return buildRegionsLayout(container, {
           className: 'nd-recipe--stage-packet',
+          density: density,
           mode: 'stack',
           mainMinWidth: options.mainMinWidth,
           footerMinWidth: options.footerMinWidth,

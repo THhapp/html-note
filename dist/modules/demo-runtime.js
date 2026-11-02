@@ -9974,7 +9974,9 @@
     var config = isObject(options) ? options : {};
     var attachment = { label: config.label == null ? '阶段轨' : text(config.label), statusLabels: isObject(config.statusLabels) ? config.statusLabels : null };
     var api = componentApi();
-    var component = api.mount(host, config);
+    var componentOptions = Object.assign({}, config);
+    if (config.density != null) componentOptions.density = config.density;
+    var component = api.mount(host, componentOptions);
     var destroyed = false;
     function apply(model) {
       component.update({
@@ -10249,7 +10251,9 @@
     var config = isObject(options) ? options : {};
     var attachment = { label: config.label == null ? '消息流' : text(config.label), showIndexes: config.showIndexes === true };
     var api = componentApi();
-    var component = api.mount(host, config);
+    var componentOptions = Object.assign({}, config);
+    if (config.density != null) componentOptions.density = config.density;
+    var component = api.mount(host, componentOptions);
     var destroyed = false;
     function apply(model) {
       component.update({

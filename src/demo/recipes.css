@@ -114,3 +114,25 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* density:'compact' — 只缩小配方外壳间距/内边距，不改内容与动效。 */
+.nd-recipe--compact {
+  gap: var(--hnv-space-sm, 10px);
+}
+
+.nd-recipe--compact .nd-recipe__board {
+  padding: 8px 10px;
+}
+
+.nd-recipe--compact .nd-recipe__readout,
+.nd-recipe--compact .nd-recipe__result {
+  padding: 6px 10px;
+}
+
+.nd-recipe--compact .nd-recipe__process-body {
+  gap: 8px;
+}
+
+.nd-recipe--compact .nd-recipe__head {
+  margin: 0 0 4px;
+}

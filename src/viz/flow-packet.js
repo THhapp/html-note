@@ -94,6 +94,7 @@
       focus: null,
       showIndexes: false,
       layoutCount: null,
+      density: 'normal',
       label: '消息流'
     }, options || {});
 
@@ -188,17 +189,27 @@
       var width = 1000;
       var margin = 76;
       var span = width - margin * 2;
+      var compact = model.density === 'compact';
       var boxWidth = 144;
-      var boxHeight = 64;
+      var boxHeight = compact ? 52 : 64;
+      var boxY = compact ? 8 : 14;
+      var participantLabelY = compact ? 26 : 34;
+      var participantNoteY = compact ? 43 : 52;
+      var lifelineTop = compact ? 66 : 82;
       var xs = participants.map(function (participant, index) {
         if (participants.length <= 1) return width / 2;
         return margin + (span * index) / (participants.length - 1);
       });
-      var messageTop = 116;
-      var step = 56;
+      var messageTop = compact ? 88 : 116;
+      var step = compact ? 48 : 56;
+      var bottom = compact ? 14 : 20;
+      var lifelineGap = compact ? 24 : 30;
+      var rootClass = 'nviz-flow-packetflow' + (compact ? ' nviz-flow-packetflow--compact' : '');
+      if (root.className !== rootClass) root.className = rootClass;
+      setAttributeIf(root, 'data-density', compact ? 'compact' : 'normal');
       /* 布局按完整已知消息分配；revealed/visibleCount 只控制 data-hidden，不改变坐标/高度。 */
       var layoutCount = Math.max(1, validMessages.length, Math.floor(numberOr(model.layoutCount, validMessages.length)));
-      var lifelineEnd = messageTop + layoutCount * step - 30;
+      var lifelineEnd = messageTop + layoutCount * step - lifelineGap;
 
       var seenParticipants = Object.create(null);
       var desiredParticipants = [];
@@ -206,9 +217,9 @@
         var node = participantNodes.get(participant.id);
         if (!node) {
           node = svgEl('g', { class: 'nviz-flow-packetflow__participant', 'data-id': participant.id });
-          node.appendChild(svgEl('rect', { class: 'nviz-flow-packetflow__participant-box', x: 0, y: 14, width: boxWidth, height: boxHeight, rx: 9 }));
-          node.appendChild(svgEl('text', { class: 'nviz-flow-packetflow__participant-label', 'text-anchor': 'middle', x: 0, y: 34 }));
-          node.appendChild(svgEl('text', { class: 'nviz-flow-packetflow__participant-note', 'text-anchor': 'middle', x: 0, y: 52 }));
+          node.appendChild(svgEl('rect', { class: 'nviz-flow-packetflow__participant-box', x: 0, y: boxY, width: boxWidth, height: boxHeight, rx: 9 }));
+          node.appendChild(svgEl('text', { class: 'nviz-flow-packetflow__participant-label', 'text-anchor': 'middle', x: 0, y: participantLabelY }));
+          node.appendChild(svgEl('text', { class: 'nviz-flow-packetflow__participant-note', 'text-anchor': 'middle', x: 0, y: participantNoteY }));
           node.appendChild(svgEl('title'));
           node.__nvizFlowCache = Object.create(null);
           participantLayer.appendChild(node);
@@ -224,13 +235,18 @@
           node.setAttribute('transform', transform);
           cache.transform = transform;
         }
+        var boxNode = node.querySelector('.nviz-flow-packetflow__participant-box');
+        setAttributeIf(boxNode, 'y', String(boxY));
+        setAttributeIf(boxNode, 'height', String(boxHeight));
         var labelNode = node.querySelector('.nviz-flow-packetflow__participant-label');
         setAttributeIf(labelNode, 'x', String(boxWidth / 2));
+        setAttributeIf(labelNode, 'y', String(participantLabelY));
         var labelLines = wrapText(participant.label || participant.id, 16, 2);
         setLinesIf(labelNode, labelLines.lines.join('\u0001'), labelLines.lines);
         var noteNode = node.querySelector('.nviz-flow-packetflow__participant-note');
         var noteLines = wrapText(participant.note, 18, 1);
         setAttributeIf(noteNode, 'x', String(boxWidth / 2));
+        setAttributeIf(noteNode, 'y', String(participantNoteY));
         setTextIf(noteNode, noteLines.lines[0] || '');
         setAttributeIf(noteNode, 'display', participant.note ? null : 'none');
         var titleText = [participant.label, participant.note].filter(Boolean).join(' · ') || participant.id;
@@ -247,7 +263,7 @@
         var xText = x.toFixed(1);
         var endText = lifelineEnd.toFixed(1);
         setAttributeIf(line, 'x1', xText);
-        setAttributeIf(line, 'y1', '82');
+        setAttributeIf(line, 'y1', String(lifelineTop));
         setAttributeIf(line, 'x2', xText);
         setAttributeIf(line, 'y2', endText);
       });
@@ -378,7 +394,7 @@
         setAttributeIf(focusBand, 'display', 'none');
       }
 
-      var height = messageTop + layoutCount * step + 20;
+      var height = messageTop + layoutCount * step + bottom;
       setAttributeIf(svg, 'viewBox', '0 0 ' + width + ' ' + height);
       if (svg.hasAttribute('height')) svg.removeAttribute('height');
       setViewportMessage(note, invalid ? '已跳过 ' + invalid + ' 条引用未知参与者的消息。' : '');

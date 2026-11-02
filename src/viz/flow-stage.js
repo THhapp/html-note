@@ -49,6 +49,7 @@
       failed: null,
       bypass: [],
       statusLabels: null,
+      density: 'normal',
       label: '阶段轨'
     }, options || {});
 
@@ -109,6 +110,9 @@
 
     function render() {
       setAttributeIf(root, 'aria-label', textOrEmpty(model.label) || '阶段轨');
+      var compact = model.density === 'compact';
+      setAttributeIf(root, 'class', 'nviz-flow-stagetrack' + (compact ? ' nviz-flow-stagetrack--compact' : ''));
+      setAttributeIf(root, 'data-density', compact ? 'compact' : 'normal');
       var labels = statusLabels();
       var stages = normalizeStages();
       var stageIndexById = Object.create(null);

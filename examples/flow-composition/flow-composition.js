@@ -124,8 +124,8 @@
     var initial = SNAPSHOTS[0];
     return Recipes.repeatStages({
       bindings: {
-        stage: { adapter: 'flow-stage', slot: 'stage', options: { label: 'TCP 连接阶段' } },
-        packet: { adapter: 'flow-packet', slot: 'packet', options: { label: 'TCP 握手与关闭报文', showIndexes: true } },
+        stage: { adapter: 'flow-stage', slot: 'stage', options: { label: 'TCP 连接阶段', density: 'compact' } },
+        packet: { adapter: 'flow-packet', slot: 'packet', options: { label: 'TCP 握手与关闭报文', showIndexes: true, density: 'compact' } },
         readout: { adapter: 'dom', slot: 'readout', options: { label: '当前读数' } }
       },
       initial: { id: initial.id, caption: initial.caption,
@@ -139,8 +139,8 @@
     var initial = SNAPSHOTS[0];
     return Recipes.repeatStages({
       bindings: {
-        packet: { adapter: 'flow-packet', slot: 'packet', options: { label: '报文流与消息状态', showIndexes: true } },
-        table: { adapter: 'table', slot: 'table', options: { rowKey: 'id' } },
+        packet: { adapter: 'flow-packet', slot: 'packet', options: { label: '报文流与消息状态', showIndexes: true, density: 'compact' } },
+        table: { adapter: 'table', slot: 'table', options: { rowKey: 'id', density: 'compact' } },
         readout: { adapter: 'dom', slot: 'readout', options: { label: '当前读数' } }
       },
       initial: { id: initial.id, caption: initial.caption,
@@ -171,9 +171,10 @@
   function mountStagePacket(host) {
     var recipe = Recipes.stagePacket({
       definition: buildStageDefinition(),
-      stage: { slot: 'stage', title: 'TCP 连接阶段', meta: 'flow-stage Adapter · 当前/目标由 Frame 状态给出' },
-      packet: { slot: 'packet', title: '报文流', meta: 'flow-packet Adapter · 显现条数由 Frame 视图给出' },
-      readout: { slot: 'readout', title: '当前读数', meta: 'dom Adapter · 与字幕同一快照' }
+      density: 'compact',
+      stage: { slot: 'stage' },
+      packet: { slot: 'packet' },
+      readout: { slot: 'readout' }
     });
     var session = global.NoteDemo.mount(host, recipe);
     session.subscribe(function (state) { updatePhase('[data-flow-phase="stage-packet"]', state); });
@@ -183,9 +184,10 @@
   function mountDiagramTable(host) {
     var recipe = Recipes.diagramTable({
       definition: buildDiagramDefinition(),
-      diagram: { slot: 'packet', title: '报文流', meta: 'flow-packet Adapter · 与状态表同源' },
-      table: { slot: 'table', title: '消息状态表', meta: 'table Adapter · 行数据随停点更新，列结构稳定' },
-      readout: { slot: 'readout', title: '当前读数', meta: 'dom Adapter · 与图形同步' }
+      density: 'compact',
+      diagram: { slot: 'packet' },
+      table: { slot: 'table' },
+      readout: { slot: 'readout' }
     });
     var session = global.NoteDemo.mount(host, recipe);
     session.subscribe(function (state) { updatePhase('[data-flow-phase="diagram-table"]', state); });
