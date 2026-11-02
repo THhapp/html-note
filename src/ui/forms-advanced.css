@@ -1,11 +1,11 @@
-/* NoteUI forms-advanced — F09–F15 advanced form controls.
-   Scope: .nui-switch, .nui-slider, .nui-form, .nui-datepicker,
+/* NoteUI forms-advanced — F09/F11–F15 advanced form controls.
+   Scope: .nui-switch, .nui-form, .nui-datepicker,
    .nui-timepicker, .nui-colorpicker, .nui-fileinput and their __parts.
+   F10 Slider 的样式已拆到 src/ui/slider.css。
    Dependencies: src/core/tokens.css, src/core/base.css (.hnv-floating,
    .hnv-visually-hidden); forms-basic styles Field rows used by Form. */
 
 .nui-switch,
-.nui-slider,
 .nui-form,
 .nui-datepicker,
 .nui-timepicker,
@@ -23,9 +23,6 @@
 .nui-switch *,
 .nui-switch *::before,
 .nui-switch *::after,
-.nui-slider *,
-.nui-slider *::before,
-.nui-slider *::after,
 .nui-form *,
 .nui-form *::before,
 .nui-form *::after,
@@ -51,7 +48,6 @@
 }
 
 .nui-switch [hidden],
-.nui-slider [hidden],
 .nui-form [hidden],
 .nui-datepicker [hidden],
 .nui-timepicker [hidden],
@@ -64,7 +60,6 @@
 
 /* Shared label, hint, error and focus treatment. */
 .nui-switch__head,
-.nui-slider__head,
 .nui-form__field,
 .nui-datepicker__head,
 .nui-timepicker__head,
@@ -73,7 +68,6 @@
   min-width: 0;
 }
 
-.nui-slider__head,
 .nui-datepicker__head,
 .nui-timepicker__head,
 .nui-colorpicker__head,
@@ -85,7 +79,6 @@
   justify-content: space-between;
 }
 
-.nui-slider__label,
 .nui-datepicker__label,
 .nui-timepicker__label,
 .nui-colorpicker__label,
@@ -97,7 +90,6 @@
   overflow-wrap: anywhere;
 }
 
-.nui-slider__required,
 .nui-switch__required,
 .nui-datepicker__required,
 .nui-timepicker__required,
@@ -116,7 +108,6 @@
 }
 
 .nui-switch__hint,
-.nui-slider__hint,
 .nui-datepicker__hint,
 .nui-timepicker__hint,
 .nui-colorpicker__hint,
@@ -130,7 +121,6 @@
 }
 
 .nui-switch__error,
-.nui-slider__error,
 .nui-datepicker__error,
 .nui-timepicker__error,
 .nui-colorpicker__error {
@@ -155,7 +145,6 @@
 }
 
 .nui-switch__button:focus-visible,
-.nui-slider__input:focus-visible,
 .nui-form__summary-link:focus-visible,
 .nui-form__submit:focus-visible,
 .nui-form__reset:focus-visible,
@@ -271,130 +260,6 @@
 .nui-switch--checked .nui-switch__state {
   color: var(--hnv-color-accent, #315cda);
   font-weight: var(--hnv-font-weight-strong, 600);
-}
-
-/* F10 Slider */
-.nui-slider {
-  display: flex;
-  flex-direction: column;
-  gap: var(--hnv-space-1, 4px);
-}
-
-.nui-slider__head {
-  align-items: center;
-}
-
-.nui-slider__readout {
-  flex: 0 0 auto;
-  padding: 1px var(--hnv-space-2, 8px);
-  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
-  border-radius: var(--hnv-radius-control, 8px);
-  background: var(--hnv-color-code-bg, #f3f5f8);
-  color: var(--hnv-color-ink, #202938);
-  font-family: var(--hnv-font-mono, "Cascadia Mono", Consolas, monospace);
-  font-size: var(--hnv-font-size-small, 13px);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.nui-slider__range-track {
-  position: relative;
-  height: 6px;
-  margin: 2px 10px;
-  border-radius: var(--hnv-radius-pill, 999px);
-  background: var(--hnv-color-border, #dce2ea);
-}
-
-.nui-slider__range-fill {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  border-radius: inherit;
-  background: var(--hnv-color-accent, #315cda);
-}
-
-/* F10 可选刻度：默认隐藏，只有传 ticks 时才渲染；标签不拦截指针拖动。 */
-.nui-slider__ticks {
-  position: relative;
-  height: 18px;
-  margin: 0 10px;
-}
-
-.nui-slider__tick {
-  position: absolute;
-  top: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: max-content;
-  transform: translateX(-50%);
-  pointer-events: none;
-}
-
-.nui-slider__tick--start {
-  transform: none;
-  align-items: flex-start;
-}
-
-.nui-slider__tick--end {
-  transform: translateX(-100%);
-  align-items: flex-end;
-}
-
-.nui-slider__tick-mark {
-  width: 1px;
-  height: 5px;
-  background: var(--hnv-color-border, #dce2ea);
-}
-
-.nui-slider__tick-label {
-  margin-top: 2px;
-  color: var(--hnv-color-muted, #5c6879);
-  font-size: var(--hnv-font-size-caption, 12px);
-  line-height: 1.4;
-  white-space: nowrap;
-}
-
-.nui-slider--disabled .nui-slider__tick-label {
-  color: var(--hnv-color-muted, #5c6879);
-}
-
-.nui-slider__controls {
-  display: flex;
-  flex-direction: column;
-  gap: var(--hnv-space-1, 4px);
-  min-width: 0;
-}
-
-.nui-slider__input {
-  width: 100%;
-  min-width: 0;
-  margin: 0;
-  accent-color: var(--hnv-color-accent, #315cda);
-  cursor: pointer;
-}
-
-.nui-slider__input:disabled {
-  cursor: not-allowed;
-}
-
-.nui-slider__part {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: var(--hnv-space-2, 8px);
-  align-items: center;
-  min-width: 0;
-}
-
-.nui-slider__part-label {
-  color: var(--hnv-color-muted, #5c6879);
-  font-size: var(--hnv-font-size-small, 13px);
-  white-space: nowrap;
-}
-
-.nui-slider--disabled .nui-slider__readout {
-  color: var(--hnv-color-muted, #5c6879);
-  background: var(--hnv-color-code-bg, #f3f5f8);
 }
 
 /* F11 Form */
@@ -1193,15 +1058,6 @@
 }
 
 @media (max-width: 520px) {
-  .nui-slider__part {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0;
-  }
-
-  .nui-slider__part-label {
-    padding-top: 2px;
-  }
-
   .nui-datepicker__row,
   .nui-timepicker__row,
   .nui-colorpicker__row {

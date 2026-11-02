@@ -3,10 +3,12 @@
   "title": "文字与知识内容",
   "js": [
     "src/ui/content.js",
+    "src/ui/table.js",
     "src/ui/expression.js"
   ],
   "css": [
     "src/ui/content.css",
+    "src/ui/table.css",
     "src/ui/expression.css"
   ],
   "demos": [

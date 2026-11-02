@@ -17,7 +17,7 @@ const src = (rel) => path.join(root, rel);
 
 // 源码加载清单从 src/manifests 推导，模块拆分后自动包含全部文件。
 const CHECK_MODULES = [
-  'core', 'legacy', 'ui-layout', 'blocks', 'viz-objects', 'viz-mechanisms',
+  'core', 'legacy', 'ui-layout', 'blocks-base', 'demo-stage', 'blocks', 'viz-objects', 'viz-mechanisms',
   'demo-runtime', 'demo-ui'
 ];
 const SRC_SCRIPTS = moduleScripts(root, CHECK_MODULES);

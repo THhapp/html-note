@@ -7,6 +7,8 @@
 
   var Internals = global.NoteDemoInternals = global.NoteDemoInternals || {};
   var hasOwn = Object.prototype.hasOwnProperty;
+  /* 每个 controller.create 生成的会话获得稳定自增 ID，供时序事实按会话隔离。 */
+  var sessionSequence = 0;
 
   function own(object, key) {
     return object != null && hasOwn.call(Object(object), key);
@@ -62,6 +64,7 @@
     if (!own(plan.frameById, startFrameId)) {
       throw new Error('NoteDemo controller.create 的 initialFrameId 不是已定义的 Frame：' + repr(startFrameId));
     }
+    var sessionId = (sessionSequence += 1);
 
     var frameById = plan.frameById;
     var frameOrder = plan.frameOrder;
@@ -527,7 +530,9 @@
               motion: motionMode(),
               presentation: presentation,
               reason: opCause(spec),
-              cause: opCause(spec)
+              cause: opCause(spec),
+              /* 稳定会话标识：scene 写入每条时序事实，watch 只按它过滤。 */
+              sessionId: sessionId
             });
           } catch (error) {
             if (activeRunOp === op) activeRunOp = null;
@@ -913,9 +918,11 @@
     try {
       Object.defineProperty(session, '__plan', { value: plan, enumerable: false, writable: false, configurable: false });
       Object.defineProperty(session, '__bindings', { value: bindings, enumerable: false, writable: false, configurable: false });
+      Object.defineProperty(session, '__sessionId', { value: sessionId, enumerable: false, writable: false, configurable: false });
     } catch (error) {
       session.__plan = plan;
       session.__bindings = bindings;
+      session.__sessionId = sessionId;
     }
     return session;
   }

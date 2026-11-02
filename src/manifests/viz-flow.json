@@ -2,6 +2,11 @@
   "module": "viz-flow",
   "title": "流程与连接图形",
   "js": [
+    "src/viz/flow-core.js",
+    "src/viz/flow-stage.js",
+    "src/viz/flow-packet.js",
+    "src/viz/flow-segment.js",
+    "src/viz/flow-device.js",
     "src/viz/flow.js"
   ],
   "css": [

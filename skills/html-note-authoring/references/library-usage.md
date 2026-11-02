@@ -35,6 +35,11 @@ node <Skill目录>/scripts/query.mjs show example:continuous-scene --json
 node <Skill目录>/scripts/query.mjs show example:flow-kit --json
 node <Skill目录>/scripts/query.mjs show public:continuous-adapter --json
 node <Skill目录>/scripts/query.mjs show public:timing-facts --json
+node <Skill目录>/scripts/query.mjs show public:table-adapter --json
+node <Skill目录>/scripts/query.mjs show public:flow-packet-adapter --json
+node <Skill目录>/scripts/query.mjs show public:propagation --json
+node <Skill目录>/scripts/query.mjs show example:flow-composition --json
+node <Skill目录>/scripts/query.mjs show recipe:composition --json
 node <Skill目录>/scripts/query.mjs show tool:inspect-note --json
 node <Skill目录>/scripts/query.mjs read D01 api --json
 ```
@@ -43,7 +48,7 @@ node <Skill目录>/scripts/query.mjs read D01 api --json
 
 查询不会启动浏览器。
 
-公共 scene 的受控画面由 Binding 容器统一接管：提交前暂停受控内容 CSS transition，效果组只推进自己的视觉，收束/恢复后释放；自定义 Adapter 不需要自己写 `setSceneActive`。连续 Adapter 可用 `NoteDemo.sceneAdapter.define` 减少胶水，`NoteDemo.timingFacts.watch` 默认关闭、按需观察时序。接法与生命周期见 [受控画面的视觉接管](docs/公共编排层.md#author-scene-control)、[Adapter 辅助](docs/公共编排层.md#author-scene-adapter)（相对实际库根）。
+公共 scene 的受控画面由 Binding 容器统一接管：提交前暂停受控内容 CSS transition，效果组只推进自己的视觉，收束/恢复后释放；自定义 Adapter 不需要自己写 `setSceneActive`。内置 `table` / `flow-stage` / `flow-packet` / `flow-segment` / `flow-device` Adapter 已提供 canonical model 与局部组；自定义 Adapter 可用 `NoteDemo.sceneAdapter.define` 减少胶水。`NoteDemo.timingFacts.watch` 按 sessionId 隔离、默认关闭，`collect()` 全局收集并保留 sessionId。接法与生命周期见 [受控画面的视觉接管](docs/公共编排层.md#author-scene-control)、[Adapter 辅助](docs/公共编排层.md#author-scene-adapter)（相对实际库根）。
 
 ## 本地观察与量测
 

@@ -20,7 +20,7 @@
 <script src="./dist/modules/viz-flow.js"></script>
 ```
 
-源码直载时先加载 `src/core` 再加载 `src/viz/flow.js`；`flow.js` 在没有 `NoteCore.component` 时使用内部等价的生命周期实现。构建顺序中 `viz-flow` 位于 `viz-objects` 之后、`viz-mechanisms` 之前。
+模块内文件按 `flow-core.js` → `flow-stage.js` → `flow-packet.js` → `flow-segment.js` → `flow-device.js` → `flow.js` 的顺序加载，CSS 为 `flow.css`；`flow.js` 是公开入口，前五个是内部实现文件。源码直载时先加载 `src/core`，再按上述顺序加载 `src/viz/*`；`flow.js` 在没有 `NoteCore.component` 时使用内部等价的生命周期实现。构建顺序中 `viz-flow` 位于 `viz-objects` 之后、`viz-mechanisms` 之前。
 
 ## 2. 共同契约
 
@@ -79,6 +79,8 @@ var track = NoteViz.Flow.StageTrack.mount(host, {
 
 **更新与限制**：`update({ current, target, skipped, failed })` 只改状态；`update({ stages })` 按 id 复用阶段节点，仅新增/移除变化项。组件不提供播放按钮、计时器、阶段内容面板，也不自动根据步骤推进推断完成/跳过。
 
+`getState()` 返回 `{ stages:[{id,label,status,target}], current, target, skipped, failed, bypass:[{id,from,to,label}], ... }` 的规范化快照；状态为派生后的实际值，`bypass` 的 `id` 形如 `bypass:<from>><to>`。
+
 <a id="D08"></a>
 
 ## 4. D08 NoteViz.Flow.PacketFlow（消息流图）
@@ -90,11 +92,12 @@ var flow = NoteViz.Flow.PacketFlow.mount(host, {
     { id: 'server', label: '服务端' }
   ],
   messages: [
-    { id: 'req', from: 'client', to: 'server', label: '请求' },
-    { id: 'ack', from: 'server', to: 'client', label: '应答' }
+    { id: 'req', from: 'client', to: 'server', label: '请求', type: 'sync' },
+    { id: 'ack', from: 'server', to: 'client', label: '应答', type: 'return' }
   ],
   visibleCount: 1,
-  focus: 'req'
+  focus: 'req',
+  showIndexes: true
 });
 ```
 
@@ -102,18 +105,21 @@ var flow = NoteViz.Flow.PacketFlow.mount(host, {
 
 | 键 | 说明 |
 | --- | --- |
-| `participants` | `Array<{id,label?,status?}>`；顺序决定水平排布，也决定消息方向。 |
-| `messages` | `Array<{id,from,to,label?,status?}>`；`from`/`to` 必须是已有参与者 id。自连接（同一参与者）画固定回环。 |
+| `participants` | `Array<{id,label?,note?,status?}>`；顺序决定水平排布，也决定消息方向。`note` 作为参与者补充说明进入可读文本。 |
+| `messages` | `Array<{id,from,to,label?,note?,type?,dashed?,status?}>`；`from`/`to` 必须是已有参与者 id。`type` 为 `sync`（默认，实线+实心箭头）、`async`（虚线）或 `return`（点线+开口箭头）；`dashed` 布尔可覆盖线型。自连接（同一参与者）画固定回环。 |
 | `revealed` | 需要显示的消息 id 数组；设置时优先于 `visibleCount`。 |
 | `visibleCount` | 按消息顺序显示前 N 条；取整并夹紧到 `0..messages.length`。 |
-| `focus` | 当前关注的消息 id，写入 `data-focus="true"`；不是显现开关。 |
+| `focus` | 当前关注的消息 id，写入 `data-focus="true"` 并显示焦点带；不是显现开关。 |
+| `showIndexes` | 布尔，默认 `false`；为 `true` 时在每条消息前显示序号。 |
 | `label` | 根容器可访问名称，默认“消息流”。 |
 
-消息方向由参与者顺序与 `from`/`to` 决定，写成 `data-direction="left|right|self"`，箭头指向 `to`；消息的 `data-target` 是目标参与者 id。未显现的消息保留节点并标记 `data-hidden="true"`，以便宿主逐步揭示；组件本身不创建计时器、自动下一帧或播放循环。
+消息方向由参与者顺序与 `from`/`to` 决定，写成 `data-direction="left|right|self"`，箭头指向 `to`；消息的 `data-target` 是目标参与者 id，另有 `data-type` 与 `data-dashed` 供样式和检查读取。未显现的消息保留节点并标记 `data-hidden="true"`，以便宿主逐步揭示；组件本身不创建计时器、自动下一帧或播放循环。长标签最多两行，完整文本进入 SVG `<title>` 与可访问名称。
 
-`getTarget(id)`：`svg` 返回 SVG；消息优先匹配纯 id，其次参与者；也可用 `message:<id>`、`participant:<id>` 显式指定。引用未知参与者的消息会被跳过并在图下提示数量。
+`getTarget(id)`：`svg` 返回 SVG，`viewport` 返回可聚焦/可滚动视口；消息优先匹配纯 id，其次参与者；也可用 `message:<id>`、`participant:<id>` 显式指定。引用未知参与者的消息会被跳过并在图下提示数量。
 
-**更新与限制**：`update({ participants, messages, visibleCount, revealed, focus })` 按 id 复用参与者和消息节点。布局是确定性的参与者列 + 消息行；消息过多时在局部视口滚动，不做自动避让、序号协议或复杂序列图排版。
+`getState()` 返回 `{ participants, messages, revealed, visibleCount, focus, current }` 快照：消息含 `id/from/to/label/note/type/dashed/status/revealed`，`revealed` 是当前显示的消息 id 数组，`visibleCount` 等于其数量，`current` 是 `focus` 对应的规范化消息或 `null`；销毁后返回 `null`。
+
+**更新与限制**：`update({ participants, messages, visibleCount, revealed, focus, showIndexes })` 按 id 复用参与者和消息节点。布局是确定性的参与者列 + 消息行；消息过多时在局部视口滚动，不做自动避让、协议语义或复杂序列图排版。B08 `NoteBlocks.SequenceDiagram` 消费本组件，负责块级 chrome、StepPlayer 停点与当前消息滚动。
 
 <a id="D09"></a>
 
@@ -154,6 +160,8 @@ var bar = NoteViz.Flow.SegmentBar.mount(host, {
 
 **更新与限制**：`update({ segments, ranges, scaleMax, minWidth })` 按 id 复用段和范围节点，可插入/移除字段。最小可读宽度会让显示长度偏离严格比例；组件不计算协议字段、填充量或帧长，数值与单位说明由宿主提供。
 
+`getState()` 返回 `{ segments:[{id,label,value,ratio,displayWidth,zero,clamped}], ranges, scaleMax, minWidth, label }` 快照：`value` 是真实值，`displayWidth` 是含最小可读宽度后的显示宽度，`zero`/`clamped` 分别表示零长度和被最小值托起。
+
 <a id="D10"></a>
 
 ## 6. D10 NoteViz.Flow.DeviceLinks（设备连接图）
@@ -193,14 +201,75 @@ var point = links.pointAt('ab', 0.5);     // { x, y, angle, length, total } 或 
 
 **更新与限制**：`update({ devices, links })` 按设备/端口/连接 id 复用节点；端口增减后重新排布该设备，连接路径随端点更新。布局是有限的默认排布，不提供通用图编辑、自动避障、自动路由或课程语义；复杂多端口路由可能视觉重叠，需要宿主调整设备/端口顺序。
 
+`getState()` 返回 `{ devices:[{id,label,status,ports}], links:[{id,from,to,label,status,valid}], label }` 快照：`valid` 表示连接端点均存在，无效连接不作为可见目标。
+
+<a id="propagation"></a>
+
+## 7. NoteViz.Flow.Propagation（沿路径传播）
+
+`NoteViz.Flow.Propagation` 是独立图形模块里的公共传播机制，不是播放器：宿主传入 SVG 路径和副本配置，调用 `update(progress)` 显式推进，组件只负责把副本放到路径对应位置。
+
+```js
+var runner = NoteViz.Flow.Propagation.mount(svgHost, {
+  label: '沿 A→B 传播',
+  paths: { ab: someSvgPath },
+  copies: [
+    { id: 'packet-1', pathId: 'ab' },
+    { id: 'packet-2', pathId: 'ab', offset: -0.18 }
+  ]
+});
+runner.update(0.42);
+runner.getTarget('packet-1');   // 副本 <g>
+runner.getTarget('path:ab');    // 路径元素
+runner.getState();              // {progress, start, end, copies:[{id,ratio,x,y,outside}]}
+```
+
+**选项**
+
+| 键 | 说明 |
+| --- | --- |
+| `path` | 单条路径：SVG 元素或 `#id`/CSS 选择器字符串。 |
+| `paths` | 路径表 `{id: 路径或选择器}`；副本用 `pathId` 选择。 |
+| `copies` | 数字（副本数量）或 `Array<{id?,pathId?,path?,offset?,className?,rotate?}>`；缺省生成 `copy-1`…。 |
+| `start` / `end` | 本次推进覆盖的路径区间，默认 0 / 1。 |
+| `offset` | 全局偏移，或按副本下标的数组；副本自己的 `offset` 优先。 |
+| `rotate` | 是否按路径切线旋转副本，默认 false。 |
+| `className` / `label` | 附加到副本的类名 / 容器可访问名称。 |
+
+- `update(progress)` 接受 0–1 数字或 `{progress}`；实际比例 = `start + (end - start) * progress + offset`，夹紧到 0–1 后按路径真实长度取点。区间外仍更新位置但标记 `data-outside="true"`。
+- 副本是 `<g class="nviz-flow-propagation__copy">` 内的 `<circle r="5">`，按 id 复用；位置写入 `transform` 与 `data-x/data-y/data-ratio/data-offset/data-path-id`。路径缺失或零长度时标记 `data-missing-path` 并移出视口。
+- 宿主是 SVG 元素时直接追加 `<g role="group">`；普通 HTML 宿主会创建 `aria-hidden="true"` 的覆盖 SVG。
+- `getTarget(id)`：`group`/`root` 返回容器，`svg` 返回宿主 SVG，`path:<id>` 返回路径，副本 id 返回副本 `<g>`。
+- `getState()` 返回 `{progress, start, end, copies:[{id,ratio,x,y,outside}]}`；销毁后返回 `null`。
+- `destroy()` 移除容器/覆盖层与内部映射，可重复调用；组件不创建计时器、rAF 或自动播放，推进由宿主负责。
+
+<a id="scene-adapters"></a>
+
+## 8. 公共 scene Adapter
+
+`demo-runtime` 为五种图形提供正式 scene Adapter，均通过 `NoteDemo.sceneAdapter.define` 接入，`sceneModes` 为 `['cut','update']`、默认 `update`；读回优先使用组件 `getState()`。Binding 的 `adapter` 名称与效果组：
+
+| Adapter | 组件 | canonical model | 变化组 |
+| --- | --- | --- | --- |
+| `table` | NoteUI.Table（C06） | `{columns,rows,sort,emphasis,caption,empty,dense,maxHeight}`；读回为含 row/cell 状态与 `emptyText` 的 canonical 表 | `cell:<row>:<col>`、`row:<row>` |
+| `flow-stage` | StageTrack（D07） | `{stages,current,target,skipped,failed,bypass,label}`；读回含派生状态与 bypass id | `stage:<id>`、`bypass:<from>><to>` |
+| `flow-packet` | PacketFlow（D08） | `{participants,messages,revealed|visibleCount,focus,showIndexes,label}`；读回保留 type/dashed/self/status/viewport 事实 | `message:<id>`、`participant:<id>` |
+| `flow-segment` | SegmentBar（D09） | `{segments,ranges,scaleMax,minWidth,label}`；读回含真实值/显示宽度/zero/clamped | `segment:<id>`、`range:<id>` |
+| `flow-device` | DeviceLinks（D10） | `{devices,links,label}`；读回连接含端点身份与 `valid` | `link:<id>`、`device:<id>` |
+
+- 视图只接受可序列化数据；DOM、函数和事件留在 Binding.options。`table` 的 `rowKey/rowState/cellState/onSort` 只能在 options 中提供。
+- `table` 的 update 不支持列结构（键/顺序/对齐/sortable）变化和重复行键；需要时改用 cut/reveal 或修正视图。值变化用 cell 来源覆盖局部淡出，新行/行状态用行级提示，不对整表做整体淡入。
+- 四个 flow Adapter 按变化对象生成稳定组；减少动效时 commit 直接落目标终态、不创建效果。target query 直接返回组件 `getTarget` 结果，`{part:'root'|'el'|'component'}` 返回根；flow-packet 另有 `{part:'viewport'}`。
+- Adapter 不自动推断观察顺序；author 在 `scene.attention.targets[].groups` 中引用上述组名即可局部放行。
+
 <a id="flow-kit-example"></a>
 
-## 7. 中性示例 `examples/flow-kit/index.html`
+## 9. 中性示例 `examples/flow-kit/index.html`
 
 `examples/flow-kit/` 是四种图形的中性最小演示，不是课程笔记：
 
-- `index.html`：四个独立演示区，分别挂载 `StageTrack`、`PacketFlow`、`SegmentBar`、`DeviceLinks`；
-- `flow-kit.js`：仅保存示例状态、按钮和读取结果，调用各实例的公开 `mount/update/getTarget/pointAt`；
+- `index.html`：四个独立演示区，分别挂载 `StageTrack`、`PacketFlow`、`SegmentBar`、`DeviceLinks`；设备连接区另挂 `Propagation` 副本；
+- `flow-kit.js`：仅保存示例状态、按钮和读取结果，调用各实例的公开 `mount/update/getTarget/pointAt`，并用 `Propagation.update(progress)` 显式推进副本；
 - `flow-kit.css`：示例页外壳，不定义组件内部视觉；
 - `flow-kit/README.md`：文件职责、打开方式、各图形最小用法与验证说明。
 
@@ -212,12 +281,12 @@ node scripts/inspect-note.mjs "D:/Workbench/html-note/examples/flow-kit/index.ht
 
 该页没有内置 NoteDemo 会话；`inspect-note` 默认的页面错误/控制台错误/外部请求检查即可。需要作品专属量测时再用 `--probe`，probe 复用同一页面。
 
-## 8. 边界与已知限制
+## 10. 边界与已知限制
 
 - 四个图形彼此独立，不共享控制器；没有统一的时间轴、自动播放、暂停/恢复或动画编排。连续过程、进度和观察顺序由宿主或公共 `NoteDemo` scene 组织。
 - 不内置课程规则、协议语义、设备图标、VLAN 颜色或接受/拒绝判断；对象含义、数值、单位和状态文案由作者提供。
 - 布局是确定性的基础布局，不承诺自动避障、自动路由、图编辑、缩放/平移或大型图性能。
 - `SegmentBar` 的最小可读宽度会有意偏离严格比例；真实值始终保留在 `data-real-value` 与段文字中，作者应在图注中说明显示尺度。
 - `DeviceLinks.pointAt` 返回 SVG 局部坐标和弧度角，不是 DOM client 坐标或屏幕像素；宿主做跨坐标系定位时需自行转换。
-- 组件的目标查询只覆盖本图形内部节点；不提供跨组件的对象身份或公共场景 Adapter。需要 scene 过渡时由作者在本地 Adapter 中读取这些目标并组织效果。
+- 组件的目标查询只覆盖本图形内部节点；公共 scene 接入使用 `table`/`flow-stage`/`flow-packet`/`flow-segment`/`flow-device` Adapter，不要假设组件自带播放器或跨组件对象身份。
 - 只在当前桌面 Edge（Chromium）与本库离线 `file://` 环境验证；Firefox/Safari、触屏、打印/RTL 未验证。

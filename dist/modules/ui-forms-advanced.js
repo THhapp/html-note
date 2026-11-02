@@ -269,173 +269,35 @@
   };
 })(window);
 
-/* ---- source: src/ui/forms-advanced.js ---- */
-/* NoteUI forms-advanced — F09–F11: Switch, Slider, Form.
-   Plain browser script (no framework, no external libraries).
-   依赖 core（NoteCore）；Form 的标准文本/文本域/数字/复选/下拉行还依赖
-   src/ui/forms-basic.js 的 Field/TextInput/Textarea/NumberInput/Checkbox/Select。
-   私有共享 helper 集中在 forms-advanced-internal.js，必须在组件文件之前加载。
-   Programmatic update() never fires onChange. */
+/* ---- source: src/ui/slider.js ---- */
+/* NoteUI forms-advanced — F10 Slider（滑块）。
+ * 从 src/ui/forms-advanced.js 拆出；只依赖 forms-advanced-internal.js 的公共内部 helper
+ * 与 NoteCore；不复制其他表单组件实现，也不另造字段/消息框架。
+ * Programmatic update() never fires onChange；坏 segments/ticks 在写入 state/DOM 前失败。
+ * 依赖顺序：forms-advanced-internal.js -> slider.js（Form 的 slider 字段在运行期使用 NoteUI.Slider）。
+ * 经典脚本，无模块 / 无网络 / 无 eval。 */
 (function (global) {
   'use strict';
 
   var NoteUI = global.NoteUI = global.NoteUI || {};
 
   var Internal = NoteUI._formsAdvancedInternal;
-  if (!Internal) throw new Error('NoteUI forms-advanced 组件文件需要在 forms-advanced-internal.js 之后加载。');
+  if (!Internal) throw new Error('NoteUI Slider 组件文件需要在 forms-advanced-internal.js 之后加载。');
   var own = Internal.own;
   var text = Internal.text;
-  var hintJoin = Internal.hintJoin;
   var hintWithReason = Internal.hintWithReason;
   var make = Internal.make;
   var uid = Internal.uid;
   var validateHost = Internal.validateHost;
   var listen = Internal.listen;
   var component = Internal.component;
-  var copy = Internal.copy;
-  var setHidden = Internal.setHidden;
-  var addDescribedBy = Internal.addDescribedBy;
-  var removeDescribedBy = Internal.removeDescribedBy;
   var call = Internal.call;
-  var isNode = Internal.isNode;
-  var icon = Internal.icon;
   var labelRow = Internal.labelRow;
-  var syncHeadLabel = Internal.syncHeadLabel;
   var messageLine = Internal.messageLine;
-  var readOptions = Internal.readOptions;
-  var updateMessage = Internal.updateMessage;
   var syncMessages = Internal.syncMessages;
-  var externalErrorText = Internal.externalErrorText;
-  var createDialogLayer = Internal.createDialogLayer;
-  var guardTriggerPointer = Internal.guardTriggerPointer;
+  var readOptions = Internal.readOptions;
 
-  /* ------------------------------------------------------------------ */
-  /* F09 Switch                                                         */
-  /* ------------------------------------------------------------------ */
 
-  NoteUI.Switch = {
-    version: '1.0.0',
-    mount: function (host, options) {
-      validateHost(host);
-      var input = options && typeof options === 'object' ? options : {};
-      var state = readOptions(input, {
-        checked: false,
-        label: '开关',
-        disabled: false,
-        onChange: null,
-        hint: '',
-        disabledReason: '',
-        required: false,
-        ariaLabel: '',
-        error: ''
-      });
-      state.checked = Boolean(state.checked);
-      state.disabled = Boolean(state.disabled);
-      state.required = Boolean(state.required);
-
-      var base = uid('nui-switch');
-      var labelId = base + '-label';
-      var hintId = base + '-hint';
-      var errorId = base + '-error';
-      var root = make('div', 'nui-switch');
-      var button = make('button', 'nui-switch__button');
-      var track = make('span', 'nui-switch__track');
-      var thumb = make('span', 'nui-switch__thumb');
-      var textWrap = make('span', 'nui-switch__text');
-      var labelEl = make('span', 'nui-switch__label');
-      var requiredMark = make('span', 'nui-switch__required', '必填');
-      var stateEl = make('span', 'nui-switch__state');
-      var hintEl = messageLine('nui-switch', 'hint', hintId);
-      var errorEl = messageLine('nui-switch', 'error', errorId);
-      var events = listen(root);
-      var destroyed = false;
-
-      button.type = 'button';
-      button.setAttribute('role', 'switch');
-      button.setAttribute('aria-labelledby', labelId);
-      button.setAttribute('aria-describedby', hintId + ' ' + errorId);
-      track.setAttribute('aria-hidden', 'true');
-      stateEl.setAttribute('aria-hidden', 'true');
-      labelEl.id = labelId;
-      track.appendChild(thumb);
-      textWrap.appendChild(labelEl);
-      textWrap.appendChild(stateEl);
-      button.appendChild(track);
-      button.appendChild(textWrap);
-      root.appendChild(button);
-      root.appendChild(hintEl);
-      root.appendChild(errorEl);
-
-      function render() {
-        var checked = Boolean(state.checked);
-        var hasLabel = text(state.label) !== '';
-        button.disabled = Boolean(state.disabled);
-        button.setAttribute('aria-checked', checked ? 'true' : 'false');
-        if (state.required) button.setAttribute('aria-required', 'true');
-        else button.removeAttribute('aria-required');
-        labelEl.textContent = text(state.label);
-        if (state.required) {
-          labelEl.appendChild(document.createTextNode(' '));
-          labelEl.appendChild(requiredMark);
-        }
-        labelEl.hidden = !hasLabel && !state.required;
-        stateEl.textContent = checked ? '已开启' : '已关闭';
-        root.classList.toggle('nui-switch--checked', checked);
-        root.classList.toggle('nui-switch--disabled', Boolean(state.disabled));
-        syncMessages({
-          hintEl: hintEl,
-          hint: hintWithReason(state),
-          errorEl: errorEl,
-          error: state.error,
-          nodes: [button],
-          hintId: hintId,
-          errorId: errorId
-        });
-        if (!hasLabel && !state.required) {
-          button.removeAttribute('aria-labelledby');
-          button.setAttribute('aria-label', text(state.ariaLabel) || '开关');
-        } else {
-          button.removeAttribute('aria-label');
-          button.setAttribute('aria-labelledby', labelId);
-        }
-      }
-
-      function handleClick(event) {
-        if (destroyed || state.disabled) return;
-        if (!button.contains(event.target)) return;
-        state.checked = !state.checked;
-        state.error = '';
-        render();
-        call(state.onChange, state.checked, event);
-      }
-
-      events.on('click', handleClick);
-      render();
-      host.appendChild(root);
-
-      var instance = component(root, state, function (patch) {
-        if (own(patch, 'checked')) state.checked = Boolean(state.checked);
-        if (own(patch, 'disabled')) state.disabled = Boolean(state.disabled);
-        if (own(patch, 'required')) state.required = Boolean(state.required);
-        if (own(patch, 'error')) state.error = state.error == null ? '' : String(state.error);
-        render();
-      }, function () {
-        events.clear();
-      });
-
-      instance.getValue = function () { return Boolean(state.checked); };
-      instance.setError = function (message) {
-        state.error = message == null ? '' : String(message);
-        render();
-      };
-      instance.focus = function () { button.focus(); };
-      instance.button = button;
-      return instance;
-    }
-  };
-
-  /* ------------------------------------------------------------------ */
-  /* F10 Slider                                                         */
   /* ------------------------------------------------------------------ */
 
   NoteUI.Slider = {
@@ -1044,6 +906,174 @@
         var target = state.range ? lowInput : singleInput;
         if (target) target.focus();
       };
+      return instance;
+    }
+  };
+
+})(window);
+
+/* ---- source: src/ui/forms-advanced.js ---- */
+/* NoteUI forms-advanced — F09 Switch 与 F11 Form（Slider 已拆到 src/ui/slider.js）。
+   Plain browser script (no framework, no external libraries).
+   依赖 core（NoteCore）；Form 的标准文本/文本域/数字/复选/下拉行还依赖
+   src/ui/forms-basic.js 的 Field/TextInput/Textarea/NumberInput/Checkbox/Select。
+   Form 的 slider 字段在运行期使用 NoteUI.Slider（src/ui/slider.js，按需先加载）。
+   私有共享 helper 集中在 forms-advanced-internal.js，必须在组件文件之前加载。
+   Programmatic update() never fires onChange. */
+(function (global) {
+  'use strict';
+
+  var NoteUI = global.NoteUI = global.NoteUI || {};
+
+  var Internal = NoteUI._formsAdvancedInternal;
+  if (!Internal) throw new Error('NoteUI forms-advanced 组件文件需要在 forms-advanced-internal.js 之后加载。');
+  var own = Internal.own;
+  var text = Internal.text;
+  var hintJoin = Internal.hintJoin;
+  var hintWithReason = Internal.hintWithReason;
+  var make = Internal.make;
+  var uid = Internal.uid;
+  var validateHost = Internal.validateHost;
+  var listen = Internal.listen;
+  var component = Internal.component;
+  var copy = Internal.copy;
+  var setHidden = Internal.setHidden;
+  var addDescribedBy = Internal.addDescribedBy;
+  var removeDescribedBy = Internal.removeDescribedBy;
+  var call = Internal.call;
+  var isNode = Internal.isNode;
+  var icon = Internal.icon;
+  var labelRow = Internal.labelRow;
+  var syncHeadLabel = Internal.syncHeadLabel;
+  var messageLine = Internal.messageLine;
+  var readOptions = Internal.readOptions;
+  var updateMessage = Internal.updateMessage;
+  var syncMessages = Internal.syncMessages;
+  var externalErrorText = Internal.externalErrorText;
+  var createDialogLayer = Internal.createDialogLayer;
+  var guardTriggerPointer = Internal.guardTriggerPointer;
+
+  /* ------------------------------------------------------------------ */
+  /* F09 Switch                                                         */
+  /* ------------------------------------------------------------------ */
+
+  NoteUI.Switch = {
+    version: '1.0.0',
+    mount: function (host, options) {
+      validateHost(host);
+      var input = options && typeof options === 'object' ? options : {};
+      var state = readOptions(input, {
+        checked: false,
+        label: '开关',
+        disabled: false,
+        onChange: null,
+        hint: '',
+        disabledReason: '',
+        required: false,
+        ariaLabel: '',
+        error: ''
+      });
+      state.checked = Boolean(state.checked);
+      state.disabled = Boolean(state.disabled);
+      state.required = Boolean(state.required);
+
+      var base = uid('nui-switch');
+      var labelId = base + '-label';
+      var hintId = base + '-hint';
+      var errorId = base + '-error';
+      var root = make('div', 'nui-switch');
+      var button = make('button', 'nui-switch__button');
+      var track = make('span', 'nui-switch__track');
+      var thumb = make('span', 'nui-switch__thumb');
+      var textWrap = make('span', 'nui-switch__text');
+      var labelEl = make('span', 'nui-switch__label');
+      var requiredMark = make('span', 'nui-switch__required', '必填');
+      var stateEl = make('span', 'nui-switch__state');
+      var hintEl = messageLine('nui-switch', 'hint', hintId);
+      var errorEl = messageLine('nui-switch', 'error', errorId);
+      var events = listen(root);
+      var destroyed = false;
+
+      button.type = 'button';
+      button.setAttribute('role', 'switch');
+      button.setAttribute('aria-labelledby', labelId);
+      button.setAttribute('aria-describedby', hintId + ' ' + errorId);
+      track.setAttribute('aria-hidden', 'true');
+      stateEl.setAttribute('aria-hidden', 'true');
+      labelEl.id = labelId;
+      track.appendChild(thumb);
+      textWrap.appendChild(labelEl);
+      textWrap.appendChild(stateEl);
+      button.appendChild(track);
+      button.appendChild(textWrap);
+      root.appendChild(button);
+      root.appendChild(hintEl);
+      root.appendChild(errorEl);
+
+      function render() {
+        var checked = Boolean(state.checked);
+        var hasLabel = text(state.label) !== '';
+        button.disabled = Boolean(state.disabled);
+        button.setAttribute('aria-checked', checked ? 'true' : 'false');
+        if (state.required) button.setAttribute('aria-required', 'true');
+        else button.removeAttribute('aria-required');
+        labelEl.textContent = text(state.label);
+        if (state.required) {
+          labelEl.appendChild(document.createTextNode(' '));
+          labelEl.appendChild(requiredMark);
+        }
+        labelEl.hidden = !hasLabel && !state.required;
+        stateEl.textContent = checked ? '已开启' : '已关闭';
+        root.classList.toggle('nui-switch--checked', checked);
+        root.classList.toggle('nui-switch--disabled', Boolean(state.disabled));
+        syncMessages({
+          hintEl: hintEl,
+          hint: hintWithReason(state),
+          errorEl: errorEl,
+          error: state.error,
+          nodes: [button],
+          hintId: hintId,
+          errorId: errorId
+        });
+        if (!hasLabel && !state.required) {
+          button.removeAttribute('aria-labelledby');
+          button.setAttribute('aria-label', text(state.ariaLabel) || '开关');
+        } else {
+          button.removeAttribute('aria-label');
+          button.setAttribute('aria-labelledby', labelId);
+        }
+      }
+
+      function handleClick(event) {
+        if (destroyed || state.disabled) return;
+        if (!button.contains(event.target)) return;
+        state.checked = !state.checked;
+        state.error = '';
+        render();
+        call(state.onChange, state.checked, event);
+      }
+
+      events.on('click', handleClick);
+      render();
+      host.appendChild(root);
+
+      var instance = component(root, state, function (patch) {
+        if (own(patch, 'checked')) state.checked = Boolean(state.checked);
+        if (own(patch, 'disabled')) state.disabled = Boolean(state.disabled);
+        if (own(patch, 'required')) state.required = Boolean(state.required);
+        if (own(patch, 'error')) state.error = state.error == null ? '' : String(state.error);
+        render();
+      }, function () {
+        events.clear();
+      });
+
+      instance.getValue = function () { return Boolean(state.checked); };
+      instance.setError = function (message) {
+        state.error = message == null ? '' : String(message);
+        render();
+      };
+      instance.focus = function () { button.focus(); };
+      instance.button = button;
       return instance;
     }
   };

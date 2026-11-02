@@ -5,12 +5,13 @@
 
 ## 加载与依赖
 
-普通 `<script>`、`<link>`，无模块构建、无 CDN、无网络字体、无运行时请求。F09–F15 的源码按组件边界拆成 4 个经典脚本，必须按下列顺序加载（manifest 的 `js` 数组同序）：
+普通 `<script>`、`<link>`，无模块构建、无 CDN、无网络字体、无运行时请求。F09–F15 的源码按组件边界拆成 5 个经典脚本，必须按下列顺序加载（manifest 的 `js` 数组同序）：
 
 | 文件 | 内容 |
 | --- | --- |
 | `src/ui/forms-advanced-internal.js` | 模块私有共享 helper（DOM、选项、提示/错误、浮层、触发按钮守卫），**不是公开 API** |
-| `src/ui/forms-advanced.js` | F09 Switch、F10 Slider、F11 Form |
+| `src/ui/slider.js` | F10 Slider（独立源文件；`forms-advanced.js` 只负责 F09 Switch、F11 Form） |
+| `src/ui/forms-advanced.js` | F09 Switch、F11 Form |
 | `src/ui/forms-advanced-pickers.js` | F12 DatePicker、F13 TimePicker 及日期/时间内部 helper |
 | `src/ui/forms-advanced-inputs.js` | F14 ColorPicker、F15 FileInput，以及模块清单 `NoteUI.formsAdvanced` |
 
@@ -19,6 +20,7 @@
 <link rel="stylesheet" href="src/core/base.css">
 <link rel="stylesheet" href="src/ui/forms-basic.css">   <!-- F11 的 Field/TextInput 等 -->
 <link rel="stylesheet" href="src/ui/forms-advanced.css">
+<link rel="stylesheet" href="src/ui/slider.css">
 <script src="src/core/core.js"></script>
 <script src="src/core/icons-data.js"></script>
 <script src="src/core/icons.js"></script>
@@ -26,6 +28,7 @@
 <script src="src/core/floating.js"></script>
 <script src="src/ui/forms-basic.js"></script>                   <!-- F11 依赖 -->
 <script src="src/ui/forms-advanced-internal.js"></script>       <!-- 必须先加载 -->
+<script src="src/ui/slider.js"></script>
 <script src="src/ui/forms-advanced.js"></script>
 <script src="src/ui/forms-advanced-pickers.js"></script>
 <script src="src/ui/forms-advanced-inputs.js"></script>
@@ -89,6 +92,8 @@ var sw = NoteUI.Switch.mount(host, {
 
 <a id="F10"></a>
 ## F10 NoteUI.Slider
+
+维护源：`src/ui/slider.js|css`；随 `ui-forms-advanced` 模块分发，不是独立模块。
 
 带可见读数的单值/区间滑块。单值优先使用原生 `input[type=range]`；区间使用两个原生 range 输入（上下排列，共享一个可见区间条），不使用自绘不可访问拇指。
 

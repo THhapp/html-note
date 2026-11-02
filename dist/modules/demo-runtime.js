@@ -3305,6 +3305,8 @@
     var presentation = options.presentation || null;
     var motionName = options.motion === 'reduced' ? 'reduced' : 'normal';
     var reason = normalizeReason(options);
+    /* 会话稳定标识（controller 生成）；时序事实携带它，观察工具按会话隔离。 */
+    var sessionId = options.sessionId == null ? null : options.sessionId;
     var factSink = factsSink();
     var factRunId = factSink ? (factsRunSequence += 1) : 0;
 
@@ -3313,6 +3315,7 @@
       var payload = {
         kind: kind,
         at: nowMs(),
+        sessionId: sessionId,
         runId: factRunId,
         frameId: transition ? transition.to : null,
         sourceFrameId: transition ? transition.from : null,
@@ -4734,8 +4737,10 @@
  * 全部数据只在内存，不写文件、不发网络请求、不参与运行决策。
  *
  * fact 字段（scene 发出）：
- *   { kind, at, runId, frameId, sourceFrameId, motion, binding, index, groups, track, group }
+ *   { kind, at, sessionId, runId, frameId, sourceFrameId, motion, binding, index, groups, track, group }
  *   kind: 'focus-arrival' | 'attention-ready' | 'effect-start' | 'ready' | 'finished' | 'reduced'
+ *   sessionId = controller 为会话生成的稳定标识（direct scene.run 无会话时为 null）；
+ *   watch(session) 只收同 sessionId 的事实，collect() 收全局事实并保留 sessionId 供自行分组；
  *   frameId = 本次过渡目标 Frame，sourceFrameId = 来源 Frame；binding 为 scene 参与者；
  *   track: 'default' | 'layout' | 'group'；group 仅在 track==='group' 时为组名；
  *   index/groups 仅 attention 到达/ready 事实携带。
@@ -4751,7 +4756,7 @@
   'use strict';
 
   var Internals = global.NoteDemoInternals = global.NoteDemoInternals || {};
-  var VERSION = '1.0.0';
+  var VERSION = '1.1.0';
   var recorders = [];
   var installed = false;
 
@@ -4820,6 +4825,7 @@
     return {
       kind: typeof source.kind === 'string' ? source.kind : '',
       at: at,
+      sessionId: source.sessionId === undefined || source.sessionId === null ? null : source.sessionId,
       runId: source.runId == null ? null : source.runId,
       frameId: source.frameId == null ? null : String(source.frameId),
       sourceFrameId: source.sourceFrameId == null ? null : String(source.sourceFrameId),
@@ -4840,6 +4846,8 @@
     var recorder = {
       active: false,
       label: config.label == null ? null : String(config.label),
+      /* 会话级 recorder 的固定 sessionId；全局 collect 为 null。 */
+      sessionId: config.sessionId === undefined || config.sessionId === null ? null : config.sessionId,
       startedAt: nowMs(),
       version: VERSION,
       _unsubscribe: null
@@ -4894,9 +4902,8 @@
       }
       var index = recorders.indexOf(recorder);
       if (index >= 0) recorders.splice(index, 1);
-      if (config.onFact != null && typeof config.onFact === 'function') {
-        /* 通过 listen 注册的回调由 listeners 管；结束不清空已收集事实。 */
-      }
+      /* 已收集事实保留；回调引用随 stop 释放，避免会话销毁后仍持有观察闭包。 */
+      listeners.length = 0;
       if (!recorders.length) uninstall();
     };
 
@@ -4912,17 +4919,22 @@
     return String(track || '') + '\u0000' + String(group || '');
   }
 
-  /* 汇总：按 run（runId+目标/来源 Frame+motion）→ Binding → 轨道（track+group）聚合。
-   * 同一轨道多次出现时取第一次 startedAt/readyAt/finishedAt；时长只在两者都有时计算。 */
+  /* 汇总：按 sessionId + run（runId+目标/来源 Frame+motion）→ Binding → 轨道（track+group）聚合。
+   * sessionId 进入 run key 与输出，同名 Frame 跨会话不会被合并；同一轨道多次出现时取第一次
+   * startedAt/readyAt/finishedAt；时长只在两者都有时计算。 */
   function summarize(facts) {
     var runs = [];
     var runMap = {};
+    var sessionIds = [];
     for (var i = 0; i < facts.length; i += 1) {
       var fact = facts[i];
-      var runKey = String(fact.runId) + '|' + String(fact.frameId) + '|' + String(fact.sourceFrameId) + '|' + fact.motion;
+      var sessionKey = String(fact.sessionId);
+      var runKey = sessionKey + '|' + String(fact.runId) + '|' + String(fact.frameId) + '|' +
+        String(fact.sourceFrameId) + '|' + fact.motion;
       var run = runMap[runKey];
       if (!run) {
         run = {
+          sessionId: fact.sessionId,
           runId: fact.runId,
           frameId: fact.frameId,
           sourceFrameId: fact.sourceFrameId,
@@ -4936,6 +4948,7 @@
       }
       if (fact.at < run.firstAt) run.firstAt = fact.at;
       if (fact.at > run.lastAt) run.lastAt = fact.at;
+      if (sessionIds.indexOf(fact.sessionId) < 0) sessionIds.push(fact.sessionId);
       if (!fact.binding) continue;
       var binding = run.bindings[fact.binding];
       if (!binding) {
@@ -4984,48 +4997,77 @@
       if (firstAt == null || facts[f].at < firstAt) firstAt = facts[f].at;
       if (lastAt == null || facts[f].at > lastAt) lastAt = facts[f].at;
     }
+    /* 单一来源（watch 会话）时顶层也给出 sessionId；全局 collect 用 sessionIds 区分。 */
+    var soleSessionId = sessionIds.length === 1 ? sessionIds[0] : null;
     return {
       count: facts.length,
       firstAt: firstAt,
       lastAt: lastAt,
+      sessionId: soleSessionId,
+      sessionIds: sessionIds,
       runs: runs
     };
   }
 
-  /* 会话级窄订阅：只收集该 session 已知 Frame（当前/目标/历史停点）相关的 fact；
-   * 多会话并发且 Frame ID 相同时可能互相可见，观察工具不承担会话隔离判断。 */
+  /* 会话级窄订阅：只收集 session.__sessionId 相同的 fact；Frame 只用于会话内内容分组，
+   * 不再是跨会话判断依据。session 销毁、watch 初始化失败、stop 都释放订阅。 */
   function watch(session, options) {
     if (!session || typeof session.getState !== 'function' || typeof session.subscribe !== 'function') {
       fail('watch(session, options) 需要一个 NoteDemo 会话。');
     }
-    var knownFrames = {};
-    function remember(state) {
-      if (!isObject(state)) return;
-      if (state.settledFrameId != null) knownFrames[state.settledFrameId] = true;
-      if (state.targetFrameId != null) knownFrames[state.targetFrameId] = true;
+    var sessionId = session.__sessionId;
+    if (sessionId === undefined || sessionId === null) {
+      fail('watch(session, options) 需要一个带稳定 __sessionId 的会话（旧构建或非 controller 会话无法隔离观察）。');
     }
-    remember(session.getState());
-    var unsubscribe = session.subscribe(remember);
-    var recorder = createRecorder({
-      label: isObject(options) && options.label != null ? options.label : null,
-      onFact: isObject(options) && typeof options.onFact === 'function' ? options.onFact : null,
-      predicate: function (fact) {
-        var state = null;
-        try {
-          state = session.getState();
-        } catch (error) {
-          state = null;
-        }
-        if (isObject(state)) {
-          if (state.targetFrameId != null && fact.frameId === state.targetFrameId) return true;
-          if (state.settledFrameId != null &&
-              (fact.frameId === state.settledFrameId || fact.sourceFrameId === state.settledFrameId)) return true;
-        }
-        return (fact.frameId != null && knownFrames[fact.frameId] === true) ||
-          (fact.sourceFrameId != null && knownFrames[fact.sourceFrameId] === true);
+    var initialState = null;
+    try {
+      initialState = session.getState();
+    } catch (error) {
+      initialState = null;
+    }
+    if (isObject(initialState) && initialState.phase === 'disposed') {
+      fail('watch(session, options) 的会话已销毁，不能继续观察。');
+    }
+    var config = isObject(options) ? options : {};
+    var recorder = null;
+    var disposedWhileSettingUp = false;
+    /* 订阅只用于会话销毁时自动收尾，不再缓存/匹配 Frame。 */
+    var unsubscribe = session.subscribe(function (state) {
+      if (!isObject(state) || state.phase !== 'disposed') return;
+      disposedWhileSettingUp = true;
+      if (!recorder) return;
+      try {
+        recorder.stop();
+      } catch (error) {
+        /* 清理失败不影响会话销毁。 */
       }
     });
+    try {
+      recorder = createRecorder({
+        label: config.label == null ? null : config.label,
+        onFact: typeof config.onFact === 'function' ? config.onFact : null,
+        sessionId: sessionId,
+        predicate: function (fact) {
+          return fact.sessionId === sessionId;
+        }
+      });
+    } catch (error) {
+      /* 初始化失败（如 scene 出口不支持）必须退订，不能留下半成品监听。 */
+      try {
+        unsubscribe();
+      } catch (cleanupError) {
+        /* 会话已销毁等，忽略 */
+      }
+      throw error;
+    }
     recorder._unsubscribe = unsubscribe;
+    if (disposedWhileSettingUp) {
+      try {
+        recorder.stop();
+      } catch (error) {
+        /* 已停止 */
+      }
+    }
     return recorder;
   }
 
@@ -5914,6 +5956,8 @@
 
   var Internals = global.NoteDemoInternals = global.NoteDemoInternals || {};
   var hasOwn = Object.prototype.hasOwnProperty;
+  /* 每个 controller.create 生成的会话获得稳定自增 ID，供时序事实按会话隔离。 */
+  var sessionSequence = 0;
 
   function own(object, key) {
     return object != null && hasOwn.call(Object(object), key);
@@ -5969,6 +6013,7 @@
     if (!own(plan.frameById, startFrameId)) {
       throw new Error('NoteDemo controller.create 的 initialFrameId 不是已定义的 Frame：' + repr(startFrameId));
     }
+    var sessionId = (sessionSequence += 1);
 
     var frameById = plan.frameById;
     var frameOrder = plan.frameOrder;
@@ -6434,7 +6479,9 @@
               motion: motionMode(),
               presentation: presentation,
               reason: opCause(spec),
-              cause: opCause(spec)
+              cause: opCause(spec),
+              /* 稳定会话标识：scene 写入每条时序事实，watch 只按它过滤。 */
+              sessionId: sessionId
             });
           } catch (error) {
             if (activeRunOp === op) activeRunOp = null;
@@ -6820,9 +6867,11 @@
     try {
       Object.defineProperty(session, '__plan', { value: plan, enumerable: false, writable: false, configurable: false });
       Object.defineProperty(session, '__bindings', { value: bindings, enumerable: false, writable: false, configurable: false });
+      Object.defineProperty(session, '__sessionId', { value: sessionId, enumerable: false, writable: false, configurable: false });
     } catch (error) {
       session.__plan = plan;
       session.__bindings = bindings;
+      session.__sessionId = sessionId;
     }
     return session;
   }
@@ -9121,17 +9170,1432 @@
   };
 })(window);
 
+/* ---- source: src/demo/adapters/table.js ---- */
+/* NoteDemo Adapter — table（C06 NoteUI.Table 的正式 scene 接入）。
+ * Scope: window.NoteDemoInternals.adapters.table
+ * Depends on: NoteUI.Table（C06）、NoteDemo.sceneAdapter（共享 PreparedChange 胶水）。
+ * 经典脚本，无模块/无网络/无 eval。
+ *
+ * 职责：
+ * - normalizeView/readModel 使用同一 canonical model，真实读回走 Table.getState()；
+ *   canonical rows 固定按作者输入顺序（row.index）排列，display 排序由 sort 字段表达。
+ * - update 只提交完整目标 model；commit 调 Table.update()，不另建播放器。
+ * - effects 只针对真实变化的 cell/行做局部 WAAPI：值变化用 cell 来源覆盖层淡出，
+ *   新行淡入、行状态变化用行级提示；不对整表做淡入/瞬切冒充过渡。
+ * - 组名：cell:<encodeURIComponent(rowKey)>:<encodeURIComponent(colKey)>、row:<encodeURIComponent(rowKey)>。
+ * - 减少动效/恢复由 sceneAdapter helper 与公共 scene 收口：commit 直接落目标终态。
+ *
+ * 兼容边界：Frame 视图中的表格值/状态/标签必须是可序列化标量或普通数据；DOM/函数
+ * 只允许出现在 binding options（rowKey/rowState/cellState/onSort）。scene update 不支持
+ * 列结构（键/顺序/对齐/sortable）变化，请改用 cut/reveal；行删除不提供退场动画。
+ */
+(function (global) {
+  'use strict';
+
+  var Internals = global.NoteDemoInternals = global.NoteDemoInternals || {};
+  var NAME = 'table';
+
+  function fail(message) {
+    throw new Error(NAME + ' Adapter：' + message);
+  }
+
+  function isObject(value) {
+    return !!value && typeof value === 'object' && !Array.isArray(value);
+  }
+
+  function isArray(value) {
+    return Array.isArray(value);
+  }
+
+  function own(object, key) {
+    return object != null && Object.prototype.hasOwnProperty.call(Object(object), key);
+  }
+
+  function text(value) {
+    return value == null ? '' : String(value);
+  }
+
+  function tableComponent() {
+    var table = global.NoteUI && global.NoteUI.Table;
+    if (!table || typeof table.mount !== 'function') {
+      throw new Error('table Adapter 需要先加载 NoteUI.Table（src/ui/table.js）。');
+    }
+    return table;
+  }
+
+  function sceneAdapterHelper() {
+    /* 源序里 scene-adapter.js 先于 adapters/index.js，NoteDemo 命名空间可能尚未创建；
+     * Internals.sceneAdapter 由 scene-adapter.js 直接挂载，优先使用它。 */
+    var helper = Internals.sceneAdapter;
+    if (!helper || typeof helper.define !== 'function') {
+      helper = global.NoteDemo && global.NoteDemo.sceneAdapter;
+    }
+    if (!helper || typeof helper.define !== 'function') {
+      throw new Error('table Adapter 需要先加载 demo-runtime 的 scene-adapter.js。');
+    }
+    return helper;
+  }
+
+  /* ---------------- 纯数据 canonical 化 ---------------- */
+
+  function cloneData(value, path, seen) {
+    if (value == null) return value;
+    var type = typeof value;
+    if (type === 'string' || type === 'number' || type === 'boolean') return value;
+    if (type === 'function') fail(path + ' 不能是函数（函数请放在 binding options）。');
+    if (type !== 'object') return value;
+    if (value.nodeType === 1) fail(path + ' 不能是 DOM 元素（Frame 视图只保存可序列化数据）。');
+    var list = seen || [];
+    if (list.indexOf(value) >= 0) fail(path + ' 不能包含循环引用。');
+    list.push(value);
+    var output;
+    var i;
+    if (isArray(value)) {
+      output = [];
+      for (i = 0; i < value.length; i += 1) output.push(cloneData(value[i], path + '[' + i + ']', list));
+    } else {
+      output = {};
+      Object.keys(value).forEach(function (key) {
+        output[key] = cloneData(value[key], path + '.' + key, list);
+      });
+    }
+    list.pop();
+    return output;
+  }
+
+  function canonicalValue(value, path) {
+    if (value == null) return '';
+    var type = typeof value;
+    if (type === 'string' || type === 'number' || type === 'boolean') return value;
+    if (type === 'object' && value.nodeType === 1) {
+      fail(path + ' 不能是 DOM 元素（Frame 视图只保存文本/标量；DOM 请改用 binding options）。');
+    }
+    if (type === 'object') return cloneData(value, path);
+    fail(path + ' 不是可序列化的表格值。');
+    return '';
+  }
+
+  function canonicalAlign(value) {
+    if (value === 'left' || value === 'start') return 'start';
+    if (value === 'right' || value === 'end') return 'end';
+    if (value === 'center') return 'center';
+    return 'start';
+  }
+
+  function canonicalWidth(value) {
+    if (typeof value === 'number' && isFinite(value) && value > 0) return value + 'px';
+    if (typeof value === 'string' && value.trim()) return value.trim();
+    return '';
+  }
+
+  function canonicalMaxHeight(value) {
+    if (typeof value === 'number' && isFinite(value) && value > 0) return value + 'px';
+    if (typeof value === 'string' && value.trim()) return value.trim();
+    return null;
+  }
+
+  function canonicalLabel(value, path) {
+    if (value == null) return '';
+    var type = typeof value;
+    if (type === 'string' || type === 'number' || type === 'boolean') return text(value);
+    if (type === 'object' && value.nodeType === 1) {
+      fail(path + ' 不能是 DOM 元素（列标签在 scene 视图中必须是文本）。');
+    }
+    fail(path + ' 不是可序列化的列标签。');
+    return '';
+  }
+
+  /* 同时接受作者原始状态值（string/number/数组/{type|name,label}）和 getState() 已归一
+   * 的 [{type,label}] —— normalizeView 与真实读回必须走同一个 conversion。 */
+  function canonicalStateItems(value) {
+    var items = [];
+    function add(item) {
+      if (item == null || item === false || item === '') return;
+      if (isArray(item)) {
+        item.forEach(add);
+        return;
+      }
+      if (typeof item === 'string' || typeof item === 'number') {
+        var type = text(item).trim();
+        if (type && !items.some(function (existing) { return existing.type === type; })) {
+          items.push({ type: type, label: '' });
+        }
+        return;
+      }
+      if (isObject(item)) {
+        var raw = item.type != null ? item.type : item.name;
+        var value = raw == null ? '' : text(raw).trim();
+        if (value && !items.some(function (existing) { return existing.type === value; })) {
+          items.push({ type: value, label: item.label == null ? '' : text(item.label).trim() });
+        }
+      }
+    }
+    add(value);
+    return items;
+  }
+
+  function canonicalColumn(column, path) {
+    if (!isObject(column)) fail(path + ' 必须是 {key,label,align,width,sortable} 对象。');
+    return {
+      key: column.key == null ? null : cloneData(column.key, path + '.key'),
+      label: canonicalLabel(column.label, path + '.label'),
+      align: canonicalAlign(column.align),
+      width: canonicalWidth(column.width),
+      sortable: column.sortable === false ? false : true
+    };
+  }
+
+  function canonicalKey(value) {
+    return value == null ? null : String(value);
+  }
+
+  function canonicalKeyList(value) {
+    if (value == null || value === false) return [];
+    var list = isArray(value) ? value : [value];
+    var output = [];
+    list.forEach(function (item) {
+      if (item == null || item === false) return;
+      var key = String(item);
+      if (output.indexOf(key) < 0) output.push(key);
+    });
+    return output;
+  }
+
+  function canonicalEmphasis(value) {
+    if (!isObject(value)) return null;
+    var row = canonicalKeyList(value.row);
+    var column = canonicalKeyList(value.column);
+    if (!row.length && !column.length) return null;
+    return { row: row, column: column };
+  }
+
+  /* 同时接受作者 sort 配置（true/{key,direction}/false）和 getState().sort 的
+   * canonical 形状（{enabled,key,direction}），保证 normalizeView 与真实读回同构。 */
+  function canonicalSort(value) {
+    if (!value) return { enabled: false, key: null, direction: null };
+    if (value === true) return { enabled: true, key: null, direction: null };
+    if (isObject(value)) {
+      if (own(value, 'enabled')) {
+        var enabled = value.enabled === true;
+        var enabledKey = enabled && value.key != null ? String(value.key) : null;
+        var enabledDirection = enabledKey == null
+          ? null
+          : (value.direction === 'desc' ? 'desc' : (value.direction === 'asc' ? 'asc' : null));
+        return { enabled: enabled, key: enabledKey, direction: enabledDirection };
+      }
+      var key = value.key == null ? null : value.key;
+      var direction = key == null ? null : (value.direction === 'desc' ? 'desc' : 'asc');
+      return { enabled: true, key: key == null ? null : String(key), direction: direction };
+    }
+    return { enabled: true, key: null, direction: null };
+  }
+
+  function resolveRowKey(options, row, index) {
+    var key;
+    if (typeof options.rowKey === 'function') key = options.rowKey(row, index);
+    else if (typeof options.rowKey === 'string' && row && row[options.rowKey] != null) key = row[options.rowKey];
+    else if (row && own(row, 'key') && row.key != null) key = row.key;
+    if (key == null) key = index;
+    return key;
+  }
+
+  function resolveRowStates(options, row, index, key) {
+    var value = null;
+    if (typeof options.rowState === 'function') value = options.rowState(row, index, key);
+    else if (row && own(row, 'state')) value = row.state;
+    return canonicalStateItems(value);
+  }
+
+  function resolveCellStates(options, row, column, key, index) {
+    var value = null;
+    if (typeof options.cellState === 'function') value = options.cellState(row, column, key, index);
+    else if (row && row.cellStates && own(row.cellStates, column.key)) value = row.cellStates[column.key];
+    return canonicalStateItems(value);
+  }
+
+  function canonicalTableFromView(rawView, options) {
+    var view = isObject(rawView) ? rawView : {};
+    var columnsInput = isArray(view.columns) ? view.columns : [];
+    var rowsInput = isArray(view.rows) ? view.rows : [];
+    var canonicalColumns = columnsInput.map(function (column, index) {
+      return canonicalColumn(column, 'view.columns[' + index + ']');
+    });
+    var rows = rowsInput.map(function (row, index) {
+      var key = resolveRowKey(options, row, index);
+      var keyString = String(key);
+      var data = cloneData(row, 'view.rows[' + index + ']');
+      var states = resolveRowStates(options, row, index, key);
+      var cells = canonicalColumns.map(function (column, columnIndex) {
+        var rawColumn = columnsInput[columnIndex];
+        var value = canonicalValue(row && rawColumn ? row[rawColumn.key] : undefined,
+          'view.rows[' + index + '].' + text(rawColumn && rawColumn.key));
+        return {
+          columnKey: column.key,
+          value: value,
+          states: resolveCellStates(options, row, rawColumn, key, index)
+        };
+      });
+      return { key: key, keyString: keyString, index: index, data: data, states: states, cells: cells };
+    });
+    var emptyText = view.empty == null ? '暂无数据' : view.empty;
+    if (emptyText != null && typeof emptyText === 'object' && emptyText.nodeType === 1) {
+      fail('view.empty 不能是 DOM 元素（scene 视图中请使用文本）。');
+    }
+    return {
+      columns: canonicalColumns,
+      rows: rows,
+      sort: canonicalSort(view.sort),
+      emphasis: canonicalEmphasis(view.emphasis),
+      caption: text(view.caption).trim(),
+      emptyText: text(emptyText),
+      dense: Boolean(view.dense),
+      maxHeight: canonicalMaxHeight(view.maxHeight)
+    };
+  }
+
+  function canonicalTableFromState(state) {
+    if (!isObject(state)) fail('getState() 没有返回对象，无法读回表格状态。');
+    var columnsInput = isArray(state.columns) ? state.columns : [];
+    var canonicalColumns = columnsInput.map(function (column, index) {
+      return canonicalColumn(column, 'getState().columns[' + index + ']');
+    });
+    var rendered = isArray(state.rows) ? state.rows.slice() : [];
+    rendered.sort(function (left, right) {
+      var a = left && typeof left.index === 'number' ? left.index : 0;
+      var b = right && typeof right.index === 'number' ? right.index : 0;
+      return a - b;
+    });
+    var rows = rendered.map(function (entry, index) {
+      var data = cloneData(entry.row, 'getState().rows[' + index + '].row');
+      var cells = canonicalColumns.map(function (column, columnIndex) {
+        var cell = isArray(entry.cells) ? entry.cells[columnIndex] : null;
+        return {
+          columnKey: column.key,
+          value: cell ? canonicalValue(cell.value, 'getState().rows[' + index + '].cells[' + columnIndex + '].value') : '',
+          states: canonicalStateItems(cell && cell.states)
+        };
+      });
+      return {
+        key: entry.key,
+        keyString: entry.keyString == null ? String(entry.key) : String(entry.keyString),
+        index: typeof entry.index === 'number' ? entry.index : index,
+        data: data,
+        states: canonicalStateItems(entry.states),
+        cells: cells
+      };
+    });
+    return {
+      columns: canonicalColumns,
+      rows: rows,
+      sort: canonicalSort(state.sort),
+      emphasis: canonicalEmphasis(state.emphasis),
+      caption: text(state.caption).trim(),
+      emptyText: state.emptyText == null ? '' : text(state.emptyText),
+      dense: Boolean(state.dense),
+      maxHeight: canonicalMaxHeight(state.maxHeight)
+    };
+  }
+
+  function tablePatch(model) {
+    var sort = model.sort && model.sort.enabled
+      ? (model.sort.key == null ? true : { key: model.sort.key, direction: model.sort.direction || 'asc' })
+      : false;
+    return {
+      columns: (model.columns || []).map(function (column) {
+        return {
+          key: column.key,
+          label: column.label,
+          align: column.align,
+          width: column.width,
+          sortable: column.sortable
+        };
+      }),
+      rows: (model.rows || []).map(function (row, index) {
+        return cloneData(row.data, 'commit().rows[' + index + ']');
+      }),
+      sort: sort,
+      emphasis: model.emphasis ? { row: model.emphasis.row.slice(), column: model.emphasis.column.slice() } : null,
+      caption: model.caption,
+      empty: model.emptyText,
+      dense: model.dense,
+      maxHeight: model.maxHeight
+    };
+  }
+
+  /* ---------------- 差异与局部效果 ---------------- */
+
+  function deepEqual(left, right) {
+    if (left === right) return true;
+    if (left == null || right == null) return left === right;
+    if (typeof left !== typeof right) return false;
+    if (typeof left !== 'object') return left === right;
+    if (isArray(left) || isArray(right)) {
+      if (!isArray(left) || !isArray(right) || left.length !== right.length) return false;
+      for (var i = 0; i < left.length; i += 1) if (!deepEqual(left[i], right[i])) return false;
+      return true;
+    }
+    var leftKeys = Object.keys(left);
+    var rightKeys = Object.keys(right);
+    if (leftKeys.length !== rightKeys.length) return false;
+    for (var k = 0; k < leftKeys.length; k += 1) {
+      if (!own(right, leftKeys[k])) return false;
+      if (!deepEqual(left[leftKeys[k]], right[leftKeys[k]])) return false;
+    }
+    return true;
+  }
+
+  function columnSignature(model) {
+    return (model.columns || []).map(function (column) {
+      return text(column.key) + '\u0001' + column.align + '\u0001' + (column.sortable ? '1' : '0');
+    }).join('\u0002');
+  }
+
+  function rowBuckets(rows) {
+    var buckets = {};
+    (rows || []).forEach(function (row) {
+      var key = row.keyString;
+      if (!own(buckets, '$' + key)) buckets['$' + key] = [];
+      buckets['$' + key].push(row);
+    });
+    return buckets;
+  }
+
+  function duplicateKeys(rows) {
+    var seen = {};
+    var duplicates = [];
+    (rows || []).forEach(function (row) {
+      var key = '$' + row.keyString;
+      if (own(seen, key)) {
+        if (duplicates.indexOf(row.keyString) < 0) duplicates.push(row.keyString);
+      } else {
+        seen[key] = true;
+      }
+    });
+    return duplicates;
+  }
+
+  function groupCell(rowKey, columnKey) {
+    return 'cell:' + encodeURIComponent(rowKey) + ':' + encodeURIComponent(columnKey);
+  }
+
+  function groupRow(rowKey) {
+    return 'row:' + encodeURIComponent(rowKey);
+  }
+
+  function cellText(value) {
+    if (value == null) return '';
+    var type = typeof value;
+    if (type === 'string' || type === 'number' || type === 'boolean') return String(value);
+    return '';
+  }
+
+  function buildChangePlan(sourceModel, targetModel) {
+    if (!sourceModel || !targetModel) fail('prepareChange 需要来源与目标表格 model。');
+    var sourceSignature = columnSignature(sourceModel);
+    var targetSignature = columnSignature(targetModel);
+    if (sourceSignature !== targetSignature) {
+      fail('scene update 不支持列结构（键/顺序/对齐/sortable）变化；请把该 Transition 改为 cut 或 reveal。');
+    }
+    var sourceDuplicates = duplicateKeys(sourceModel.rows);
+    var targetDuplicates = duplicateKeys(targetModel.rows);
+    if (sourceDuplicates.length || targetDuplicates.length) {
+      fail('scene table 需要唯一行键，无法为重复键生成稳定 target/效果组：' +
+        (targetDuplicates.length ? targetDuplicates.join('、') : sourceDuplicates.join('、')));
+    }
+    var sourceBuckets = rowBuckets(sourceModel.rows);
+    var groups = [];
+    var effects = [];
+    (targetModel.rows || []).forEach(function (targetRow) {
+      var bucket = sourceBuckets['$' + targetRow.keyString];
+      var sourceRow = bucket && bucket.length ? bucket.shift() : null;
+      if (!sourceRow) {
+        groups.push(groupRow(targetRow.keyString));
+        effects.push({ kind: 'row-enter', rowKey: targetRow.key, keyString: targetRow.keyString, group: groupRow(targetRow.keyString) });
+        return;
+      }
+      (targetRow.cells || []).forEach(function (targetCell, index) {
+        var sourceCell = sourceRow.cells[index];
+        if (!sourceCell) return;
+        var valueChanged = !deepEqual(sourceCell.value, targetCell.value);
+        var statesChanged = !deepEqual(sourceCell.states, targetCell.states);
+        if (!valueChanged && !statesChanged) return;
+        var group = groupCell(targetRow.keyString, text(targetCell.columnKey));
+        groups.push(group);
+        effects.push({
+          kind: 'cell',
+          rowKey: targetRow.key,
+          keyString: targetRow.keyString,
+          columnKey: targetCell.columnKey,
+          group: group,
+          sourceValue: sourceCell.value,
+          targetValue: targetCell.value,
+          statesChanged: statesChanged,
+          valueChanged: valueChanged
+        });
+      });
+      if (!deepEqual(sourceRow.states, targetRow.states)) {
+        var rowGroup = groupRow(targetRow.keyString);
+        if (groups.indexOf(rowGroup) < 0) {
+          groups.push(rowGroup);
+          effects.push({ kind: 'row-state', rowKey: targetRow.key, keyString: targetRow.keyString, group: rowGroup });
+        }
+      }
+    });
+    return { groups: groups, effects: effects };
+  }
+
+  function timingNumber(timing, key, fallback) {
+    var value = timing && typeof timing[key] === 'number' && isFinite(timing[key]) && timing[key] >= 0
+      ? timing[key]
+      : fallback;
+    return value;
+  }
+
+  function buildEffects(table, plan, timing) {
+    var easing = timing && typeof timing.easing === 'string' && timing.easing ? timing.easing : 'linear';
+    var swapDuration = timingNumber(timing, 'valueSwapDuration', timingNumber(timing, 'enterDuration', 260));
+    var cueDuration = timingNumber(timing, 'cueDuration', swapDuration);
+    var overlays = [];
+    var specs = [];
+    (plan.effects || []).forEach(function (effect) {
+      if (effect.kind === 'cell') {
+        var td = table.getTarget({ row: effect.rowKey, column: effect.columnKey });
+        if (!td) return;
+        var overlay = global.document.createElement('span');
+        overlay.className = 'nui-table__scene-source';
+        overlay.setAttribute('aria-hidden', 'true');
+        overlay.textContent = cellText(effect.sourceValue);
+        td.classList.add('nui-table__cell--scene-anchor');
+        td.appendChild(overlay);
+        overlays.push(overlay);
+        specs.push({
+          el: overlay,
+          keyframes: [{ opacity: 1 }, { opacity: 0 }],
+          options: { duration: swapDuration, easing: easing, fill: 'none' },
+          group: effect.group,
+          gate: 'ready',
+          cleanupEl: overlay,
+          effect: 'table-cell'
+        });
+        return;
+      }
+      if (effect.kind === 'row-enter') {
+        var rowEl = table.getTarget({ row: effect.rowKey, part: 'row' });
+        if (!rowEl) return;
+        specs.push({
+          el: rowEl,
+          keyframes: [{ opacity: 0 }, { opacity: 1 }],
+          options: { duration: swapDuration, easing: easing, fill: 'none' },
+          group: effect.group,
+          gate: 'ready',
+          effect: 'table-row-enter'
+        });
+        return;
+      }
+      if (effect.kind === 'row-state') {
+        var stateRow = table.getTarget({ row: effect.rowKey, part: 'row' });
+        if (!stateRow) return;
+        specs.push({
+          el: stateRow,
+          keyframes: [{ opacity: 0.55 }, { opacity: 1 }],
+          options: { duration: cueDuration, easing: easing, fill: 'none' },
+          group: effect.group,
+          gate: 'ready',
+          effect: 'table-row-state'
+        });
+      }
+    });
+    return { specs: specs, overlays: overlays };
+  }
+
+  function clearOverlays(overlays) {
+    (overlays || []).forEach(function (overlay) {
+      if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+      if (overlay && overlay.classList) overlay.classList.remove('nui-table__scene-source');
+    });
+  }
+
+  /* ---------------- Adapter 定义 ---------------- */
+
+  var helper = sceneAdapterHelper();
+  var adapter = helper.define({
+    name: NAME,
+    sceneModes: ['cut', 'update'],
+    defaultSceneMode: 'update',
+    sceneTimingDefaults: {
+      valueSwapDelay: 0,
+      valueSwapDuration: 260,
+      cueDuration: 260
+    },
+    normalizeView: function (input, options) {
+      var model = canonicalTableFromView(input, isObject(options) ? options : {});
+      return { model: model, cues: {} };
+    },
+    mount: function (host, options) {
+      if (!host || host.nodeType !== 1) fail('mount(host, options)：host 必须是元素。');
+      var Table = tableComponent();
+      var tableOptions = isObject(options) ? options : {};
+      var table = Table.mount(host, {
+        columns: [],
+        rows: [],
+        rowKey: tableOptions.rowKey,
+        empty: tableOptions.empty,
+        rowState: tableOptions.rowState,
+        cellState: tableOptions.cellState,
+        onSort: tableOptions.onSort
+      });
+      var destroyed = false;
+      var overlays = [];
+
+      function assertAlive() {
+        if (destroyed) fail('实例已销毁。');
+      }
+
+      function readModel() {
+        assertAlive();
+        return canonicalTableFromState(table.getState());
+      }
+
+      function restore(view) {
+        assertAlive();
+        clearOverlays(overlays);
+        overlays = [];
+        var model = isObject(view) && isObject(view.model) ? view.model : view;
+        table.update(tablePatch(model));
+      }
+
+      function target(query) {
+        if (destroyed || query == null) return null;
+        if (query === 'root' || (isObject(query) && query.part === 'root')) return table.el;
+        return table.getTarget(query);
+      }
+
+      return {
+        restore: restore,
+        readModel: readModel,
+        target: target,
+        planStep: function (input) {
+          assertAlive();
+          var plan = buildChangePlan(input.sourceModel, input.targetModel);
+          var committed = false;
+          var appliedEffects = [];
+          return {
+            groups: plan.groups,
+            commit: function () {
+              if (committed) return;
+              committed = true;
+              clearOverlays(overlays);
+              overlays = [];
+              table.update(tablePatch(input.targetModel));
+            },
+            targets: function () { return []; },
+            effects: function (timing) {
+              if (input.reduced) return [];
+              var built = buildEffects(table, plan, timing);
+              overlays = overlays.concat(built.overlays);
+              appliedEffects = built.specs;
+              return built.specs;
+            },
+            cleanup: function () {
+              clearOverlays(overlays);
+              overlays = [];
+              appliedEffects = [];
+            }
+          };
+        },
+        destroy: function () {
+          if (destroyed) return;
+          destroyed = true;
+          clearOverlays(overlays);
+          overlays = [];
+          table.destroy();
+        }
+      };
+    }
+  });
+
+  Internals.adapters = Internals.adapters || {};
+  Internals.adapters[NAME] = adapter;
+})(window);
+
+/* ---- source: src/demo/adapters/flow-stage.js ---- */
+/* NoteDemo Adapter — flow-stage (D07 StageTrack scene adapter).
+ * Scope: window.NoteDemoInternals.adapters['flow-stage']; registers itself, does not edit index.js.
+ * Public scene contract only: normalizeView / mount(handle: restore/readView/target/prepareChange/destroy).
+ * commit uses StageTrack.update; readView uses StageTrack.getState; effects are local reveal hints;
+ * reduced motion commits the final state and returns no effects. Groups are per changed stage/bypass.
+ */
+(function (global) {
+  'use strict';
+
+  var Internals = global.NoteDemoInternals = global.NoteDemoInternals || {};
+  var ADAPTER_NAME = 'flow-stage';
+  function componentApi() {
+    var Flow = global.NoteViz && global.NoteViz.Flow;
+    var api = Flow && Flow.StageTrack;
+    if (!api || typeof api.mount !== 'function') {
+      throw new Error('flow-stage Adapter 需要先加载 NoteViz.Flow.StageTrack（flow-core.js + flow-stage.js）；只加载 demo-runtime 时本 Adapter 可在真实挂载时再报错。');
+    }
+    return api;
+  }
+  function fail(message) { throw new Error(ADAPTER_NAME + ' Adapter：' + message); }
+  function isObject(value) { return !!value && typeof value === 'object' && !Array.isArray(value); }
+  function text(value) { return value == null ? '' : String(value); }
+  function textOrEmpty(value) { return value == null ? '' : String(value).trim(); }
+  function array(value) { return Array.isArray(value) ? value : []; }
+  function idList(source, prefix) {
+    return array(source).map(function (item) { return textOrEmpty(item); }).filter(Boolean);
+  }
+  function statusSet(value) {
+    var set = Object.create(null);
+    idList(value).forEach(function (item) { set[item] = true; });
+    return set;
+  }
+  function normalizeRaw(input) {
+    var source = isObject(input) && isObject(input.model) ? input.model : (isObject(input) ? input : {});
+    var stages = array(source.stages).map(function (item, index) {
+      var raw = isObject(item) ? item : {};
+      return {
+        id: textOrEmpty(raw.id) || ('stage-' + (index + 1)),
+        label: raw.label == null ? textOrEmpty(raw.id) || ('stage-' + (index + 1)) : text(raw.label),
+        status: textOrEmpty(raw.status) || null
+      };
+    });
+    var indexById = Object.create(null);
+    stages.forEach(function (stage, index) { indexById[stage.id] = index; });
+    var skipped = statusSet(source.skipped);
+    var failed = statusSet(source.failed);
+    var current = textOrEmpty(source.current);
+    var target = textOrEmpty(source.target);
+    var currentIndex = Object.prototype.hasOwnProperty.call(indexById, current) ? indexById[current] : -1;
+    var bypass = array(source.bypass).map(function (item, index) {
+      var raw = isObject(item) ? item : {};
+      return {
+        from: textOrEmpty(raw.from),
+        to: textOrEmpty(raw.to),
+        label: raw.label == null ? '' : text(raw.label),
+        id: 'bypass:' + textOrEmpty(raw.from) + '>' + textOrEmpty(raw.to)
+      };
+    }).filter(function (item) {
+      return item.from && item.to && Object.prototype.hasOwnProperty.call(indexById, item.from) && Object.prototype.hasOwnProperty.call(indexById, item.to);
+    });
+    function derive(stage, index) {
+      if (stage.status) return stage.status;
+      if (failed[stage.id]) return 'failed';
+      if (skipped[stage.id]) return 'skipped';
+      if (currentIndex >= 0 && index === currentIndex) return 'current';
+      if (currentIndex >= 0 && index < currentIndex) return 'done';
+      return 'pending';
+    }
+    return {
+      stages: stages.map(function (stage, index) {
+        return { id: stage.id, label: stage.label, status: derive(stage, index), target: !!target && stage.id === target };
+      }),
+      current: Object.prototype.hasOwnProperty.call(indexById, current) ? current : null,
+      target: Object.prototype.hasOwnProperty.call(indexById, target) ? target : null,
+      skipped: stages.filter(function (stage) { return skipped[stage.id]; }).map(function (stage) { return stage.id; }),
+      failed: stages.filter(function (stage) { return failed[stage.id]; }).map(function (stage) { return stage.id; }),
+      bypass: bypass,
+      invalidBypass: 0,
+      statusLabels: isObject(source.statusLabels) ? source.statusLabels : null,
+      label: source.label == null ? '阶段轨' : text(source.label)
+    };
+  }
+  function modelFromState(state, attachment) {
+    return {
+      stages: array(state.stages).map(function (stage) { return { id: stage.id, label: stage.label, status: stage.status, target: stage.target === true }; }),
+      current: state.current == null ? null : state.current,
+      target: state.target == null ? null : state.target,
+      skipped: array(state.skipped).slice(),
+      failed: array(state.failed).slice(),
+      bypass: array(state.bypass).map(function (item) { return { from: item.from, to: item.to, label: item.label || '', id: item.id }; }),
+      invalidBypass: state.invalidBypass || 0,
+      statusLabels: attachment.statusLabels || null,
+      label: attachment.label || '阶段轨'
+    };
+  }
+  function diffGroups(source, target) {
+    var groups = [];
+    var sourceStage = Object.create(null);
+    source.stages.forEach(function (stage) { sourceStage[stage.id] = stage; });
+    target.stages.forEach(function (stage) {
+      var before = sourceStage[stage.id];
+      if (!before || before.status !== stage.status || before.label !== stage.label || before.target !== stage.target) groups.push('stage:' + stage.id);
+    });
+    var sourceBypass = Object.create(null);
+    source.bypass.forEach(function (item) { sourceBypass[item.id] = item; });
+    target.bypass.forEach(function (item) {
+      var before = sourceBypass[item.id];
+      if (!before || before.label !== item.label) groups.push(item.id);
+    });
+    return groups;
+  }
+  function targetKeyFor(group) {
+    if (group.indexOf('stage:') === 0) return group.slice(6);
+    if (group.indexOf('bypass:') === 0) return group;
+    return null;
+  }
+  function normalizeView(input) {
+    var model = normalizeRaw(input);
+    return { model: model, cues: {} };
+  }
+  function validateAction() { fail('flow-stage 只用于 scene，不支持 actions。'); }
+  function mount(host, options) {
+    var config = isObject(options) ? options : {};
+    var attachment = { label: config.label == null ? '阶段轨' : text(config.label), statusLabels: isObject(config.statusLabels) ? config.statusLabels : null };
+    var api = componentApi();
+    var component = api.mount(host, config);
+    var destroyed = false;
+    function apply(model) {
+      component.update({
+        stages: model.stages.map(function (stage) { return { id: stage.id, label: stage.label, status: stage.status }; }),
+        current: model.current,
+        target: model.target,
+        skipped: model.skipped,
+        failed: model.failed,
+        bypass: model.bypass.map(function (item) { return { from: item.from, to: item.to, label: item.label }; }),
+        statusLabels: model.statusLabels,
+        label: model.label
+      });
+      attachment.label = model.label;
+      attachment.statusLabels = model.statusLabels;
+    }
+    var handle = {
+      restore: function (view) { if (!destroyed) apply(normalizeView(view).model); },
+      readView: function () {
+        if (destroyed) return null;
+        var state = component.getState();
+        return { model: modelFromState(state, attachment), cues: {} };
+      },
+      target: function (query) {
+        if (destroyed || !isObject(query)) return null;
+        if (query.part === 'root' || query.part === 'component' || query.part === 'el') return component.el;
+        if (query.id != null) return component.getTarget(query.id);
+        if (query.target != null) return component.getTarget(query.target);
+        if (typeof query.part === 'string' && component.getTarget(query.part)) return component.getTarget(query.part);
+        return null;
+      },
+      prepareChange: function (ctx) {
+        if (destroyed) fail('已销毁的实例不能 prepareChange');
+        var source = normalizeView(ctx && ctx.sourceView).model;
+        var target = normalizeView(ctx && ctx.targetView).model;
+        var reduced = !!(ctx && ctx.motion === 'never');
+        var groups = diffGroups(source, target);
+        return {
+          groups: function () { return groups.slice(); },
+          commit: function () { apply(target); },
+          targets: function () { return []; },
+          effects: function (effectCtx) {
+            if (reduced) return [];
+            var timing = effectCtx && isObject(effectCtx.timing) ? effectCtx.timing : {};
+            var duration = typeof timing.enterDuration === 'number' ? Math.max(0, timing.enterDuration) : 420;
+            var specs = [];
+            groups.forEach(function (group) {
+              var key = targetKeyFor(group);
+              var node = key == null ? null : component.getTarget(key);
+              if (!node) return;
+              specs.push({
+                el: node,
+                keyframes: [{ opacity: '0.35' }, { opacity: '1' }],
+                options: { duration: duration, easing: timing.easing },
+                group: group,
+                gate: 'ready'
+              });
+            });
+            return specs;
+          },
+          cleanup: function () {}
+        };
+      },
+      destroy: function () {
+        if (destroyed) return;
+        destroyed = true;
+        component.destroy();
+      }
+    };
+    return handle;
+  }
+  Internals.adapters = Internals.adapters || {};
+  Internals.adapters[ADAPTER_NAME] = {
+    name: ADAPTER_NAME,
+    sceneModes: ['cut', 'update'],
+    defaultSceneMode: 'update',
+    sceneTimingDefaults: { enterDuration: 420, markDuration: 360 },
+    normalizeView: normalizeView,
+    validateAction: validateAction,
+    mount: mount
+  };
+})(window);
+
+/* ---- source: src/demo/adapters/flow-packet.js ---- */
+/* NoteDemo Adapter — flow-packet (D08 PacketFlow scene adapter).
+ * Scope: window.NoteDemoInternals.adapters['flow-packet']; registers itself, does not edit index.js.
+ * commit uses PacketFlow.update; readView uses PacketFlow.getState; groups are per changed
+ * message/participant; reduced motion commits final state and returns no effects.
+ */
+(function (global) {
+  'use strict';
+
+  var Internals = global.NoteDemoInternals = global.NoteDemoInternals || {};
+  var ADAPTER_NAME = 'flow-packet';
+  function componentApi() {
+    var Flow = global.NoteViz && global.NoteViz.Flow;
+    var api = Flow && Flow.PacketFlow;
+    if (!api || typeof api.mount !== 'function') {
+      throw new Error('flow-packetflow Adapter 需要先加载 NoteViz.Flow.PacketFlow（flow-core.js + flow-packet.js）；只加载 demo-runtime 时本 Adapter 可在真实挂载时再报错。');
+    }
+    return api;
+  }
+  function fail(message) { throw new Error(ADAPTER_NAME + ' Adapter：' + message); }
+  function isObject(value) { return !!value && typeof value === 'object' && !Array.isArray(value); }
+  function text(value) { return value == null ? '' : String(value); }
+  function textOrEmpty(value) { return value == null ? '' : String(value).trim(); }
+  function array(value) { return Array.isArray(value) ? value : []; }
+  function typeOf(value) { return value === 'async' || value === 'return' ? value : 'sync'; }
+  function normalizeRaw(input) {
+    var source = isObject(input) && isObject(input.model) ? input.model : (isObject(input) ? input : {});
+    var participants = array(source.participants).map(function (item, index) {
+      var raw = isObject(item) ? item : {};
+      var id = textOrEmpty(raw.id) || ('participant-' + (index + 1));
+      return { id: id, label: raw.label == null ? id : text(raw.label), note: raw.note == null ? '' : text(raw.note), status: textOrEmpty(raw.status) };
+    });
+    var indexById = Object.create(null);
+    participants.forEach(function (participant, index) { indexById[participant.id] = index; });
+    var messages = array(source.messages).map(function (item, index) {
+      var raw = isObject(item) ? item : {};
+      var id = textOrEmpty(raw.id) || ('message-' + (index + 1));
+      var from = textOrEmpty(raw.from);
+      var to = textOrEmpty(raw.to);
+      var type = typeOf(textOrEmpty(raw.type));
+      var dashed = typeof raw.dashed === 'boolean' ? raw.dashed : (type === 'async' ? true : false);
+      return {
+        id: id, from: from, to: to,
+        label: raw.label == null ? '' : text(raw.label),
+        note: raw.note == null ? '' : text(raw.note),
+        type: type,
+        dashed: dashed,
+        status: textOrEmpty(raw.status),
+        valid: Object.prototype.hasOwnProperty.call(indexById, from) && Object.prototype.hasOwnProperty.call(indexById, to)
+      };
+    });
+    var valid = messages.filter(function (message) { return message.valid; });
+    var revealedSet = Object.create(null);
+    if (source.revealed != null) {
+      array(source.revealed).forEach(function (id) { revealedSet[text(id)] = true; });
+    } else if (source.visibleCount != null) {
+      var count = Math.max(0, Math.min(valid.length, Math.floor(Number(source.visibleCount) || 0)));
+      valid.slice(0, count).forEach(function (message) { revealedSet[message.id] = true; });
+    } else {
+      valid.forEach(function (message) { revealedSet[message.id] = true; });
+    }
+    var focus = textOrEmpty(source.focus) || null;
+    var current = null;
+    var outputMessages = valid.map(function (message) {
+      var revealed = !!revealedSet[message.id];
+      var item = { id: message.id, from: message.from, to: message.to, label: message.label, note: message.note, type: message.type, dashed: message.dashed, status: message.status, revealed: revealed };
+      if (focus === message.id) current = item;
+      return item;
+    });
+    return {
+      participants: participants,
+      messages: outputMessages,
+      revealed: outputMessages.filter(function (message) { return message.revealed; }).map(function (message) { return message.id; }),
+      visibleCount: outputMessages.filter(function (message) { return message.revealed; }).length,
+      focus: current ? current.id : null,
+      current: current,
+      showIndexes: source.showIndexes === true,
+      label: source.label == null ? '消息流' : text(source.label)
+    };
+  }
+  function modelFromState(state, attachment) {
+    return {
+      participants: array(state.participants).map(function (participant) {
+        return { id: participant.id, label: participant.label, note: participant.note || '', status: participant.status || '' };
+      }),
+      messages: array(state.messages).map(function (message) {
+        return {
+          id: message.id, from: message.from, to: message.to,
+          label: message.label, note: message.note || '',
+          type: typeOf(message.type), dashed: message.dashed === true,
+          status: message.status || '', revealed: message.revealed === true
+        };
+      }),
+      revealed: array(state.revealed).slice(),
+      visibleCount: state.visibleCount == null ? 0 : state.visibleCount,
+      focus: state.focus == null ? null : state.focus,
+      current: state.current || null,
+      showIndexes: attachment.showIndexes === true,
+      label: attachment.label || '消息流'
+    };
+  }
+  function diffGroups(source, target) {
+    var groups = [];
+    var sourceMessages = Object.create(null);
+    source.messages.forEach(function (message) { sourceMessages[message.id] = message; });
+    target.messages.forEach(function (message) {
+      var before = sourceMessages[message.id];
+      if (!before || before.label !== message.label || before.type !== message.type || before.dashed !== message.dashed ||
+          before.status !== message.status || before.revealed !== message.revealed || before.from !== message.from || before.to !== message.to) {
+        groups.push('message:' + message.id);
+      }
+    });
+    var sourceParticipants = Object.create(null);
+    source.participants.forEach(function (participant) { sourceParticipants[participant.id] = participant; });
+    target.participants.forEach(function (participant) {
+      var before = sourceParticipants[participant.id];
+      if (!before || before.label !== participant.label || before.note !== participant.note || before.status !== participant.status) groups.push('participant:' + participant.id);
+    });
+    return groups;
+  }
+  function targetFor(group) {
+    if (group.indexOf('message:') === 0) return 'message:' + group.slice(8);
+    if (group.indexOf('participant:') === 0) return 'participant:' + group.slice(12);
+    return null;
+  }
+  function normalizeView(input) { return { model: normalizeRaw(input), cues: {} }; }
+  function validateAction() { fail('flow-packet 只用于 scene，不支持 actions。'); }
+  function mount(host, options) {
+    var config = isObject(options) ? options : {};
+    var attachment = { label: config.label == null ? '消息流' : text(config.label), showIndexes: config.showIndexes === true };
+    var api = componentApi();
+    var component = api.mount(host, config);
+    var destroyed = false;
+    function apply(model) {
+      component.update({
+        participants: model.participants,
+        messages: model.messages.map(function (message) {
+          return { id: message.id, from: message.from, to: message.to, label: message.label, note: message.note, type: message.type, dashed: message.dashed, status: message.status };
+        }),
+        revealed: model.revealed,
+        focus: model.focus,
+        showIndexes: model.showIndexes,
+        label: model.label
+      });
+      attachment.label = model.label;
+      attachment.showIndexes = model.showIndexes;
+    }
+    var handle = {
+      restore: function (view) { if (!destroyed) apply(normalizeView(view).model); },
+      readView: function () {
+        if (destroyed) return null;
+        return { model: modelFromState(component.getState(), attachment), cues: {} };
+      },
+      target: function (query) {
+        if (destroyed || !isObject(query)) return null;
+        if (query.part === 'root' || query.part === 'component' || query.part === 'el') return component.el;
+        if (query.part === 'viewport') return component.getTarget('viewport');
+        if (query.id != null) return component.getTarget(query.id);
+        if (query.target != null) return component.getTarget(query.target);
+        if (typeof query.part === 'string' && component.getTarget(query.part)) return component.getTarget(query.part);
+        return null;
+      },
+      prepareChange: function (ctx) {
+        if (destroyed) fail('已销毁的实例不能 prepareChange');
+        var source = normalizeView(ctx && ctx.sourceView).model;
+        var target = normalizeView(ctx && ctx.targetView).model;
+        var reduced = !!(ctx && ctx.motion === 'never');
+        var groups = diffGroups(source, target);
+        return {
+          groups: function () { return groups.slice(); },
+          commit: function () { apply(target); },
+          targets: function () { return []; },
+          effects: function (effectCtx) {
+            if (reduced) return [];
+            var timing = effectCtx && isObject(effectCtx.timing) ? effectCtx.timing : {};
+            var duration = typeof timing.enterDuration === 'number' ? Math.max(0, timing.enterDuration) : 420;
+            var specs = [];
+            groups.forEach(function (group) {
+              var key = targetFor(group);
+              var node = key == null ? null : component.getTarget(key);
+              if (!node) return;
+              specs.push({
+                el: node,
+                keyframes: [{ opacity: '0.25' }, { opacity: '1' }],
+                options: { duration: duration, easing: timing.easing },
+                group: group,
+                gate: 'ready'
+              });
+            });
+            return specs;
+          },
+          cleanup: function () {}
+        };
+      },
+      destroy: function () { if (destroyed) return; destroyed = true; component.destroy(); }
+    };
+    return handle;
+  }
+  Internals.adapters = Internals.adapters || {};
+  Internals.adapters[ADAPTER_NAME] = {
+    name: ADAPTER_NAME,
+    sceneModes: ['cut', 'update'],
+    defaultSceneMode: 'update',
+    sceneTimingDefaults: { enterDuration: 420, markDuration: 360 },
+    normalizeView: normalizeView,
+    validateAction: validateAction,
+    mount: mount
+  };
+})(window);
+
+/* ---- source: src/demo/adapters/flow-segment.js ---- */
+/* NoteDemo Adapter — flow-segment (D09 SegmentBar scene adapter).
+ * Scope: window.NoteDemoInternals.adapters['flow-segment']; registers itself, does not edit index.js.
+ * commit uses SegmentBar.update; readView uses SegmentBar.getState; groups are per changed
+ * segment/range; reduced motion commits final state and returns no effects.
+ */
+(function (global) {
+  'use strict';
+  var Internals = global.NoteDemoInternals = global.NoteDemoInternals || {};
+  var ADAPTER_NAME = 'flow-segment';
+  function componentApi() {
+    var Flow = global.NoteViz && global.NoteViz.Flow;
+    var api = Flow && Flow.SegmentBar;
+    if (!api || typeof api.mount !== 'function') {
+      throw new Error('flow-segmentbar Adapter 需要先加载 NoteViz.Flow.SegmentBar（flow-core.js + flow-segment.js）；只加载 demo-runtime 时本 Adapter 可在真实挂载时再报错。');
+    }
+    return api;
+  }
+  function fail(message) { throw new Error(ADAPTER_NAME + ' Adapter：' + message); }
+  function isObject(value) { return !!value && typeof value === 'object' && !Array.isArray(value); }
+  function text(value) { return value == null ? '' : String(value); }
+  function textOrEmpty(value) { return value == null ? '' : String(value).trim(); }
+  function array(value) { return Array.isArray(value) ? value : []; }
+  function num(value, fallback) { var n = typeof value === 'number' ? value : Number(value); return isFinite(n) ? n : fallback; }
+  function normalizeRaw(input) {
+    var source = isObject(input) && isObject(input.model) ? input.model : (isObject(input) ? input : {});
+    var segments = array(source.segments).map(function (item, index) {
+      var raw = isObject(item) ? item : {};
+      var id = textOrEmpty(raw.id) || ('segment-' + (index + 1));
+      return { id: id, label: raw.label == null ? id : text(raw.label), value: Math.max(0, num(raw.value, 0)) };
+    });
+    var values = segments.map(function (segment) { return segment.value; });
+    var sum = values.reduce(function (total, value) { return total + value; }, 0);
+    var autoMax = Math.max(sum, values.length ? Math.max.apply(null, values) : 1, 1);
+    var scaleMax = num(source.scaleMax, autoMax);
+    if (!(scaleMax > 0)) scaleMax = autoMax;
+    var minWidth = Math.max(2, num(source.minWidth, 14));
+    var x = 0;
+    var outputSegments = segments.map(function (segment) {
+      var ratio = segment.value / scaleMax;
+      var rawWidth = ratio * 1000;
+      var zero = segment.value === 0;
+      var clamped = !zero && rawWidth < minWidth;
+      var displayWidth = zero ? minWidth : Math.max(minWidth, rawWidth);
+      var item = { id: segment.id, label: segment.label, value: segment.value, ratio: Math.round(ratio * 10000) / 10000, zero: zero, clamped: clamped, displayWidth: displayWidth, x: x };
+      x += displayWidth;
+      return item;
+    });
+    var indexById = Object.create(null);
+    segments.forEach(function (segment, index) { indexById[segment.id] = index; });
+    var ranges = array(source.ranges).map(function (item, index) {
+      var raw = isObject(item) ? item : {};
+      var startRef = raw.startId != null ? raw.startId : raw.start;
+      var endRef = raw.endId != null ? raw.endId : raw.end;
+      var startIndex = -1;
+      var endIndex = -1;
+      if (typeof startRef === 'number' && isFinite(startRef) && Math.floor(startRef) === startRef) startIndex = startRef;
+      else startIndex = Object.prototype.hasOwnProperty.call(indexById, textOrEmpty(startRef)) ? indexById[textOrEmpty(startRef)] : -1;
+      if (typeof endRef === 'number' && isFinite(endRef) && Math.floor(endRef) === endRef) endIndex = endRef;
+      else endIndex = Object.prototype.hasOwnProperty.call(indexById, textOrEmpty(endRef)) ? indexById[textOrEmpty(endRef)] : -1;
+      if (startIndex < 0 || endIndex < 0 || startIndex >= segments.length || endIndex >= segments.length) return null;
+      return {
+        id: textOrEmpty(raw.id) || ('range-' + (index + 1)),
+        label: raw.label == null ? '' : text(raw.label),
+        start: Math.min(startIndex, endIndex),
+        end: Math.max(startIndex, endIndex),
+        startId: segments[Math.min(startIndex, endIndex)].id,
+        endId: segments[Math.max(startIndex, endIndex)].id
+      };
+    }).filter(Boolean);
+    return {
+      segments: outputSegments,
+      totalValue: sum,
+      scaleMax: scaleMax,
+      minWidth: minWidth,
+      displayWidth: x,
+      ranges: ranges,
+      invalidRanges: array(source.ranges).length - ranges.length,
+      label: source.label == null ? '段条' : text(source.label)
+    };
+  }
+  function modelFromState(state, attachment) {
+    return {
+      segments: array(state.segments).map(function (segment) {
+        return { id: segment.id, label: segment.label, value: segment.value, ratio: segment.ratio, zero: segment.zero === true, clamped: segment.clamped === true, displayWidth: segment.displayWidth, x: segment.x };
+      }),
+      totalValue: state.totalValue,
+      scaleMax: state.scaleMax,
+      minWidth: state.minWidth,
+      displayWidth: state.displayWidth,
+      ranges: array(state.ranges).map(function (range) { return { id: range.id, label: range.label || '', start: range.start, end: range.end, startId: range.startId, endId: range.endId }; }),
+      invalidRanges: state.invalidRanges || 0,
+      label: attachment.label || '段条'
+    };
+  }
+  function diffGroups(source, target) {
+    var groups = [];
+    var before = Object.create(null);
+    source.segments.forEach(function (segment) { before[segment.id] = segment; });
+    target.segments.forEach(function (segment) {
+      var old = before[segment.id];
+      if (!old || old.value !== segment.value || old.label !== segment.label || old.zero !== segment.zero || old.displayWidth !== segment.displayWidth) groups.push('segment:' + segment.id);
+    });
+    var oldRanges = Object.create(null);
+    source.ranges.forEach(function (range) { oldRanges[range.id] = range; });
+    target.ranges.forEach(function (range) {
+      var old = oldRanges[range.id];
+      if (!old || old.start !== range.start || old.end !== range.end || old.label !== range.label) groups.push('range:' + range.id);
+    });
+    return groups;
+  }
+  function normalizeView(input) { return { model: normalizeRaw(input), cues: {} }; }
+  function validateAction() { fail('flow-segment 只用于 scene，不支持 actions。'); }
+  function mount(host, options) {
+    var config = isObject(options) ? options : {};
+    var attachment = { label: config.label == null ? '段条' : text(config.label) };
+    var api = componentApi();
+    var component = api.mount(host, config);
+    var destroyed = false;
+    function apply(model) {
+      component.update({
+        segments: model.segments.map(function (segment) { return { id: segment.id, label: segment.label, value: segment.value }; }),
+        scaleMax: model.scaleMax,
+        minWidth: model.minWidth,
+        ranges: model.ranges.map(function (range) { return { id: range.id, label: range.label, start: range.startId, end: range.endId }; }),
+        label: model.label
+      });
+      attachment.label = model.label;
+    }
+    var handle = {
+      restore: function (view) { if (!destroyed) apply(normalizeView(view).model); },
+      readView: function () { if (destroyed) return null; return { model: modelFromState(component.getState(), attachment), cues: {} }; },
+      target: function (query) {
+        if (destroyed || !isObject(query)) return null;
+        if (query.part === 'root' || query.part === 'component' || query.part === 'el') return component.el;
+        if (query.id != null) return component.getTarget(query.id);
+        if (query.target != null) return component.getTarget(query.target);
+        if (typeof query.part === 'string' && component.getTarget(query.part)) return component.getTarget(query.part);
+        return null;
+      },
+      prepareChange: function (ctx) {
+        if (destroyed) fail('已销毁的实例不能 prepareChange');
+        var source = normalizeView(ctx && ctx.sourceView).model;
+        var target = normalizeView(ctx && ctx.targetView).model;
+        var reduced = !!(ctx && ctx.motion === 'never');
+        var groups = diffGroups(source, target);
+        return {
+          groups: function () { return groups.slice(); },
+          commit: function () { apply(target); },
+          targets: function () { return []; },
+          effects: function (effectCtx) {
+            if (reduced) return [];
+            var timing = effectCtx && isObject(effectCtx.timing) ? effectCtx.timing : {};
+            var duration = typeof timing.enterDuration === 'number' ? Math.max(0, timing.enterDuration) : 420;
+            var specs = [];
+            groups.forEach(function (group) {
+              var key = group.indexOf('segment:') === 0 ? group.slice(8) : (group.indexOf('range:') === 0 ? group.slice(6) : group);
+              var node = component.getTarget(key);
+              if (!node) return;
+              specs.push({ el: node, keyframes: [{ opacity: '0.4' }, { opacity: '1' }], options: { duration: duration, easing: timing.easing }, group: group, gate: 'ready' });
+            });
+            return specs;
+          },
+          cleanup: function () {}
+        };
+      },
+      destroy: function () { if (destroyed) return; destroyed = true; component.destroy(); }
+    };
+    return handle;
+  }
+  Internals.adapters = Internals.adapters || {};
+  Internals.adapters[ADAPTER_NAME] = {
+    name: ADAPTER_NAME,
+    sceneModes: ['cut', 'update'],
+    defaultSceneMode: 'update',
+    sceneTimingDefaults: { enterDuration: 420, markDuration: 360 },
+    normalizeView: normalizeView,
+    validateAction: validateAction,
+    mount: mount
+  };
+})(window);
+
+/* ---- source: src/demo/adapters/flow-device.js ---- */
+/* NoteDemo Adapter — flow-device (D10 DeviceLinks scene adapter).
+ * Scope: window.NoteDemoInternals.adapters['flow-device']; registers itself, does not edit index.js.
+ * commit uses DeviceLinks.update; readView uses DeviceLinks.getState; groups are per changed
+ * device/link; reduced motion commits final state and returns no effects.
+ */
+(function (global) {
+  'use strict';
+  var Internals = global.NoteDemoInternals = global.NoteDemoInternals || {};
+  var ADAPTER_NAME = 'flow-device';
+  function componentApi() {
+    var Flow = global.NoteViz && global.NoteViz.Flow;
+    var api = Flow && Flow.DeviceLinks;
+    if (!api || typeof api.mount !== 'function') {
+      throw new Error('flow-devicelinks Adapter 需要先加载 NoteViz.Flow.DeviceLinks（flow-core.js + flow-device.js）；只加载 demo-runtime 时本 Adapter 可在真实挂载时再报错。');
+    }
+    return api;
+  }
+  function fail(message) { throw new Error(ADAPTER_NAME + ' Adapter：' + message); }
+  function isObject(value) { return !!value && typeof value === 'object' && !Array.isArray(value); }
+  function text(value) { return value == null ? '' : String(value); }
+  function textOrEmpty(value) { return value == null ? '' : String(value).trim(); }
+  function array(value) { return Array.isArray(value) ? value : []; }
+  function num(value, fallback) { var n = typeof value === 'number' ? value : Number(value); return isFinite(n) ? n : fallback; }
+  function normalizeRaw(input) {
+    var source = isObject(input) && isObject(input.model) ? input.model : (isObject(input) ? input : {});
+    var devices = array(source.devices).map(function (item, index) {
+      var raw = isObject(item) ? item : {};
+      var id = textOrEmpty(raw.id) || ('device-' + (index + 1));
+      var ports = array(raw.ports).map(function (portSource, portIndex) {
+        var port = isObject(portSource) ? portSource : {};
+        var portId = textOrEmpty(port.id) || ('port-' + (portIndex + 1));
+        return { id: portId, label: port.label == null ? portId : text(port.label) };
+      });
+      return { id: id, label: raw.label == null ? id : text(raw.label), status: textOrEmpty(raw.status), ports: ports };
+    });
+    var deviceById = Object.create(null);
+    devices.forEach(function (device) {
+      var ports = Object.create(null);
+      device.ports.forEach(function (port) { ports[port.id] = true; });
+      deviceById[device.id] = { ports: ports };
+    });
+    var links = array(source.links).map(function (item, index) {
+      var raw = isObject(item) ? item : {};
+      var from = isObject(raw.from) ? raw.from : {};
+      var to = isObject(raw.to) ? raw.to : {};
+      var fromDevice = textOrEmpty(from.device || from.deviceId || from[0]);
+      var fromPort = textOrEmpty(from.port || from.portId || from[1]);
+      var toDevice = textOrEmpty(to.device || to.deviceId || to[0]);
+      var toPort = textOrEmpty(to.port || to.portId || to[1]);
+      var fromInfo = deviceById[fromDevice];
+      var toInfo = deviceById[toDevice];
+      return {
+        id: textOrEmpty(raw.id) || ('link-' + (index + 1)),
+        from: { device: fromDevice, port: fromPort },
+        to: { device: toDevice, port: toPort },
+        label: raw.label == null ? '' : text(raw.label),
+        status: textOrEmpty(raw.status),
+        valid: !!(fromInfo && fromInfo.ports[fromPort] && toInfo && toInfo.ports[toPort])
+      };
+    });
+    return {
+      devices: devices,
+      links: links,
+      invalidLinks: links.filter(function (link) { return !link.valid; }).length,
+      label: source.label == null ? '设备连接' : text(source.label)
+    };
+  }
+  function modelFromState(state, attachment) {
+    return {
+      devices: array(state.devices).map(function (device) {
+        return { id: device.id, label: device.label, status: device.status || '', ports: array(device.ports).map(function (port) { return { id: port.id, label: port.label }; }) };
+      }),
+      links: array(state.links).map(function (link) {
+        return { id: link.id, from: { device: link.from.device, port: link.from.port }, to: { device: link.to.device, port: link.to.port }, label: link.label || '', status: link.status || '', valid: link.valid === true };
+      }),
+      invalidLinks: state.invalidLinks || 0,
+      label: attachment.label || '设备连接'
+    };
+  }
+  function diffGroups(source, target) {
+    var groups = [];
+    var beforeDevices = Object.create(null);
+    source.devices.forEach(function (device) { beforeDevices[device.id] = device; });
+    target.devices.forEach(function (device) {
+      var before = beforeDevices[device.id];
+      if (!before || before.label !== device.label || before.status !== device.status || JSON.stringify(before.ports) !== JSON.stringify(device.ports)) groups.push('device:' + device.id);
+    });
+    var beforeLinks = Object.create(null);
+    source.links.forEach(function (link) { beforeLinks[link.id] = link; });
+    target.links.forEach(function (link) {
+      var before = beforeLinks[link.id];
+      if (!before || before.label !== link.label || before.status !== link.status || JSON.stringify(before.from) !== JSON.stringify(link.from) || JSON.stringify(before.to) !== JSON.stringify(link.to)) groups.push('link:' + link.id);
+    });
+    return groups;
+  }
+  function normalizeView(input) { return { model: normalizeRaw(input), cues: {} }; }
+  function validateAction() { fail('flow-device 只用于 scene，不支持 actions。'); }
+  function mount(host, options) {
+    var config = isObject(options) ? options : {};
+    var attachment = { label: config.label == null ? '设备连接' : text(config.label) };
+    var api = componentApi();
+    var component = api.mount(host, config);
+    var destroyed = false;
+    function apply(model) {
+      component.update({
+        devices: model.devices,
+        links: model.links.map(function (link) {
+          return { id: link.id, from: { device: link.from.device, port: link.from.port }, to: { device: link.to.device, port: link.to.port }, label: link.label, status: link.status };
+        }),
+        label: model.label
+      });
+      attachment.label = model.label;
+    }
+    var handle = {
+      restore: function (view) { if (!destroyed) apply(normalizeView(view).model); },
+      readView: function () { if (destroyed) return null; return { model: modelFromState(component.getState(), attachment), cues: {} }; },
+      target: function (query) {
+        if (destroyed || !isObject(query)) return null;
+        if (query.part === 'root' || query.part === 'component' || query.part === 'el') return component.el;
+        if (query.id != null) return component.getTarget(query.id);
+        if (query.target != null) return component.getTarget(query.target);
+        if (typeof query.part === 'string' && component.getTarget(query.part)) return component.getTarget(query.part);
+        return null;
+      },
+      prepareChange: function (ctx) {
+        if (destroyed) fail('已销毁的实例不能 prepareChange');
+        var source = normalizeView(ctx && ctx.sourceView).model;
+        var target = normalizeView(ctx && ctx.targetView).model;
+        var reduced = !!(ctx && ctx.motion === 'never');
+        var groups = diffGroups(source, target);
+        return {
+          groups: function () { return groups.slice(); },
+          commit: function () { apply(target); },
+          targets: function () { return []; },
+          effects: function (effectCtx) {
+            if (reduced) return [];
+            var timing = effectCtx && isObject(effectCtx.timing) ? effectCtx.timing : {};
+            var duration = typeof timing.enterDuration === 'number' ? Math.max(0, timing.enterDuration) : 420;
+            var specs = [];
+            groups.forEach(function (group) {
+              var node = component.getTarget(group);
+              if (!node) return;
+              specs.push({ el: node, keyframes: [{ opacity: '0.3' }, { opacity: '1' }], options: { duration: duration, easing: timing.easing }, group: group, gate: 'ready' });
+            });
+            return specs;
+          },
+          cleanup: function () {}
+        };
+      },
+      destroy: function () { if (destroyed) return; destroyed = true; component.destroy(); }
+    };
+    return handle;
+  }
+  Internals.adapters = Internals.adapters || {};
+  Internals.adapters[ADAPTER_NAME] = {
+    name: ADAPTER_NAME,
+    sceneModes: ['cut', 'update'],
+    defaultSceneMode: 'update',
+    sceneTimingDefaults: { enterDuration: 420, markDuration: 360 },
+    normalizeView: normalizeView,
+    validateAction: validateAction,
+    mount: mount
+  };
+})(window);
+
 /* ---- source: src/demo/adapters/index.js ---- */
 /* NoteDemo Adapter registry — 汇总内置 Adapter。
  * Scope: window.NoteDemoInternals.adapters
- * Load after adapters/matrix.js、sequence.js、sequence-edit.js、sequence-insert.js、dom.js、expression.js。
+ * Load after adapters/matrix.js、sequence.js、sequence-edit.js、sequence-insert.js、dom.js、expression.js、table.js、flow-stage.js、flow-packet.js、flow-segment.js、flow-device.js。
  * 经典脚本，无模块/无网络/无 eval。
  */
 (function (global) {
   'use strict';
 
   var Internals = global.NoteDemoInternals = global.NoteDemoInternals || {};
-  var ORDER = ['matrix', 'sequence', 'sequence-edit', 'sequence-insert', 'dom', 'expression'];
+  var ORDER = ['matrix', 'sequence', 'sequence-edit', 'sequence-insert', 'dom', 'expression', 'table', 'flow-stage', 'flow-packet', 'flow-segment', 'flow-device'];
   var source = isObject(Internals.adapters) ? Internals.adapters : {};
   var adapters = {};
 

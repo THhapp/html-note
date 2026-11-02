@@ -16,11 +16,7 @@
     "core",
     "legacy",
     "ui-layout",
-    "ui-content",
-    "ui-navigation",
-    "viz-objects",
-    "viz-chart",
-    "blocks",
+    "demo-stage",
     "demo-runtime"
   ],
   "entries": []

@@ -9,12 +9,12 @@ B01–B04 · 类别「可复用组合块」 · 共识 K03 / K04 / K05 / K06 / K0
 
 | ID | 公开入口 | 源文件 | 作用 |
 | --- | --- | --- | --- |
-| B01 | `NoteBlocks.DemoStage` | `src/blocks/stage.js` / `stage.css` | 画面、固定字幕与基本控制的舞台 |
-| B02 | `NoteBlocks.StepPlayer` | `src/blocks/stage.js` / `stage.css` | 完整状态快照的逐停点步进 |
+| B01 | `NoteBlocks.DemoStage` | `src/blocks/demo-stage.js` / `demo-stage.css`（`demo-stage` 模块） | 画面、固定字幕与基本控制的舞台 |
+| B02 | `NoteBlocks.StepPlayer` | `src/blocks/stage.js` / `stage.css`（`blocks` 模块） | 完整状态快照的逐停点步进 |
 | B03 | `NoteBlocks.RuleCompare` | `src/blocks/compare.js` / `compare.css` | 规则表格、行列强调与说明 |
 | B04 | `NoteBlocks.StateCompare` | `src/blocks/compare.js` / `compare.css` | 前后对象、变化/未变标记与可选 Focus |
 
-B01–B10 共用 `src/blocks/shared.js`：它只定义内部 `window.NoteBlocksInternals`（元素创建、内容写入、宿主校验、依赖检查、幂等销毁、步进快照包装等），不是公开 API；模块加载时 `shared.js` 先于各块文件。
+B01–B10 共用 `src/blocks/shared.js`（`blocks-base` 模块）：它只定义内部 `window.NoteBlocksInternals`（元素创建、内容写入、宿主校验、依赖检查、幂等销毁、步进快照包装等），不是公开 API；`blocks-base` 必须先于 `demo-stage` 与 `blocks` 加载。
 
 组合块不另造基础控件，只调用公开接口：
 
@@ -34,6 +34,7 @@ B01–B10 共用 `src/blocks/shared.js`：它只定义内部 `window.NoteBlocksI
 <link rel="stylesheet" href="src/ui/controls.css">
 <link rel="stylesheet" href="src/ui/primitives.css">
 <link rel="stylesheet" href="src/expr/focus.css">
+<link rel="stylesheet" href="src/blocks/demo-stage.css">
 <link rel="stylesheet" href="src/blocks/stage.css">
 <link rel="stylesheet" href="src/blocks/compare.css">
 
@@ -48,12 +49,13 @@ B01–B10 共用 `src/blocks/shared.js`：它只定义内部 `window.NoteBlocksI
 <script src="src/ui/layout.js"></script>
 <script src="src/ui/content.js"></script>
 <script src="src/viz/objects.js"></script>
-<script src="src/blocks/shared.js"></script>
-<script src="src/blocks/stage.js"></script>
-<script src="src/blocks/compare.js"></script>
+<script src="src/blocks/shared.js"></script>       <!-- blocks-base -->
+<script src="src/blocks/demo-stage.js"></script>    <!-- demo-stage：B01 -->
+<script src="src/blocks/stage.js"></script>         <!-- blocks：B02 -->
+<script src="src/blocks/compare.js"></script>       <!-- blocks：B03–B04 -->
 ```
 
-B04 在 `NoteExpr` 不存在时会静默跳过 Focus，不抛错。`NoteViz.CompareView`、`NoteUI.Table` 等必需依赖未加载时，挂载会抛出具名依赖错误。`src/blocks/shared.js` 必须在各块文件之前加载；`src/manifests/blocks-stage.json` 与 `blocks-explain.json` 会并成同一个 `blocks` 模块，合并后的真实模块依赖为 `core`、`legacy`、`ui-layout`、`ui-content`、`ui-navigation`、`viz-objects`、`viz-chart`。
+B04 在 `NoteExpr` 不存在时会静默跳过 Focus，不抛错。`NoteViz.CompareView`、`NoteUI.Table` 等必需依赖未加载时，挂载会抛出具名依赖错误。`blocks-base` 提供 `shared.js`，`demo-stage` 提供 B01，`blocks` 提供 B02–B04；`blocks-stage.json` 与 `blocks-explain.json` 合并为同一 `blocks` 模块，依赖取并集（含 `blocks-base`、`demo-stage`、`viz-flow` 等）。只加载 `blocks` 模块时需先加载 `blocks-base` 与 `demo-stage`，否则 B02–B04 无法挂载。
 
 <a id="B01"></a>
 ## 2. B01 `NoteBlocks.DemoStage`
@@ -347,6 +349,6 @@ sc.getTarget('quota');
 ## 8. 可运行检查线索
 
 - 演示函数：`window.NoteGalleryDemos['B01']` … `['B04']`，位于 `gallery/demos/blocks-stage.js`。
-- 清单：`src/manifests/blocks-stage.json`。
+- 清单：`src/manifests/blocks-stage.json`（B02–B04）与 `src/manifests/demo-stage.json`（B01）。
 - 构建后分发：`dist/modules/blocks.js`、`dist/modules/blocks.css`（由构建脚本生成，不手改）。
 - 检查脚本在 `tests/checks/blocks-stage-*`（真实 Edge / Playwright）。截图、结果 JSON 与临时构建副本写入 `tests/.cache/`，打包已排除；具体结果以执行时输出为准，不替代用户评价。

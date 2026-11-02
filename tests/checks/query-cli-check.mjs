@@ -86,6 +86,23 @@ const r04Api = json(run(['read', 'R04', 'api', '--json']));
 expect(r04Api.ok === true && /数组/.test(r04Api.content), 'R04 API 含节点数组契约');
 const f10Api = json(run(['read', 'F10', 'api', '--json']));
 expect(f10Api.ok === true && /ticks/.test(f10Api.content) && /segments/.test(f10Api.content), 'F10 API 含刻度与分段');
+const compositionExample = json(run(['show', 'example:flow-composition', '--json']));
+expect(compositionExample.ok === true && compositionExample.entries && compositionExample.entries[0] && compositionExample.entries[0].resources.some((item) => item.key === 'example'),
+  'show example:flow-composition 返回完整示例', JSON.stringify(compositionExample.entries && compositionExample.entries[0] && compositionExample.entries[0].resources));
+const propagationEntry = json(run(['show', 'public:propagation', '--json']));
+expect(propagationEntry.ok === true && propagationEntry.entries && propagationEntry.entries[0] && propagationEntry.entries[0].resources.some((item) => item.key === 'api'),
+  'show public:propagation 返回 API 资源', JSON.stringify(propagationEntry.entries && propagationEntry.entries[0] && propagationEntry.entries[0].resources));
+const tableAdapterEntry = json(run(['show', 'public:table-adapter', '--json']));
+expect(tableAdapterEntry.ok === true && tableAdapterEntry.entries && tableAdapterEntry.entries[0] && tableAdapterEntry.entries[0].resources.some((item) => item.key === 'source'),
+  'show public:table-adapter 返回源码资源', JSON.stringify(tableAdapterEntry.entries && tableAdapterEntry.entries[0] && tableAdapterEntry.entries[0].resources));
+const flowStageEntry = json(run(['show', 'public:flow-stage-adapter', '--json']));
+expect(flowStageEntry.ok === true && flowStageEntry.entries && flowStageEntry.entries[0] && flowStageEntry.entries[0].resources.some((item) => item.key === 'source'),
+  'show public:flow-stage-adapter 返回源码资源', JSON.stringify(flowStageEntry.entries && flowStageEntry.entries[0] && flowStageEntry.entries[0].resources));
+const recipeComposition = json(run(['show', 'recipe:composition', '--json']));
+expect(recipeComposition.ok === true && recipeComposition.entries && recipeComposition.entries[0] && recipeComposition.entries[0].resources.some((item) => item.key === 'source'),
+  'show recipe:composition 返回配方源码', JSON.stringify(recipeComposition.entries && recipeComposition.entries[0] && recipeComposition.entries[0].resources));
+const flowKitDoc = json(run(['read', 'public:propagation', 'api', '--json']));
+expect(flowKitDoc.ok === true && /Propagation/.test(flowKitDoc.content), 'public:propagation API 含 Propagation 说明');
 const empty = json(run(['search', '不存在词xyz', '--json']));
 expect(empty.ok === true && empty.total === 0 && empty.results.length === 0 && empty.message, '空搜索是正常结果，不伪造推荐');
 

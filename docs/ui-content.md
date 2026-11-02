@@ -1,6 +1,6 @@
 # 文字与知识内容（ui-content）
 
-本文档对应 C01–C13，源码为 `src/ui/content.js|css` 与 `src/ui/expression.js|css`，演示为 `gallery/demos/ui-content.js`。组件只呈现宿主给出的文字与知识内容，不生成课程、测验、评分或教学流程（K13）。所有条目均为未评价候选（`userReview: not-reviewed`），技术自检不代表用户审美认可。
+本文档对应 C01–C13，源码为 `src/ui/content.js|css`、`src/ui/table.js|css` 与 `src/ui/expression.js|css`（模块内拆分，不是独立分发模块），演示为 `gallery/demos/ui-content.js`。组件只呈现宿主给出的文字与知识内容，不生成课程、测验、评分或教学流程（K13）。所有条目均为未评价候选（`userReview: not-reviewed`），技术自检不代表用户审美认可。
 
 ## 1. 范围与加载顺序
 
@@ -19,17 +19,19 @@
    - `vendor/katex/katex.min.js`（C09 渲染公式）；
    - `vendor/katex/katex.min.css`（C09 排版与字体）。
    - **marked、KaTeX 的脚本和 KaTeX CSS 必须在 `src/ui/content.js` 之前加载。** 未加载时 C09/C10 会显示可读错误，而不是抛到页面外。
-4. 最后加载 `src/ui/content.css`、`src/ui/content.js`，再加载 `src/ui/expression.css`、`src/ui/expression.js`（Expression 复用 C09 Math）。
+4. 按 `src/ui/content.css` → `src/ui/table.css` → `src/ui/expression.css` 的顺序加载样式，再按 `src/ui/content.js` → `src/ui/table.js` → `src/ui/expression.js` 的顺序加载脚本。C06 Table 的维护源是 `src/ui/table.js|css`，`content.js|css` 只提供其余内容组件；Expression 复用 C09 Math。
 
 ```html
 <link rel="stylesheet" href="src/core/tokens.css">
 <link rel="stylesheet" href="src/core/base.css">
 <link rel="stylesheet" href="vendor/katex/katex.min.css">
 <link rel="stylesheet" href="src/ui/content.css">
+<link rel="stylesheet" href="src/ui/table.css">
 <script src="src/core/core.js"></script>
 <script src="vendor/marked/marked.umd.js"></script>
 <script src="vendor/katex/katex.min.js"></script>
 <script src="src/ui/content.js"></script>
+<script src="src/ui/table.js"></script>
 ```
 
 构建后的 `dist/modules/ui-content.js|css` 已把 marked、KaTeX 与 KaTeX 字体样式打包/内嵌在 content 模块中，只需先加载 core：
@@ -193,6 +195,8 @@ list.update({ variant: 'unordered', items: ['替换项'] });
 ## 7. C06 NoteUI.Table
 
 <a id="C06"></a>
+
+维护源：`src/ui/table.js|css`；由 `ui-content` 模块随 `content.js|css` 一起分发，不是独立模块。
 
 ```js
 var table = NoteUI.Table.mount(host, {

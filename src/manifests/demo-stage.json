@@ -1,0 +1,85 @@
+{
+  "module": "demo-stage",
+  "title": "默认演示舞台",
+  "js": [
+    "src/blocks/demo-stage.js"
+  ],
+  "css": [
+    "src/blocks/demo-stage.css"
+  ],
+  "demos": [
+    "gallery/demos/blocks-stage.js"
+  ],
+  "dependencies": [
+    "core",
+    "legacy",
+    "ui-layout",
+    "blocks-base"
+  ],
+  "entries": [
+    {
+      "id": "B01",
+      "name": "NoteBlocks.DemoStage",
+      "cn": "演示舞台",
+      "category": "可复用组合块",
+      "purpose": "组织宿主提供的演示画面、位置稳定的字幕与基本控制，不规定统一尺寸，也不安装整页主题。",
+      "inputs": [
+        "title",
+        "stage",
+        "caption",
+        "controls",
+        "maxWidth",
+        "minStageHeight",
+        "label"
+      ],
+      "customizable": [
+        "标题与可访问名称",
+        "画面 DOM 或纯文本",
+        "字幕文本",
+        "按钮配置或宿主 DOM 控件",
+        "最大宽度与可选最小舞台高度"
+      ],
+      "states": [
+        "短/长字幕且字幕区保持稳定",
+        "切换画面内容",
+        "无控件/禁用控件/带图标控件",
+        "宿主提供 DOM 控件",
+        "窄容器换行",
+        "销毁后无控件实例残留"
+      ],
+      "usage": "var stage = NoteBlocks.DemoStage.mount(host, { title: '演示', stage: node, caption: '初始字幕', controls: [{ label: '下一步', onClick: fn }], maxWidth: '56rem' });",
+      "dependencies": [
+        "core",
+        "ui-layout",
+        "legacy",
+        "blocks-base"
+      ],
+      "source": [
+        "src/blocks/demo-stage.js",
+        "src/blocks/demo-stage.css"
+      ],
+      "demo": "gallery/demos/blocks-stage.js#B01",
+      "preview": "gallery/index.html#B01",
+      "example": "examples/run.html?id=B01",
+      "limitations": [
+        "字幕区固定预留约两行高度；更长的字幕仍会自然增高，不对跨停点高度作强制裁切。",
+        "不规定演示画面的宽高、边框或背景，也不管理和销毁宿主放进舞台的子组件；宿主应自行清理。",
+        "控件配置图标若为名称，需要 NoteCore.icons；未知图标名称会按 NoteUI.Button 的原行为降级，不报错。",
+        "不提供整页主题、自动播放或控件之外的全页键盘操作。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "新增候选，未获用户评价",
+      "consensus": [
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K09",
+        "K12",
+        "K13"
+      ],
+      "docs": "docs/blocks-stage.md#B01",
+      "notes": "B01 已拆到 demo-stage 模块，组合 NoteUI.Stack、Inline 与 Button；返回 stageEl/captionEl，供 StepPlayer 和宿主复用。"
+    }
+  ]
+}

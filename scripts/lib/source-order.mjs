@@ -10,8 +10,8 @@
 export const MODULE_ORDER = [
   'core', 'legacy', 'ui-layout', 'ui-content', 'ui-actions', 'ui-navigation',
   'ui-forms-basic', 'ui-forms-advanced', 'ui-overlay', 'ui-feedback',
-  'ui-extended', 'viz-objects', 'viz-flow', 'viz-mechanisms', 'viz-chart', 'blocks',
-  'demo-runtime', 'demo-ui'
+  'ui-extended', 'viz-objects', 'viz-flow', 'viz-mechanisms', 'viz-chart', 'blocks-base',
+  'demo-stage', 'blocks', 'demo-runtime', 'demo-ui'
 ];
 
 export const CORE_JS_ORDER = ['core.js', 'icons-data.js', 'icons.js', 'motion.js', 'floating.js'];

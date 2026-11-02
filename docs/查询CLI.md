@@ -26,6 +26,11 @@ node scripts/query.mjs show example:continuous-scene
 node scripts/query.mjs show example:flow-kit
 node scripts/query.mjs show public:continuous-adapter
 node scripts/query.mjs show public:timing-facts
+node scripts/query.mjs show public:table-adapter
+node scripts/query.mjs show public:flow-packet-adapter
+node scripts/query.mjs show public:propagation
+node scripts/query.mjs show example:flow-composition
+node scripts/query.mjs show recipe:composition
 node scripts/query.mjs show tool:inspect-note
 node scripts/query.mjs read D01 api
 node scripts/query.mjs read D01 source --limit 80
@@ -183,8 +188,9 @@ Skill 主体及参考正文继续承接[既有提示词与共识](提示词撰�
 
 ## 已知限制
 
-- 查询语料覆盖 23 个组件和 11 个主题/工具/示例条目；其余 82 个条目的名称、ID、类别和用途能查，但没有补充别名/适用边界。
+- 查询语料覆盖 23 个组件和 19 个主题/工具/示例条目；其余 82 个条目的名称、ID、类别和用途能查，但没有补充别名/适用边界。
 - 搜索是本地子串与少量身份/前缀排序，不做中文分词、语义检索或课程主题推荐；未命中不代表库缺能力。
 - 资源引用失效时 `read` 明确失败，不会回退到另一接口；条目跨文档的完整参数仍由现行 API 文档维护。
 - `read` 按行分页，超长代码/小节需要继续读取；不提供全文归档或浏览器运行结果。
+- `public:timing-facts` 的 `watch()` 按会话 `session.__sessionId` 隔离，只收同一会话事实；`collect()` 是全局收集并保留 `sessionId`，两者都默认关闭、只在内存、不写文件。
 - [html-note-authoring](../skills/html-note-authoring/SKILL.md) 连接 CLI，并随附制作底稿、共识与验证正文。

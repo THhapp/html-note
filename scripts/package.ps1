@@ -102,6 +102,7 @@ try {
     'scripts/lib/note-browser.mjs', 'scripts/lib/inspect-session.mjs', 'tests/checks/query-cli-check.mjs',
     'tests/checks/expand-ui-check.mjs', 'tests/checks/flow-kit-check.mjs',
     'tests/checks/scene-adapter-check.mjs', 'tests/checks/expand-graphics-check.mjs',
+    'tests/checks/timing-session-check.mjs', 'tests/checks/flow-scene-check.mjs',
     'scripts/package.ps1', 'scripts/expected-ids.json', 'scripts/lib/source-order.mjs',
     'gallery/index.html', 'gallery/gallery.js', 'gallery/gallery.css',
     'examples/authoring/index.html', 'examples/demo-runtime/index.html',
@@ -113,9 +114,12 @@ try {
     'examples/continuous-scene/scene.js', 'examples/continuous-scene/adapter.js',
     'examples/continuous-scene/demo.js', 'examples/continuous-scene/README.md',
     'examples/flow-kit/index.html', 'examples/flow-kit/flow-kit.css', 'examples/flow-kit/flow-kit.js', 'examples/flow-kit/README.md',
+    'examples/flow-composition/index.html', 'examples/flow-composition/flow-composition.css',
+    'examples/flow-composition/flow-composition.js', 'examples/flow-composition/README.md',
     'dist/note-library.js', 'dist/note-library.css', 'dist/registry.js',
     'dist/组件库-预览.html', 'dist/作者装配与聚焦-预览.html',
     'dist/传播过程与局部过渡-预览.html', 'dist/连续画面局部变化-预览.html', 'dist/图形扩展-中性示例.html',
+    'dist/流程组合-预览.html',
     'dist/modules/demo-runtime.js', 'dist/modules/demo-ui.js'
   ) + @($manifestRequired | Select-Object -Unique)
   $missing = @($required | Where-Object { $entryNames -notcontains $_ })

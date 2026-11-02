@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>流程组合 · Stage / Packet / 状态表 · NoteDemo</title>
+  <link rel="stylesheet" href="../../dist/note-library.css">
+  <link rel="stylesheet" href="flow-composition.css">
+</head>
+<body>
+  <main class="fc-page">
+    <header class="fc-head">
+      <p class="fc-kicker">NOTE DEMO · FLOW COMPOSITION</p>
+      <h1 class="fc-title">流程组合：阶段、报文与状态表</h1>
+      <p class="fc-lede">
+        两段真实 NoteDemo 都使用 <code>NoteDemoRecipes</code>：上段是 <code>stagePacket</code>（阶段轨 + 报文流 + 读数），
+        下段是 <code>diagramTable</code>（报文流 + 状态表 + 读数）。两段定义都由 <code>repeatStages</code> 从同一组领域快照展开，
+        字幕、读数、图形显现与阶段状态都从同一份快照派生，没有第二套播放器。
+      </p>
+      <p class="fc-lede fc-lede--sub">
+        四类区域都使用正式 Adapter 的 Binding 插槽：阶段 <code>flow-stage</code>、报文 <code>flow-packet</code>、
+        状态表 <code>table</code>、读数 <code>dom</code>。配方只负责槽位、布局与清理；画面推进、字幕和状态都由同一个
+        NoteDemo 会话驱动，页面只订阅 <code>phase</code> 写状态文字。
+      </p>
+    </header>
+
+    <section class="fc-demo" aria-labelledby="fc-a-title">
+      <div class="fc-demo-head">
+        <h2 id="fc-a-title">阶段 + 报文 + 读数</h2>
+        <p class="fc-phase">会话状态：<span data-flow-phase="stage-packet" data-phase="unknown">未知</span></p>
+      </div>
+      <p class="fc-note">
+        <code>stagePacket</code> 负责区域骨架与清理；阶段轨的当前/目标、PacketFlow 的显现条数和右侧读数都来自同一个停点快照。
+      </p>
+      <div data-flow-host="stage-packet"></div>
+    </section>
+
+    <section class="fc-demo" aria-labelledby="fc-b-title">
+      <div class="fc-demo-head">
+        <h2 id="fc-b-title">图形 + 状态表</h2>
+        <p class="fc-phase">会话状态：<span data-flow-phase="diagram-table" data-phase="unknown">未知</span></p>
+      </div>
+      <p class="fc-note">
+        <code>diagramTable</code> 放报文流和状态表；表格只重算行数据，不改列结构。状态表与按序显现的报文共用同一个停点快照。
+      </p>
+      <div data-flow-host="diagram-table"></div>
+    </section>
+
+    <section class="fc-demo" aria-labelledby="fc-c-title">
+      <div class="fc-demo-head">
+        <h2 id="fc-c-title">展开说明</h2>
+      </div>
+      <p class="fc-note">
+        每个停点由 <code>RepeatStages</code> 从 <code>items</code> + <code>expand(item, index)</code> 生成 Frame/Transition；
+        作者提供字幕、视图替换和 scene；配方不猜知识因果，也不生成第二套 Definition。
+      </p>
+      <div class="fc-meta">
+        <p>报文数量：<span data-flow-readout="messages">0</span></p>
+        <p>阶段数量：<span data-flow-readout="stages">0</span></p>
+        <p>说明：本页只使用本地静态数据、离线脚本和普通 DOM；无网络请求。</p>
+      </div>
+    </section>
+
+    <footer class="fc-foot">
+      <p>源码：<code>examples/flow-composition/flow-composition.js</code> + <code>flow-composition.css</code>；配方在 <code>src/demo/recipes.js</code>。</p>
+      <p>加载顺序：整库 <code>dist/note-library.js/css</code> → 本页演示脚本；公共层负责会话、字幕、控件与状态，页面不创建播放器。</p>
+    </footer>
+  </main>
+
+  <script src="../../dist/note-library.js"></script>
+  <script src="flow-composition.js"></script>
+</body>
+</html>

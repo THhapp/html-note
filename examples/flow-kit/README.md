@@ -1,6 +1,6 @@
 # Flow Kit · 流程与连接图形中性示例
 
-本目录演示独立图形模块 **`viz-flow`**（D07–D10）：阶段轨、消息流、分段长度条、设备连接。四个图形各自 `mount`，由宿主提供数据、状态、显现进度和按钮操作；组件不内置课程规则、自动播放、计时器或第三方库。
+本目录演示独立图形模块 **`viz-flow`**（D07–D10）：阶段轨、消息流、分段长度条、设备连接，以及沿路径传播机制 `NoteViz.Flow.Propagation`。四个图形各自 `mount`，由宿主提供数据、状态、显现进度和按钮操作；传播副本也由宿主调用 `update(progress)` 推进。组件不内置课程规则、自动播放、计时器或第三方库。
 
 完整接口、目标约定与边界见[流程与连接图形](../../docs/viz-flow.md)。本 README 只说明示例文件、打开方式和最小接法。
 
@@ -25,7 +25,7 @@ node scripts/build-demo-preview.mjs --template examples/flow-kit/index.html --ou
 | 文件 | 职责 |
 | --- | --- |
 | `index.html` | 开发入口，也是单文件预览模板；四个图形各占一个 section。 |
-| `flow-kit.js` | 示例数据、四个独立实例、按钮动作与读数的宿主接线；不含播放器。 |
+| `flow-kit.js` | 示例数据、四个独立实例、设备连接路径上的传播副本、按钮动作与读数；不含播放器。 |
 | `flow-kit.css` | 示例页外壳与卡片排版；不定义组件内部视觉。 |
 | `README.md` | 本文件。 |
 
@@ -122,6 +122,27 @@ var point = links.pointAt('ab', 0.5);        // {x, y, angle, length, total}，S
 ```
 
 连接是真实 SVG `<path>`，可查询长度与路径点；`pointAt` 将比例夹紧到 0–1，返回弧度角与长度，供宿主做传播采样，不创建移动副本或播放器。未知设备/端口的连接会被跳过并提示数量。
+
+### Propagation（沿路径传播）
+
+DeviceLinks 的示例路径同时挂一个 `NoteViz.Flow.Propagation`：
+
+```js
+var runner = NoteViz.Flow.Propagation.mount(deviceLinks.getTarget('svg'), {
+  label: '连接传播示例',
+  paths: { ab: deviceLinks.getLinkPath('link-ab') },
+  copies: [
+    { id: 'packet-1', pathId: 'ab' },
+    { id: 'packet-2', pathId: 'ab', offset: -0.18 }
+  ]
+});
+runner.update(0.5);                 // 0–1，由宿主显式推进
+runner.getTarget('packet-1');       // 副本 <g>
+runner.getState();                  // { progress, start, end, copies:[{id,ratio,x,y,outside}] }
+runner.destroy();
+```
+
+`start`/`end` 限定本次推进的路径区间，`offset` 支持全局或按副本偏移；宿主是 SVG 元素时直接追加副本组，普通 HTML 宿主会创建覆盖 SVG。组件不创建计时器或 rAF，也不代表协议到达/接受。完整接口见 [docs/viz-flow.md](../../docs/viz-flow.md#propagation)。
 
 ## 共同约定
 

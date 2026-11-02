@@ -1,9 +1,12 @@
 /* NoteBlocks B08 — SequenceDiagram.
  * A bounded, host-data sequence diagram (participants, lifelines, ordered
- * messages, current message). It composes NoteBlocks.StepPlayer for the
- * stop controls and caption; the diagram itself is a small SVG renderer, not a
- * general graph editor. No automatic playback and no network access.
- * Loads after src/blocks/shared.js (internal helpers, not a public entry).
+ * messages, current message). It composes NoteBlocks.StepPlayer for stop
+ * controls and caption; participant/lifeline/message drawing comes from the
+ * public NoteViz.Flow.PacketFlow renderer. This block owns the stop player,
+ * legend/hint, warnings, stable target mapping and the current-message scroll.
+ * No automatic playback and no network access.
+ * Loads after src/blocks/shared.js (internal helpers, not a public entry) and
+ * after the viz-flow module (PacketFlow).
  */
 (function (global) {
   'use strict';
@@ -18,26 +21,15 @@
   var own = shared.own;
   var text = shared.text;
   var make = shared.make;
-  var uniqueId = shared.uniqueId;
   var validateHost = shared.validateHost;
   var requireComponents = shared.requireComponents;
   var safeDestroy = shared.safeDestroy;
   var array = shared.array;
-  var SVG_NS = 'http://www.w3.org/2000/svg';
   var TYPES = {
-    sync: { label: '同步', line: 'is-sync' },
-    async: { label: '异步', line: 'is-async' },
-    return: { label: '返回', line: 'is-return' }
+    sync: { label: '同步' },
+    async: { label: '异步' },
+    return: { label: '返回' }
   };
-  function svgEl(tag, attributes) {
-    var node = global.document.createElementNS(SVG_NS, tag);
-    if (attributes) {
-      Object.keys(attributes).forEach(function (name) {
-        node.setAttribute(name, text(attributes[name]));
-      });
-    }
-    return node;
-  }
 
   function typeInfo(value) {
     return TYPES[value] || TYPES.sync;
@@ -45,61 +37,6 @@
 
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
-  }
-
-  function charUnits(char) {
-    var code = char.codePointAt ? char.codePointAt(0) : char.charCodeAt(0);
-    return code > 0x2e7f ? 2 : 1;
-  }
-
-  function wrapText(value, maxUnits, maxLines) {
-    var source = text(value).replace(/\s+/g, ' ').trim();
-    if (!source) return { lines: [''], truncated: false };
-    var lines = [];
-    var current = '';
-    var units = 0;
-    var chars = Array.from ? Array.from(source) : source.split('');
-    chars.forEach(function (char) {
-      var width = char === ' ' ? 1 : charUnits(char);
-      if (units + width > maxUnits && current) {
-        lines.push(current.trim());
-        current = '';
-        units = 0;
-      }
-      current += char;
-      units += width;
-    });
-    if (current.trim()) lines.push(current.trim());
-    if (!lines.length) lines.push('');
-    if (lines.length <= maxLines) return { lines: lines, truncated: false };
-    var visible = lines.slice(0, maxLines);
-    var last = visible[maxLines - 1];
-    while (last.length) {
-      var lastUnits = 0;
-      Array.from(last).some(function (char) {
-        lastUnits += char === ' ' ? 1 : charUnits(char);
-        return lastUnits > maxUnits - 1;
-      });
-      if (lastUnits <= maxUnits - 1) break;
-      last = Array.from(last).slice(0, -1).join('');
-    }
-    visible[maxLines - 1] = last + '…';
-    return { lines: visible, truncated: true };
-  }
-
-  function appendLines(parent, lines, options) {
-    var settings = options || {};
-    var firstX = settings.x == null ? 0 : settings.x;
-    var firstY = settings.y == null ? 0 : settings.y;
-    var lineHeight = settings.lineHeight == null ? 16 : settings.lineHeight;
-    lines.forEach(function (line, index) {
-      var tspan = svgEl('tspan', {
-        x: firstX,
-        y: firstY + index * lineHeight
-      });
-      tspan.textContent = line;
-      parent.appendChild(tspan);
-    });
   }
 
   function resolveCurrent(value, messages) {
@@ -133,7 +70,7 @@
     version: '1.0.0',
     mount: function (host, options) {
       validateHost(host, 'NoteBlocks.SequenceDiagram');
-      requireComponents('NoteBlocks.SequenceDiagram', ['NoteBlocks.StepPlayer', 'NoteUI.Button']);
+      requireComponents('NoteBlocks.SequenceDiagram', ['NoteBlocks.StepPlayer', 'NoteUI.Button', 'NoteViz.Flow.PacketFlow']);
       var C = core();
       var input = options || {};
       var raw = {
@@ -248,260 +185,73 @@
         return wrapper && wrapper.state ? wrapper.state : null;
       }
 
-      function buildMarkers(defs) {
-        var base = uniqueId('nblk-sequence-arrow');
-        var markers = {};
-        ['sync', 'async', 'return'].forEach(function (type) {
-          markers[type] = {};
-          [false, true].forEach(function (current) {
-            var id = base + '-' + type + (current ? '-current' : '');
-            var marker = svgEl('marker', {
-              id: id,
-              viewBox: '0 0 10 10',
-              refX: '9',
-              refY: '5',
-              markerWidth: '8',
-              markerHeight: '8',
-              orient: 'auto'
-            });
-            var path = svgEl('path', {
-              d: type === 'return' ? 'M 1 1 L 9 5 L 1 9' : 'M 0 0 L 10 5 L 0 10 z',
-              class: 'nblk-sequence-diagram__arrowhead' +
-                (type === 'return' ? ' is-return' : '') +
-                (current ? ' is-current' : '')
-            });
-            marker.appendChild(path);
-            defs.appendChild(marker);
-            markers[type][current ? 'current' : 'normal'] = id;
-          });
-        });
-        return markers;
-      }
-
+      /* PacketFlow 负责参与者、生命线、消息线与当前行；B08 只保留块级 chrome、
+         StepPlayer 停点与公开目标映射，不再私有绘制消息图。 */
       function renderDiagram(message, context) {
         var index = context.index;
         renderedIndex = index;
         var wrap = make('div', 'nblk-sequence-diagram__layout');
-        var titleId = uniqueId('nblk-sequence-title');
-        var descId = uniqueId('nblk-sequence-desc');
-        var svgTitleText = (raw.title || raw.label || '消息时序');
         var contextText = text(raw.caption).trim();
-
         if (contextText) {
-          var contextEl = make('p', 'nblk-sequence-diagram__context', contextText);
-          wrap.appendChild(contextEl);
+          wrap.appendChild(make('p', 'nblk-sequence-diagram__context', contextText));
         }
-
         if (transformed.warnings.length) {
           var warning = make('p', 'nblk-sequence-diagram__warning', transformed.warnings.join(' '));
           warning.setAttribute('role', 'status');
           wrap.appendChild(warning);
         }
-
-        var viewport = make('div', 'nblk-sequence-diagram__viewport');
-        viewport.tabIndex = 0;
-        viewport.setAttribute('role', 'region');
-        viewport.setAttribute('aria-label', (raw.label || '消息时序') + '，可滚动查看全部参与者与消息');
-        var svg = svgEl('svg', {
-          class: 'nblk-sequence-diagram__svg',
-          role: 'group',
-          'aria-labelledby': titleId + ' ' + descId,
-          focusable: 'false'
+        var Flow = global.NoteViz && global.NoteViz.Flow;
+        if (!Flow || !Flow.PacketFlow || typeof Flow.PacketFlow.mount !== 'function') {
+          throw new Error('NoteBlocks.SequenceDiagram 需要先加载 NoteViz.Flow.PacketFlow（viz-flow 模块）。');
+        }
+        var label = raw.label || '消息时序';
+        var diagramHost = make('div', 'nblk-sequence-diagram__diagram');
+        wrap.appendChild(diagramHost);
+        var flow = Flow.PacketFlow.mount(diagramHost, {
+          participants: transformed.participants.map(function (participant) {
+            return { id: participant.id, label: participant.label, note: participant.note };
+          }),
+          messages: transformed.messages.map(function (item) {
+            return {
+              id: item.id,
+              from: item.from,
+              to: item.to,
+              label: typeInfo(item.type).label + ' · ' + (item.label || '未命名消息'),
+              type: item.type,
+              note: item.note || ''
+            };
+          }),
+          visibleCount: transformed.messages.length,
+          focus: message ? message.id : null,
+          showIndexes: true,
+          label: label
         });
-        var titleEl = svgEl('title', { id: titleId });
-        titleEl.textContent = svgTitleText;
-        var descEl = svgEl('desc', { id: descId });
-        descEl.textContent = '共 ' + transformed.participants.length + ' 位参与者、' +
-          transformed.messages.length + ' 条消息。' +
-          (message
-            ? '当前为第 ' + (index + 1) + ' 条：' + message.fromLabel + ' 到 ' +
-              message.toLabel + '，' + message.typeLabel + '，' + message.label + '。'
-            : '当前没有消息。');
-        svg.append(titleEl, descEl);
-
-        var defs = svgEl('defs');
-        var markers = buildMarkers(defs);
-        svg.appendChild(defs);
-
-        var count = transformed.participants.length;
-        var width = Math.max(580, 274 + Math.max(0, count - 1) * 220);
-        var headerTop = 14;
-        var headerHeight = 68;
-        var headerBottom = headerTop + headerHeight;
-        var boxWidth = 170;
-        var leftCenter = 124;
-        var rightCenter = width - 110;
-        var centers = transformed.participants.map(function (participant, participantIndex) {
-          if (count === 1) return width / 2;
-          return leftCenter + participantIndex * (rightCenter - leftCenter) / (count - 1);
-        });
-        var rowTop = 104;
-        var rowHeight = 92;
-        var height = rowTop + transformed.messages.length * rowHeight + 22;
-
-        svg.setAttribute('width', String(Math.ceil(width)));
-        svg.setAttribute('height', String(Math.ceil(height)));
-        svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
-
-        var participantTargets = Object.create(null);
+        var svg = flow.getTarget('svg');
+        if (svg && svg.classList) svg.classList.add('nblk-sequence-diagram__svg');
+        var viewport = flow.getTarget('viewport');
+        if (viewport) {
+          /* PacketFlow 负责绘图与横向滚动；B08 继续保留原视口的纵向高度语义。 */
+          viewport.style.maxHeight = 'min(34rem, 66vh)';
+          viewport.style.overflowY = 'auto';
+          viewport.setAttribute('role', 'region');
+          viewport.setAttribute('aria-label', label + '，可滚动查看全部参与者与消息');
+        }
         var messageTargets = Object.create(null);
-
-        var lifelines = svgEl('g', { class: 'nblk-sequence-diagram__lifelines', 'aria-hidden': 'true' });
-        transformed.participants.forEach(function (participant, participantIndex) {
-          lifelines.appendChild(svgEl('line', {
-            x1: centers[participantIndex],
-            y1: headerBottom,
-            x2: centers[participantIndex],
-            y2: height - 16,
-            class: 'nblk-sequence-diagram__lifeline'
-          }));
+        var participantTargets = Object.create(null);
+        transformed.participants.forEach(function (participant) {
+          var node = flow.getTarget('participant:' + participant.id);
+          if (!node) return;
+          node.setAttribute('data-participant-id', participant.id);
+          participantTargets[participant.id] = node;
         });
-        svg.appendChild(lifelines);
-
-        transformed.participants.forEach(function (participant, participantIndex) {
-          var center = centers[participantIndex];
-          var group = svgEl('g', {
-            class: 'nblk-sequence-diagram__participant',
-            'data-participant-id': participant.id,
-            role: 'group',
-            'aria-label': '参与者：' + participant.label + (participant.note ? '，' + participant.note : '')
-          });
-          var full = svgEl('title');
-          full.textContent = participant.label + (participant.note ? '：' + participant.note : '');
-          group.appendChild(full);
-          group.appendChild(svgEl('rect', {
-            x: center - boxWidth / 2,
-            y: headerTop,
-            width: boxWidth,
-            height: headerHeight,
-            rx: 8,
-            class: 'nblk-sequence-diagram__participant-box'
-          }));
-          var wrapped = wrapText(participant.label, 20, 2);
-          var labelEl = svgEl('text', {
-            x: center,
-            y: participant.note ? 38 : (wrapped.lines.length > 1 ? 38 : 48),
-            'text-anchor': 'middle',
-            class: 'nblk-sequence-diagram__participant-label'
-          });
-          appendLines(labelEl, wrapped.lines, {
-            x: center,
-            y: participant.note ? 38 : (wrapped.lines.length > 1 ? 38 : 48),
-            lineHeight: 16
-          });
-          group.appendChild(labelEl);
-          if (participant.note) {
-            var noteWrap = wrapText(participant.note, 24, 1);
-            var noteEl = svgEl('text', {
-              x: center,
-              y: 68,
-              'text-anchor': 'middle',
-              class: 'nblk-sequence-diagram__participant-note'
-            });
-            noteEl.textContent = noteWrap.lines[0] || '';
-            group.appendChild(noteEl);
-          }
-          participantTargets[participant.id] = group;
-          svg.appendChild(group);
+        transformed.messages.forEach(function (item) {
+          var node = flow.getTarget('message:' + item.id);
+          if (!node) return;
+          node.setAttribute('data-message-id', item.id);
+          messageTargets[item.id] = node;
         });
+        refs = { messages: messageTargets, participants: participantTargets };
 
-        transformed.messages.forEach(function (item, itemIndex) {
-          var current = itemIndex === index;
-          var fromCenter = centers[transformed.participants.indexOf(transformed.participantById[item.from])];
-          var toCenter = centers[transformed.participants.indexOf(transformed.participantById[item.to])];
-          if (fromCenter == null) fromCenter = leftCenter;
-          if (toCenter == null) toCenter = rightCenter;
-          var lineY = rowTop + itemIndex * rowHeight + 48;
-          var group = svgEl('g', {
-            class: 'nblk-sequence-diagram__message' +
-              (current ? ' is-current' : '') +
-              ' ' + typeInfo(item.type).line,
-            'data-message-id': item.id,
-            role: 'group',
-            'aria-label': '第 ' + (itemIndex + 1) + ' 条消息，' +
-              item.fromLabel + ' 到 ' + item.toLabel + '，' + item.typeLabel + '，' +
-              item.label + (current ? '，当前消息' : '')
-          });
-          if (current) group.setAttribute('aria-current', 'step');
-          var full = svgEl('title');
-          full.textContent = item.fromLabel + ' → ' + item.toLabel + '：' + item.label +
-            '（' + item.typeLabel + '）' + (item.note ? '。' + item.note : '');
-          group.appendChild(full);
-
-          if (current) {
-            group.appendChild(svgEl('rect', {
-              x: 8,
-              y: rowTop + itemIndex * rowHeight + 2,
-              width: width - 16,
-              height: rowHeight - 6,
-              rx: 8,
-              class: 'nblk-sequence-diagram__current-row'
-            }));
-          }
-
-          var lineClass = 'nblk-sequence-diagram__message-line ' + typeInfo(item.type).line +
-            (current ? ' is-current' : '');
-          if (Math.abs(fromCenter - toCenter) < 1) {
-            var loop = svgEl('path', {
-              d: 'M ' + fromCenter + ' ' + lineY +
-                ' C ' + (fromCenter + 76) + ' ' + (lineY - 38) + ' ' +
-                (fromCenter + 76) + ' ' + (lineY + 38) + ' ' +
-                (fromCenter + 4) + ' ' + (lineY + 16),
-              class: lineClass,
-              'marker-end': 'url(#' + markers[item.type][current ? 'current' : 'normal'] + ')'
-            });
-            group.appendChild(loop);
-          } else {
-            var line = svgEl('line', {
-              x1: fromCenter,
-              y1: lineY,
-              x2: toCenter,
-              y2: lineY,
-              class: lineClass,
-              'marker-end': 'url(#' + markers[item.type][current ? 'current' : 'normal'] + ')'
-            });
-            group.appendChild(line);
-          }
-
-          var labelX = Math.abs(fromCenter - toCenter) < 1
-            ? clamp(fromCenter + 96, 96, width - 96)
-            : clamp((fromCenter + toCenter) / 2, 92, width - 92);
-          var labelText = item.typeLabel + ' · ' + (item.label || '未命名消息');
-          var wrappedLabel = wrapText(labelText, 38, 2);
-          var labelEl = svgEl('text', {
-            x: labelX,
-            y: lineY - (wrappedLabel.lines.length > 1 ? 28 : 14),
-            'text-anchor': 'middle',
-            class: 'nblk-sequence-diagram__message-label' + (current ? ' is-current' : '')
-          });
-          appendLines(labelEl, wrappedLabel.lines, {
-            x: labelX,
-            y: lineY - (wrappedLabel.lines.length > 1 ? 28 : 14),
-            lineHeight: 15
-          });
-          group.appendChild(labelEl);
-
-          var number = svgEl('text', {
-            x: 16,
-            y: current ? lineY - 5 : lineY + 4,
-            class: 'nblk-sequence-diagram__row-number'
-          });
-          number.textContent = String(itemIndex + 1).padStart(2, '0');
-          group.appendChild(number);
-          if (current) {
-            var currentTag = svgEl('text', {
-              x: 16,
-              y: lineY + 13,
-              class: 'nblk-sequence-diagram__current-tag'
-            });
-            currentTag.textContent = '当前';
-            group.appendChild(currentTag);
-          }
-          messageTargets[item.id] = group;
-          svg.appendChild(group);
-        });
-
-        viewport.appendChild(svg);
         var hint = make('p', 'nblk-sequence-diagram__hint',
           '消息按编号自上而下排列；实线为同步，虚线为异步，点线为返回。参与者较多时可在图内滚动。');
         var legend = make('div', 'nblk-sequence-diagram__legend');
@@ -517,12 +267,10 @@
           entry.textContent = item.text;
           legend.appendChild(entry);
         });
-
-        wrap.append(viewport, hint, legend);
+        wrap.append(hint, legend);
         context.stageEl.appendChild(wrap);
-        refs = { messages: messageTargets, participants: participantTargets };
 
-        if (message && messageTargets[message.id] &&
+        if (message && messageTargets[message.id] && viewport &&
             typeof C.scrollIntoViewIfNeeded === 'function') {
           C.scrollIntoViewIfNeeded(messageTargets[message.id], viewport, {
             block: 'nearest',
@@ -532,9 +280,12 @@
 
         return function cleanup() {
           refs = { messages: Object.create(null), participants: Object.create(null) };
+          safeDestroy(flow);
+          flow = null;
           wrap.remove();
         };
       }
+
 
       function applyCurrentAfterUpdate(patch) {
         if (!own(patch, 'current')) return;

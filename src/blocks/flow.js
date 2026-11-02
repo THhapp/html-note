@@ -1,8 +1,9 @@
 /* NoteBlocks B07 — ProcessFlow.
  * Composes public NoteBlocks.StepPlayer, NoteViz.Graph and NoteUI.Steps.
- * Flow data and stops are host-owned. Node focus uses the Graph public API;
- * Graph currently exposes node targets but no edge focus/target API, so the
- * current edge set is also stated in a readable relation strip below the graph.
+ * Flow data and stops are host-owned. Node focus and edge focus/changed use the
+ * Graph public options; current edge targets are Graph.getEdgeTarget() rather
+ * than a parallel text card. The relation area keeps only supplementary text
+ * (route/label/warnings), never the only edge emphasis.
  * No automatic playback, no general-purpose flow editor.
  * Loads after src/blocks/shared.js (internal helpers, not a public entry).
  */
@@ -58,6 +59,7 @@
       };
       var destroyed = false;
       var player = null;
+      var liveGraph = null;   // 跨停点复用的 Graph 实例；只通过公开 mount/update/getTarget 操作
       var refs = { graph: null, edges: Object.create(null), unresolved: Object.create(null), progress: null, stepIds: Object.create(null) };
 
       function nodeMap() {
@@ -74,8 +76,11 @@
         return node && node.label != null ? text(node.label) : (id == null ? '未指定' : text(id));
       }
 
+      /* 与 NoteViz.Graph 的 normalizeGraphEdges 使用同一套稳定 ID 规则，
+         这样 getTarget('edge:<key>') 才能直接对应 Graph.getEdgeTarget(key)。 */
       function edgeRecords() {
         var routeSeen = Object.create(null);
+        var used = Object.create(null);
         return state.edges.map(function (edge, index) {
           var source = edge && typeof edge === 'object' ? edge : {};
           var from = source.from == null ? '' : text(source.from);
@@ -83,10 +88,17 @@
           var route = from + ' -> ' + to;
           var routeCount = routeSeen[route] || 0;
           routeSeen[route] = routeCount + 1;
-          var key;
-          if (source.id != null && text(source.id) !== '') key = text(source.id);
-          else if (routeCount === 0) key = route;
-          else key = route + ' #' + (routeCount + 1);
+          var base;
+          if (source.id != null && text(source.id) !== '') base = text(source.id);
+          else if (routeCount === 0) base = route;
+          else base = route + ' #' + (routeCount + 1);
+          var key = base;
+          var suffix = 1;
+          while (used[key]) {
+            suffix += 1;
+            key = base + ' #' + suffix;
+          }
+          used[key] = true;
           return {
             key: key,
             route: route,
@@ -112,10 +124,8 @@
         });
       }
 
-      function resolveEdgesForStep(step, records) {
-        var refsIn = step && step.edgeIds != null
-          ? (Array.isArray(step.edgeIds) ? step.edgeIds : [step.edgeIds])
-          : [];
+      function resolveEdgeRefs(refsValue, records) {
+        var refsIn = refsValue == null ? [] : (Array.isArray(refsValue) ? refsValue : [refsValue]);
         var resolved = [];
         var unresolved = [];
         refsIn.forEach(function (ref) {
@@ -158,51 +168,133 @@
           '第 ' + (stepIndex + 1) + ' / ' + state.steps.length + ' 个停点。节点关注由宿主停点数据指定。');
         summary.append(summaryTitle, summaryMeta);
 
+        var records = edgeRecords();
+        var focusRelation = resolveEdgeRefs(step && step.edgeIds, records);
+        var changedRelation = resolveEdgeRefs(step && step.changedEdgeIds, records);
+        var focusKeys = focusRelation.edges.map(function (record) { return record.key; });
+        var changedKeys = changedRelation.edges.map(function (record) { return record.key; });
+
         var canvas = make('div', 'nblk-flow__canvas');
-        var graph = V.Graph.mount(canvas, {
+        var graphOptions = {
           nodes: state.nodes,
           edges: state.edges,
           layout: hasManualPositions(state.nodes) ? 'manual' : 'layered',
           focus: exists ? [stepNode] : [],
           changed: [],
+          /* 边强调在图中由 Graph 的公开状态表达；关系区只保留文字说明与警告。 */
+          edgeFocus: focusKeys,
+          edgeChanged: changedKeys,
           label: (state.label || '流程') + '：' + currentLabel
-        });
+        };
+        var graph;
+        if (!liveGraph) {
+          graph = V.Graph.mount(canvas, graphOptions);
+          liveGraph = graph;
+        } else {
+          /* 停点切换/flow.update 复用同一 Graph：节点与边按稳定 ID 保留目标，
+             只更新 focus/edgeFocus/edgeChanged 与数据，避免每步重建 SVG。 */
+          graph = liveGraph;
+          canvas.appendChild(graph.el);
+          graph.update(graphOptions);
+        }
         refs.graph = graph;
 
-        var records = edgeRecords();
-        var relation = resolveEdgesForStep(step, records);
+        var canEdgeTargets = typeof graph.getEdgeTarget === 'function';
+        var refsEdges = Object.create(null);
+        var refsUnresolved = Object.create(null);
+        var missingEdges = Object.create(null);
+        function registerRecord(record) {
+          if (!canEdgeTargets) return;
+          var target = graph.getEdgeTarget(record.key);
+          if (target) refsEdges[record.key] = target;
+          else missingEdges[record.key] = record;
+        }
+        focusRelation.edges.forEach(registerRecord);
+        changedRelation.edges.forEach(registerRecord);
+
         var relations = make('section', 'nblk-flow__relations');
         var relationsTitle = make('h4', 'nblk-flow__relations-title', '本步关系');
         relations.appendChild(relationsTitle);
+        if (focusRelation.edges.length || changedRelation.edges.length) {
+          relations.appendChild(make('p', 'nblk-flow__relations-meta',
+            '边强调已画在图中；这里只补充起止节点、边标签和未解析引用。'));
+        }
         var relationList = make('div', 'nblk-flow__relation-list');
+        var changedOnly = changedRelation.edges.filter(function (record) {
+          return focusRelation.edges.indexOf(record) < 0;
+        });
 
-        if (!relation.edges.length && !relation.unresolved.length) {
+        if (!focusRelation.edges.length && !changedRelation.edges.length &&
+            !focusRelation.unresolved.length && !changedRelation.unresolved.length) {
           relationList.appendChild(make('p', 'nblk-flow__relation-empty',
             '本停点未指定边；当前关注节点仍由图中虚线标记。'));
         }
-        relation.edges.forEach(function (record) {
-          var card = make('div', 'nblk-flow__relation');
-          card.setAttribute('data-edge-key', record.key);
-          var tag = make('span', 'nblk-flow__relation-tag', '当前边');
+
+        function relationRow(record, tagText) {
+          var row = make('div', 'nblk-flow__relation');
+          row.setAttribute('data-edge-key', record.key);
+          var tag = make('span', 'nblk-flow__relation-tag', tagText);
           var route = make('span', 'nblk-flow__relation-route',
             nodeLabel(record.from) + ' → ' + nodeLabel(record.to));
           var label = record.label
             ? make('span', 'nblk-flow__relation-label', record.label)
             : null;
-          card.append(tag, route);
-          if (label) card.appendChild(label);
-          relationList.appendChild(card);
-          refs.edges[record.key] = card;
+          row.append(tag, route);
+          if (label) row.appendChild(label);
+          relationList.appendChild(row);
+          return row;
+        }
+
+        focusRelation.edges.forEach(function (record) {
+          var both = changedRelation.edges.indexOf(record) >= 0;
+          var row = relationRow(record, both ? '当前边 · 变化边' : '当前边');
+          if (canEdgeTargets) {
+            if (!refsEdges[record.key]) row.classList.add('nblk-flow__relation--missing');
+          } else {
+            refsEdges[record.key] = row;   // 旧版 Graph 回退：关系行仍是可查询目标
+          }
         });
-        relation.unresolved.forEach(function (key) {
+        changedOnly.forEach(function (record) {
+          var row = relationRow(record, '变化边');
+          if (canEdgeTargets) {
+            if (!refsEdges[record.key]) row.classList.add('nblk-flow__relation--missing');
+          } else if (!refsEdges[record.key]) {
+            refsEdges[record.key] = row;
+          }
+        });
+
+        function addUnresolved(key, changedFlag) {
           var card = make('div', 'nblk-flow__relation nblk-flow__relation--missing');
-          var tag = make('span', 'nblk-flow__relation-tag', '未找到边');
+          card.setAttribute('data-edge-key', key);
+          var tag = make('span', 'nblk-flow__relation-tag', changedFlag ? '未找到变化边' : '未找到边');
           var msg = make('span', 'nblk-flow__relation-route',
             '停点引用了边 ' + key + '，但 edges 中没有匹配的 id、from -> to 或索引。');
           card.append(tag, msg);
           relationList.appendChild(card);
-          refs.unresolved[key] = card;
+          refsUnresolved[key] = card;
+        }
+        focusRelation.unresolved.forEach(function (key) { addUnresolved(key, false); });
+        changedRelation.unresolved.forEach(function (key) {
+          if (!refsUnresolved[key]) addUnresolved(key, true);
         });
+
+        if (canEdgeTargets) {
+          Object.keys(missingEdges).forEach(function (key) {
+            if (refsUnresolved[key]) return;
+            var record = missingEdges[key];
+            var card = make('div', 'nblk-flow__relation nblk-flow__relation--missing');
+            card.setAttribute('data-edge-key', key);
+            var tag = make('span', 'nblk-flow__relation-tag', '边不在图中');
+            var msg = make('span', 'nblk-flow__relation-route',
+              '边「' + record.key + '」引用存在，但 Graph 未渲染该边（端点无效或 ID 冲突）。');
+            card.append(tag, msg);
+            relationList.appendChild(card);
+            refsUnresolved[key] = card;
+          });
+        }
+
+        refs.edges = refsEdges;
+        refs.unresolved = refsUnresolved;
         relations.appendChild(relationList);
 
         var noteHost = make('div', 'nblk-flow__note');
@@ -253,7 +345,7 @@
         return function cleanup() {
           safeDestroy(stepsInstance);
           safeDestroy(notice);
-          safeDestroy(graph);
+          /* Graph 保留给下一个停点/update 复用；由 destroyBlock 统一销毁。 */
           refs = { graph: null, edges: Object.create(null), unresolved: Object.create(null), progress: null, stepIds: Object.create(null) };
           wrap.remove();
         };
@@ -323,6 +415,10 @@
         refs = { graph: null, edges: Object.create(null), unresolved: Object.create(null), progress: null, stepIds: Object.create(null) };
         safeDestroy(player);
         player = null;
+        if (liveGraph) {
+          safeDestroy(liveGraph);
+          liveGraph = null;
+        }
       }
 
       return {

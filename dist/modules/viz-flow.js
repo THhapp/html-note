@@ -4,16 +4,12 @@
  * generated-by: scripts/build.mjs; do-not-edit.
  */
 
-/* ---- source: src/viz/flow.js ---- */
+/* ---- source: src/viz/flow-core.js ---- */
 /*!
- * NoteViz Flow — independent flow graphics kit (StageTrack / PacketFlow / SegmentBar / DeviceLinks).
- * Scope: window.NoteViz.Flow only. Does not depend on any other NoteViz component, course rule,
- * timer/player or third-party library. Optional dependency: window.NoteCore.component for
- * update/destroy lifecycle (falls back to a local implementation when NoteCore is absent).
- * Public contract (all four): mount(host, options) -> { el, update(patch), destroy(), getTarget(id) }.
- * DeviceLinks additionally exposes getLinkPath(id) and pointAt(id, ratio).
- * CSS scope: .nviz-flow-* in src/viz/flow.css.
- * Stable IDs: every input id is preserved on data-id; update(patch) reconciles by id and reuses DOM.
+ * NoteViz Flow — shared foundation (helpers, namespace, Propagation).
+ * Scope: window.NoteViz.Flow namespace + window.NoteVizFlowInternals.
+ * Four graphics live in flow-stage.js / flow-packet.js / flow-segment.js / flow-device.js.
+ * Optional dependency: window.NoteCore.component; local fallback otherwise.
  * No network, no eval, no HTML parsing, no automatic playback.
  */
 (function (global) {
@@ -23,6 +19,7 @@
   var Core = global.NoteCore || null;
   var SVG_NS = 'http://www.w3.org/2000/svg';
   var VERSION = '1.0.0';
+  NoteViz.Flow = NoteViz.Flow || {};
 
   /* ---------------- shared helpers ---------------- */
 
@@ -181,6 +178,242 @@
     });
     return set;
   }
+
+
+  /* ---------------- Propagation：沿 SVG path 的公共传播机制 ---------------- */
+
+  var Propagation = {};
+  Propagation.version = VERSION;
+  Propagation.mount = function (host, options) {
+    validateHost(host, 'NoteViz.Flow.Propagation');
+    var model = Object.assign({
+      path: null,
+      paths: null,
+      copies: 1,
+      start: 0,
+      end: 1,
+      offset: 0,
+      rotate: false,
+      className: '',
+      label: '传播'
+    }, options || {});
+    var destroyed = false;
+    var svgHost = host.namespaceURI === SVG_NS ? host : null;
+    var root = svgEl('g', { class: 'nviz-flow-propagation', role: 'group' });
+    if (model.label) root.setAttribute('aria-label', text(model.label));
+    var overlay = null;
+    if (svgHost) {
+      svgHost.appendChild(root);
+    } else {
+      overlay = svgEl('svg', { class: 'nviz-flow-propagation__host', 'aria-hidden': 'true' });
+      overlay.appendChild(root);
+      host.appendChild(overlay);
+      svgHost = overlay;
+    }
+    var copyNodes = new Map();
+    var pathNodes = new Map();
+    var currentProgress = 0;
+
+    function resolvePath(value) {
+      if (!value) return null;
+      if (value.nodeType === 1 && value.namespaceURI === SVG_NS) return value;
+      if (typeof value !== 'string') return null;
+      var node = value.charAt(0) === '#' ? document.getElementById(value.slice(1)) : document.querySelector(value);
+      return node && node.namespaceURI === SVG_NS ? node : null;
+    }
+
+    function pathEntries() {
+      var entries = [];
+      if (model.path) entries.push({ id: '', path: resolvePath(model.path) });
+      if (model.paths && typeof model.paths === 'object') {
+        Object.keys(model.paths).forEach(function (key) {
+          entries.push({ id: key, path: resolvePath(model.paths[key]) });
+        });
+      }
+      entries = entries.filter(function (entry) { return !!entry.path; });
+      entries.forEach(function (entry) {
+        if (entry.id) pathNodes.set(entry.id, entry.path);
+      });
+      return entries;
+    }
+
+    function normalizeCopies() {
+      var list;
+      if (Array.isArray(model.copies)) list = model.copies;
+      else {
+        var count = Math.max(0, Math.floor(numberOr(model.copies, 1)));
+        list = [];
+        for (var i = 0; i < count; i += 1) list.push(null);
+      }
+      return list.map(function (source, index) {
+        var item = source && typeof source === 'object' ? source : {};
+        return {
+          id: textOrEmpty(item.id) || defaultId('copy', index),
+          pathId: item.pathId == null ? '' : text(item.pathId),
+          path: item.path == null ? null : item.path,
+          offset: item.offset,
+          className: item.className == null ? '' : text(item.className),
+          rotate: item.rotate
+        };
+      });
+    }
+
+    function offsetFor(copy, index) {
+      if (copy.offset != null) return numberOr(copy.offset, 0);
+      if (Array.isArray(model.offset)) return numberOr(model.offset[index], 0);
+      return numberOr(model.offset, 0);
+    }
+
+    function copyPath(copy, entries) {
+      if (copy.path) return resolvePath(copy.path);
+      if (copy.pathId) {
+        for (var i = 0; i < entries.length; i += 1) if (entries[i].id === copy.pathId) return entries[i].path;
+        return pathNodes.get(copy.pathId) || null;
+      }
+      return entries.length ? entries[0].path : null;
+    }
+
+    function place(progress) {
+      var value = typeof progress === 'number' ? progress : (progress && progress.progress);
+      currentProgress = clamp(numberOr(value, 0), 0, 1);
+      var entries = pathEntries();
+      var copies = normalizeCopies();
+      var seen = Object.create(null);
+      copies.forEach(function (copy, index) {
+        var node = copyNodes.get(copy.id);
+        if (!node) {
+          node = svgEl('g', { class: 'nviz-flow-propagation__copy', 'data-id': copy.id });
+          node.appendChild(svgEl('circle', { class: 'nviz-flow-propagation__marker', r: 5 }));
+          root.appendChild(node);
+          copyNodes.set(copy.id, node);
+        }
+        if (copy.className) node.setAttribute('class', 'nviz-flow-propagation__copy ' + copy.className);
+        else node.setAttribute('class', 'nviz-flow-propagation__copy');
+        seen[copy.id] = true;
+        var path = copyPath(copy, entries);
+        var offset = offsetFor(copy, index);
+        var ratio = model.start + (model.end - model.start) * currentProgress + offset;
+        var inside = ratio >= 0 && ratio <= 1;
+        var clampedRatio = clamp(ratio, 0, 1);
+        node.setAttribute('data-ratio', String(Math.round(clampedRatio * 10000) / 10000));
+        node.setAttribute('data-offset', String(offset));
+        node.setAttribute('data-path-id', copy.pathId || '');
+        if (!path) {
+          node.setAttribute('data-missing-path', 'true');
+          node.setAttribute('transform', 'translate(-9999,-9999)');
+          return;
+        }
+        node.removeAttribute('data-missing-path');
+        var total = 0;
+        try { total = path.getTotalLength(); } catch (error) { total = 0; }
+        if (!(total > 0)) {
+          node.setAttribute('data-missing-path', 'true');
+          node.setAttribute('transform', 'translate(-9999,-9999)');
+          return;
+        }
+        var point = path.getPointAtLength(total * clampedRatio);
+        var transform = 'translate(' + point.x.toFixed(2) + ',' + point.y.toFixed(2) + ')';
+        if (model.rotate === true || copy.rotate === true) {
+          var before = path.getPointAtLength(clamp(total * clampedRatio - 2, 0, total));
+          var after = path.getPointAtLength(clamp(total * clampedRatio + 2, 0, total));
+          var angle = Math.atan2(after.y - before.y, after.x - before.x);
+          transform += ' rotate(' + (angle * 180 / Math.PI).toFixed(2) + ')';
+        }
+        node.setAttribute('transform', transform);
+        node.setAttribute('data-x', point.x.toFixed(2));
+        node.setAttribute('data-y', point.y.toFixed(2));
+        if (inside) node.removeAttribute('data-outside');
+        else node.setAttribute('data-outside', 'true');
+      });
+      Array.from(copyNodes.keys()).forEach(function (id) {
+        if (seen[id]) return;
+        var node = copyNodes.get(id);
+        if (node && node.parentNode) node.parentNode.removeChild(node);
+        copyNodes.delete(id);
+      });
+    }
+
+    var instance = { el: root };
+    Object.defineProperty(instance, 'destroyed', { enumerable: true, get: function () { return destroyed; } });
+    instance.update = function (progress) {
+      if (destroyed) return;
+      place(progress);
+    };
+    instance.getTarget = function (id) {
+      if (destroyed || id == null) return null;
+      var key = text(id);
+      if (key === 'group' || key === 'root') return root;
+      if (key === 'svg') return svgHost;
+      if (key.indexOf('path:') === 0) return pathNodes.get(key.slice(5)) || null;
+      if (copyNodes.has(key)) return copyNodes.get(key);
+      return null;
+    };
+    instance.getState = function () {
+      if (destroyed) return null;
+      return {
+        progress: currentProgress,
+        start: model.start,
+        end: model.end,
+        copies: Array.from(copyNodes.keys()).map(function (id) {
+          var node = copyNodes.get(id);
+          return {
+            id: id,
+            ratio: Number(node.getAttribute('data-ratio')),
+            x: Number(node.getAttribute('data-x')),
+            y: Number(node.getAttribute('data-y')),
+            outside: node.getAttribute('data-outside') === 'true'
+          };
+        })
+      };
+    };
+    instance.destroy = function () {
+      if (destroyed) return;
+      destroyed = true;
+      try {
+        if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        else if (root.parentNode) root.parentNode.removeChild(root);
+      } catch (error) { /* ignore */ }
+      copyNodes.clear();
+      pathNodes.clear();
+    };
+    place(0);
+    return instance;
+  };
+  NoteViz.Flow.Propagation = Propagation;
+
+
+  global.NoteVizFlowInternals = {
+    version: VERSION,
+    SVG_NS: SVG_NS,
+    text: text, own: own, array: array, isNode: isNode, el: el, svgEl: svgEl,
+    setAttrs: setAttrs, setText: setText, clear: clear, numberOr: numberOr,
+    clamp: clamp, textOrEmpty: textOrEmpty, uniqueId: uniqueId,
+    validateHost: validateHost, defaultId: defaultId, component: component,
+    makeSvgAccessible: makeSvgAccessible, setViewportMessage: setViewportMessage,
+    normalizeStatus: normalizeStatus, statusList: statusList
+  };
+})(window);
+
+/* ---- source: src/viz/flow-stage.js ---- */
+/*!
+ * NoteViz Flow — StageTrack.
+ * Scope: window.NoteViz.Flow; shared helpers live in flow-core.js.
+ * Plain classic script, no modules/network/eval/third-party. Load after flow-core.js.
+ */
+(function (global) {
+  'use strict';
+
+  var NoteViz = global.NoteViz = global.NoteViz || {};
+  var shared = global.NoteVizFlowInternals;
+  var VERSION = shared && shared.version ? shared.version : '1.0.0';
+  if (!shared) throw new Error('NoteViz.Flow StageTrack 需要先加载 src/viz/flow-core.js。');
+  var text = shared.text, own = shared.own, array = shared.array, isNode = shared.isNode,
+    el = shared.el, svgEl = shared.svgEl, setAttrs = shared.setAttrs, setText = shared.setText,
+    clear = shared.clear, numberOr = shared.numberOr, clamp = shared.clamp, textOrEmpty = shared.textOrEmpty,
+    uniqueId = shared.uniqueId, validateHost = shared.validateHost, defaultId = shared.defaultId,
+    component = shared.component, makeSvgAccessible = shared.makeSvgAccessible,
+    setViewportMessage = shared.setViewportMessage, normalizeStatus = shared.normalizeStatus,
+    statusList = shared.statusList;
 
   /* ---------------- StageTrack ---------------- */
 
@@ -391,14 +624,96 @@
       if (key === 'bypasses') return bypasses;
       return null;
     };
+    instance.getState = function () {
+      if (instance.destroyed) return null;
+      var stages = normalizeStages();
+      var stageIndexById = Object.create(null);
+      stages.forEach(function (stage, index) { stageIndexById[stage.id] = index; });
+      var skippedSet = statusList(model.skipped);
+      var failedSet = statusList(model.failed);
+      var current = textOrEmpty(model.current);
+      var target = textOrEmpty(model.target);
+      var currentIndex = own(stageIndexById, current) ? stageIndexById[current] : -1;
+      var bypass = normalizeBypasses(stageIndexById);
+      return {
+        stages: stages.map(function (stage, index) {
+          var status = deriveStatus(stage, index, currentIndex, skippedSet, failedSet);
+          return { id: stage.id, label: stage.label, status: status, target: !!target && stage.id === target };
+        }),
+        current: own(stageIndexById, current) ? current : null,
+        target: own(stageIndexById, target) ? target : null,
+        skipped: stages.filter(function (stage) { return skippedSet[stage.id]; }).map(function (stage) { return stage.id; }),
+        failed: stages.filter(function (stage) { return failedSet[stage.id]; }).map(function (stage) { return stage.id; }),
+        bypass: bypass.valid.map(function (item) { return { from: item.from, to: item.to, label: item.label, id: item.key }; }),
+        invalidBypass: bypass.invalid
+      };
+    };
+
     render({});
     return instance;
   };
 
-  /* ---------------- PacketFlow ---------------- */
+
+  NoteViz.Flow = NoteViz.Flow || {};
+  NoteViz.Flow.StageTrack = StageTrack;
+})(window);
+
+/* ---- source: src/viz/flow-packet.js ---- */
+/*!
+ * NoteViz Flow — PacketFlow (D08 message flow).
+ * Scope: window.NoteViz.Flow.PacketFlow; shared helpers in flow-core.js.
+ * B08-compatible shapes: message type sync|async|return, dashed override, self loop, status,
+ * participant note, two-line labels with full text in <title>, optional indexes/focus band,
+ * viewport target. Reveal state is host-owned; no player/timer/rAF.
+ */
+(function (global) {
+  'use strict';
+
+  var NoteViz = global.NoteViz = global.NoteViz || {};
+  var shared = global.NoteVizFlowInternals;
+  if (!shared) throw new Error('NoteViz.Flow PacketFlow 需要先加载 src/viz/flow-core.js。');
+  var text = shared.text, own = shared.own, array = shared.array, isNode = shared.isNode,
+    el = shared.el, svgEl = shared.svgEl, setAttrs = shared.setAttrs, setText = shared.setText,
+    numberOr = shared.numberOr, textOrEmpty = shared.textOrEmpty, validateHost = shared.validateHost,
+    component = shared.component, makeSvgAccessible = shared.makeSvgAccessible,
+    setViewportMessage = shared.setViewportMessage, normalizeStatus = shared.normalizeStatus,
+    statusList = shared.statusList, defaultId = shared.defaultId;
+
+  var TYPES = { sync: 'sync', async: 'async', return: 'return' };
+
+  function wrapText(value, maxUnits, maxLines) {
+    var source = text(value).replace(/\s+/g, ' ').trim();
+    if (!source) return { lines: [''], truncated: false };
+    var lines = [];
+    var current = '';
+    var units = 0;
+    Array.from(source).forEach(function (char) {
+      var width = char === ' ' ? 1 : (char.codePointAt(0) > 0x2e7f ? 2 : 1);
+      if (units + width > maxUnits && current) {
+        lines.push(current.trim());
+        current = '';
+        units = 0;
+      }
+      current += char;
+      units += width;
+    });
+    if (current.trim()) lines.push(current.trim());
+    if (!lines.length) lines.push('');
+    if (lines.length <= maxLines) return { lines: lines, truncated: false };
+    return { lines: lines.slice(0, maxLines), truncated: true };
+  }
+
+  function setLines(node, lines) {
+    while (node.firstChild) node.removeChild(node.firstChild);
+    lines.forEach(function (line, index) {
+      var tspan = svgEl('tspan', { x: node.getAttribute('x'), dy: index === 0 ? '0' : '15' });
+      tspan.textContent = line;
+      node.appendChild(tspan);
+    });
+  }
 
   var PacketFlow = {};
-  PacketFlow.version = VERSION;
+  PacketFlow.version = '1.0.0';
   PacketFlow.mount = function (host, options) {
     validateHost(host, 'NoteViz.Flow.PacketFlow');
     var root = el('div', 'nviz-flow-packetflow');
@@ -413,10 +728,11 @@
     host.appendChild(root);
 
     var accessible = makeSvgAccessible(svg, '消息流', '参与者与按顺序显现的消息方向；内容由宿主提供。', 'nviz-flow-packetflow');
+    var focusLayer = svgEl('g', { class: 'nviz-flow-packetflow__focus-layer' });
     var participantLayer = svgEl('g', { class: 'nviz-flow-packetflow__participants' });
     var lifelineLayer = svgEl('g', { class: 'nviz-flow-packetflow__lifelines' });
     var messageLayer = svgEl('g', { class: 'nviz-flow-packetflow__messages' });
-    svg.append(participantLayer, lifelineLayer, messageLayer);
+    svg.append(focusLayer, participantLayer, lifelineLayer, messageLayer);
 
     var model = Object.assign({
       participants: [],
@@ -424,18 +740,25 @@
       revealed: null,
       visibleCount: null,
       focus: null,
+      showIndexes: false,
       label: '消息流'
     }, options || {});
 
     var participantNodes = new Map();
     var lifelineNodes = new Map();
     var messageNodes = new Map();
+    var shownMessages = [];
 
     function normalizeParticipants() {
       return array(model.participants).map(function (source, index) {
         var item = source && typeof source === 'object' && !isNode(source) ? source : {};
         var id = textOrEmpty(item.id) || defaultId('participant', index);
-        return { id: id, label: item.label == null ? id : text(item.label), status: normalizeStatus(item.status), raw: item };
+        return {
+          id: id,
+          label: item.label == null ? id : text(item.label),
+          note: item.note == null ? '' : text(item.note),
+          status: normalizeStatus(item.status)
+        };
       });
     }
 
@@ -445,14 +768,18 @@
         var id = textOrEmpty(item.id) || defaultId('message', index);
         var from = textOrEmpty(item.from);
         var to = textOrEmpty(item.to);
+        var type = TYPES[normalizeStatus(item.type)] || 'sync';
+        var dashed = typeof item.dashed === 'boolean' ? item.dashed : null;
         return {
           id: id,
           from: from,
           to: to,
           label: item.label == null ? '' : text(item.label),
+          note: item.note == null ? '' : text(item.note),
+          type: type,
+          dashed: dashed,
           status: normalizeStatus(item.status),
-          valid: own(participantIndexById, from) && own(participantIndexById, to),
-          raw: item
+          valid: own(participantIndexById, from) && own(participantIndexById, to)
         };
       });
     }
@@ -460,7 +787,7 @@
     function revealedSet(messages) {
       if (model.revealed != null) return statusList(model.revealed);
       if (model.visibleCount != null) {
-        var count = clamp(Math.floor(numberOr(model.visibleCount, messages.length)), 0, messages.length);
+        var count = Math.max(0, Math.min(messages.length, Math.floor(numberOr(model.visibleCount, messages.length))));
         var set = Object.create(null);
         messages.slice(0, count).forEach(function (message) { set[message.id] = true; });
         return set;
@@ -468,6 +795,30 @@
       var all = Object.create(null);
       messages.forEach(function (message) { all[message.id] = true; });
       return all;
+    }
+
+    function effectiveDashed(message) {
+      if (message.type === 'return') return false;
+      if (message.dashed === true) return true;
+      if (message.dashed === false) return false;
+      return message.type === 'async';
+    }
+
+    function lineDash(message) {
+      if (message.type === 'return') return '2 4';
+      if (message.type === 'async' || message.dashed === true) return '7 5';
+      return null;
+    }
+
+    function arrowPath(tip, y, direction, open) {
+      if (open) {
+        return 'M ' + (tip - direction * 10).toFixed(1) + ' ' + (y - 5) +
+          ' L ' + tip.toFixed(1) + ' ' + y +
+          ' L ' + (tip - direction * 10).toFixed(1) + ' ' + (y + 5);
+      }
+      return 'M ' + tip.toFixed(1) + ' ' + y +
+        ' L ' + (tip - direction * 10).toFixed(1) + ' ' + (y - 5) +
+        ' L ' + (tip - direction * 10).toFixed(1) + ' ' + (y + 5) + ' Z';
     }
 
     function render() {
@@ -478,42 +829,56 @@
       participants.forEach(function (participant, index) { participantIndexById[participant.id] = index; });
       var messages = normalizeMessages(participantIndexById);
       var shown = revealedSet(messages);
-      var invalid = messages.filter(function (message) { return !message.valid; }).length;
       var validMessages = messages.filter(function (message) { return message.valid; });
-      var shownValidMessages = validMessages.filter(function (message) { return !!shown[message.id]; });
+      shownMessages = validMessages.filter(function (message) { return !!shown[message.id]; });
+      var invalid = messages.length - validMessages.length;
       var width = 1000;
-      var margin = 72;
+      var margin = 76;
       var span = width - margin * 2;
+      var boxWidth = 144;
+      var boxHeight = 64;
       var xs = participants.map(function (participant, index) {
-        if (participants.length <= 1) return { x: width / 2 };
-        return { x: margin + (span * index) / (participants.length - 1) };
+        if (participants.length <= 1) return width / 2;
+        return margin + (span * index) / (participants.length - 1);
       });
+      var messageTop = 116;
+      var step = 56;
 
       var seenParticipants = Object.create(null);
       participants.forEach(function (participant, index) {
         var node = participantNodes.get(participant.id);
         if (!node) {
           node = svgEl('g', { class: 'nviz-flow-packetflow__participant', 'data-id': participant.id });
-          node.appendChild(svgEl('rect', { class: 'nviz-flow-packetflow__participant-box', x: 0, y: 0, width: 132, height: 44, rx: 8 }));
-          node.appendChild(svgEl('text', { class: 'nviz-flow-packetflow__participant-label', x: 0, y: 0, 'text-anchor': 'middle' }));
+          node.appendChild(svgEl('rect', { class: 'nviz-flow-packetflow__participant-box', x: 0, y: 14, width: boxWidth, height: boxHeight, rx: 9 }));
+          node.appendChild(svgEl('text', { class: 'nviz-flow-packetflow__participant-label', 'text-anchor': 'middle', x: 0, y: 34 }));
+          node.appendChild(svgEl('text', { class: 'nviz-flow-packetflow__participant-note', 'text-anchor': 'middle', x: 0, y: 52 }));
+          node.appendChild(svgEl('title'));
           participantLayer.appendChild(node);
           participantNodes.set(participant.id, node);
         }
         seenParticipants[participant.id] = true;
-        var x = xs[index].x;
+        var x = xs[index];
         node.setAttribute('data-status', participant.status || '');
-        node.setAttribute('transform', 'translate(' + (x - 66).toFixed(1) + ',16)');
+        node.setAttribute('transform', 'translate(' + (x - boxWidth / 2).toFixed(1) + ',0)');
+        var labelLines = wrapText(participant.label || participant.id, 16, 2);
         var labelNode = node.querySelector('.nviz-flow-packetflow__participant-label');
-        labelNode.setAttribute('x', '66');
-        labelNode.setAttribute('y', '27');
-        setText(labelNode, participant.label || participant.id);
+        labelNode.setAttribute('x', String(boxWidth / 2));
+        setLines(labelNode, labelLines.lines);
+        var noteNode = node.querySelector('.nviz-flow-packetflow__participant-note');
+        var noteLines = wrapText(participant.note, 18, 1);
+        noteNode.setAttribute('x', String(boxWidth / 2));
+        noteNode.textContent = noteLines.lines[0] || '';
+        if (!participant.note) noteNode.setAttribute('display', 'none');
+        else noteNode.removeAttribute('display');
+        node.querySelector('title').textContent = [participant.label, participant.note].filter(Boolean).join(' · ') || participant.id;
+        node.setAttribute('aria-label', [participant.label, participant.note].filter(Boolean).join('，') || participant.id);
         var line = lifelineNodes.get(participant.id);
         if (!line) {
           line = svgEl('line', { class: 'nviz-flow-packetflow__lifeline' });
           lifelineLayer.appendChild(line);
           lifelineNodes.set(participant.id, line);
         }
-        setAttrs(line, { x1: x.toFixed(1), y1: 62, x2: x.toFixed(1), y2: 120 + Math.max(1, shownValidMessages.length) * 52 });
+        setAttrs(line, { x1: x.toFixed(1), y1: 82, x2: x.toFixed(1), y2: messageTop + Math.max(1, shownMessages.length) * step - 30 });
       });
       Array.from(participantNodes.keys()).forEach(function (id) {
         if (seenParticipants[id]) return;
@@ -525,60 +890,94 @@
         lifelineNodes.delete(id);
       });
 
+      var focusId = textOrEmpty(model.focus);
+      var focusNode = null;
       var seenMessages = Object.create(null);
       validMessages.forEach(function (message) {
         var node = messageNodes.get(message.id);
         if (!node) {
           node = svgEl('g', { class: 'nviz-flow-packetflow__message', 'data-id': message.id });
-          node.appendChild(svgEl('line', { class: 'nviz-flow-packetflow__message-line' }));
+          node.appendChild(svgEl('path', { class: 'nviz-flow-packetflow__message-line' }));
           node.appendChild(svgEl('path', { class: 'nviz-flow-packetflow__message-arrow' }));
+          node.appendChild(svgEl('text', { class: 'nviz-flow-packetflow__message-index', 'text-anchor': 'end' }));
           node.appendChild(svgEl('text', { class: 'nviz-flow-packetflow__message-label', 'text-anchor': 'middle' }));
+          node.appendChild(svgEl('title'));
           messageLayer.appendChild(node);
           messageNodes.set(message.id, node);
         }
         seenMessages[message.id] = true;
         var fromIndex = participantIndexById[message.from];
         var toIndex = participantIndexById[message.to];
-        var x1 = xs[fromIndex].x;
-        var x2 = xs[toIndex].x;
-        var shownIndex = shownValidMessages.indexOf(message);
-        var y = 92 + Math.max(0, shownIndex) * 52;
-        var selfLoop = message.from === message.to;
-        var line = node.querySelector('.nviz-flow-packetflow__message-line');
-        var arrow = node.querySelector('.nviz-flow-packetflow__message-arrow');
+        var x1 = xs[fromIndex];
+        var x2 = xs[toIndex];
+        var shownIndex = shownMessages.indexOf(message);
+        var hidden = shownIndex < 0;
+        var y = messageTop + Math.max(0, shownIndex) * step;
+        var self = message.from === message.to;
+        var direction = self ? 1 : (x2 >= x1 ? 1 : -1);
+        var linePath = node.querySelector('.nviz-flow-packetflow__message-line');
+        var arrowNode = node.querySelector('.nviz-flow-packetflow__message-arrow');
         var labelNode = node.querySelector('.nviz-flow-packetflow__message-label');
-        if (selfLoop) {
-          line.setAttribute('class', 'nviz-flow-packetflow__message-line is-hidden');
-          line.setAttribute('x1', String(x1)); line.setAttribute('y1', String(y)); line.setAttribute('x2', String(x1)); line.setAttribute('y2', String(y));
-          arrow.setAttribute('d', 'M ' + x1.toFixed(1) + ' ' + (y + 8) + ' L ' + (x1 + 34).toFixed(1) + ' ' + (y + 8) +
-            ' L ' + (x1 + 34).toFixed(1) + ' ' + (y + 26) + ' L ' + (x1 + 4).toFixed(1) + ' ' + (y + 26) +
-            ' L ' + (x1 + 4).toFixed(1) + ' ' + (y + 14) + ' L ' + (x1 + 9).toFixed(1) + ' ' + (y + 18) +
-            ' L ' + (x1 + 4).toFixed(1) + ' ' + (y + 9) + ' Z');
-          labelNode.setAttribute('x', (x1 + 40).toFixed(1));
-          labelNode.setAttribute('y', String(y + 4));
-          node.setAttribute('data-direction', 'self');
+        var indexNode = node.querySelector('.nviz-flow-packetflow__message-index');
+        var dash = lineDash(message);
+        if (dash) linePath.setAttribute('stroke-dasharray', dash);
+        else linePath.removeAttribute('stroke-dasharray');
+        var openArrow = message.type === 'return';
+        if (self) {
+          linePath.setAttribute('d', 'M ' + x1.toFixed(1) + ' ' + y + ' C ' + (x1 + 36).toFixed(1) + ' ' + y +
+            ', ' + (x1 + 36).toFixed(1) + ' ' + (y + 34) + ', ' + x1.toFixed(1) + ' ' + (y + 34));
+          arrowNode.setAttribute('d', arrowPath(x1, y + 34, direction, openArrow));
+          labelNode.setAttribute('x', (x1 + 48).toFixed(1));
+          labelNode.setAttribute('y', String(y + 10));
+          var selfLines = wrapText(message.label || (message.from + ' → ' + message.to), 16, 2);
+          labelNode.setAttribute('text-anchor', 'start');
+          setLines(labelNode, selfLines.lines);
         } else {
-          line.setAttribute('class', 'nviz-flow-packetflow__message-line');
-          line.setAttribute('x1', x1.toFixed(1)); line.setAttribute('y1', String(y));
-          line.setAttribute('x2', x2.toFixed(1)); line.setAttribute('y2', String(y));
-          var direction = x2 >= x1 ? 1 : -1;
-          var tip = x2;
-          arrow.setAttribute('d', 'M ' + tip.toFixed(1) + ' ' + y + ' L ' + (tip - direction * 10).toFixed(1) + ' ' + (y - 5) +
-            ' L ' + (tip - direction * 10).toFixed(1) + ' ' + (y + 5) + ' Z');
+          linePath.setAttribute('d', 'M ' + x1.toFixed(1) + ' ' + y + ' L ' + x2.toFixed(1) + ' ' + y);
+          arrowNode.setAttribute('d', arrowPath(x2, y, direction, openArrow));
           labelNode.setAttribute('x', ((x1 + x2) / 2).toFixed(1));
-          labelNode.setAttribute('y', String(y - 8));
-          node.setAttribute('data-direction', direction > 0 ? 'right' : 'left');
+          labelNode.setAttribute('text-anchor', 'middle');
+          labelNode.setAttribute('y', String(y - 22));
+          var lines = wrapText(message.label || (message.from + ' → ' + message.to), 24, 2);
+          setLines(labelNode, lines.lines);
         }
+        if (openArrow) {
+          arrowNode.setAttribute('fill', 'none');
+          arrowNode.setAttribute('class', 'nviz-flow-packetflow__message-arrow is-open');
+        } else {
+          arrowNode.removeAttribute('fill');
+          arrowNode.setAttribute('class', 'nviz-flow-packetflow__message-arrow');
+        }
+        indexNode.setAttribute('x', (x1 - 10).toFixed(1));
+        indexNode.setAttribute('y', String(y - 4));
+        indexNode.textContent = model.showIndexes === true ? String(validMessages.indexOf(message) + 1) : '';
+        if (model.showIndexes === true) indexNode.removeAttribute('display');
+        else indexNode.setAttribute('display', 'none');
+        var typeText = message.type === 'return' ? '返回' : (message.type === 'async' ? '异步' : '同步');
+        var fullLabel = message.label || (message.from + ' → ' + message.to);
+        var fromLabel = participants[fromIndex] ? participants[fromIndex].label : message.from;
+        var toLabel = participants[toIndex] ? participants[toIndex].label : message.to;
+        node.querySelector('title').textContent = typeText + '：' + fromLabel + ' → ' + toLabel + '：' + fullLabel +
+          (message.note ? '（' + message.note + '）' : '');
+        node.setAttribute('aria-label', typeText + '消息：' + fromLabel + ' 到 ' + toLabel + '，' + fullLabel);
+        node.setAttribute('data-type', message.type);
+        node.setAttribute('data-dashed', effectiveDashed(message) ? 'true' : 'false');
+        node.setAttribute('data-status', message.status || '');
         node.setAttribute('data-from', message.from);
         node.setAttribute('data-to', message.to);
         node.setAttribute('data-target', message.to);
-        node.setAttribute('data-status', message.status || '');
-        var isShown = !!shown[message.id];
-        if (isShown) node.removeAttribute('data-hidden');
-        else node.setAttribute('data-hidden', 'true');
-        if (textOrEmpty(model.focus) === message.id) node.setAttribute('data-focus', 'true');
-        else node.removeAttribute('data-focus');
-        setText(labelNode, message.label || (message.from + ' → ' + message.to));
+        node.setAttribute('data-index', String(validMessages.indexOf(message)));
+        node.setAttribute('data-direction', self ? 'self' : (direction > 0 ? 'right' : 'left'));
+        if (hidden) node.setAttribute('data-hidden', 'true');
+        else node.removeAttribute('data-hidden');
+        if (focusId === message.id) {
+          node.setAttribute('data-focus', 'true');
+          node.setAttribute('aria-current', 'step');
+          focusNode = { node: node, y: y, x1: x1, x2: x2, self: self };
+        } else {
+          node.removeAttribute('data-focus');
+          node.removeAttribute('aria-current');
+        }
       });
       Array.from(messageNodes.keys()).forEach(function (id) {
         if (seenMessages[id]) return;
@@ -586,7 +985,20 @@
         if (node && node.parentNode) node.parentNode.removeChild(node);
         messageNodes.delete(id);
       });
-      var height = 120 + Math.max(1, shownValidMessages.length) * 52;
+
+      var focusBand = focusLayer.querySelector('.nviz-flow-packetflow__focus-band');
+      if (!focusBand) {
+        focusBand = svgEl('rect', { class: 'nviz-flow-packetflow__focus-band', rx: 7 });
+        focusLayer.appendChild(focusBand);
+      }
+      if (focusNode) {
+        focusBand.removeAttribute('display');
+        setAttrs(focusBand, { x: 42, y: focusNode.y - 18, width: width - 84, height: 36 });
+      } else {
+        focusBand.setAttribute('display', 'none');
+      }
+
+      var height = 116 + Math.max(1, shownMessages.length) * step + 20;
       setAttrs(svg, { viewBox: '0 0 ' + width + ' ' + height, height: null });
       setViewportMessage(note, invalid ? '已跳过 ' + invalid + ' 条引用未知参与者的消息。' : '');
     }
@@ -600,15 +1012,76 @@
       if (instance.destroyed || id == null) return null;
       var key = text(id);
       if (key === 'svg') return svg;
+      if (key === 'viewport') return viewport;
       if (key.indexOf('message:') === 0) return messageNodes.get(key.slice(8)) || null;
       if (key.indexOf('participant:') === 0) return participantNodes.get(key.slice(12)) || null;
       if (messageNodes.has(key)) return messageNodes.get(key);
       if (participantNodes.has(key)) return participantNodes.get(key);
       return null;
     };
+    instance.getState = function () {
+      if (instance.destroyed) return null;
+      var participants = normalizeParticipants();
+      var participantIndexById = Object.create(null);
+      participants.forEach(function (participant, index) { participantIndexById[participant.id] = index; });
+      var messages = normalizeMessages(participantIndexById);
+      var shown = revealedSet(messages);
+      var focus = textOrEmpty(model.focus);
+      var current = null;
+      var outputMessages = messages.map(function (message) {
+        var normalized = {
+          id: message.id,
+          from: message.from,
+          to: message.to,
+          label: message.label,
+          note: message.note,
+          type: message.type,
+          dashed: effectiveDashed(message),
+          status: message.status,
+          revealed: !!shown[message.id]
+        };
+        if (message.id === focus) current = normalized;
+        return normalized;
+      });
+      return {
+        participants: participants.map(function (participant) {
+          return { id: participant.id, label: participant.label, note: participant.note, status: participant.status };
+        }),
+        messages: outputMessages,
+        revealed: outputMessages.filter(function (message) { return message.revealed; }).map(function (message) { return message.id; }),
+        visibleCount: outputMessages.filter(function (message) { return message.revealed; }).length,
+        focus: focus || null,
+        current: current
+      };
+    };
     render({});
     return instance;
   };
+
+  NoteViz.Flow = NoteViz.Flow || {};
+  NoteViz.Flow.PacketFlow = PacketFlow;
+})(window);
+
+/* ---- source: src/viz/flow-segment.js ---- */
+/*!
+ * NoteViz Flow — SegmentBar.
+ * Scope: window.NoteViz.Flow; shared helpers live in flow-core.js.
+ * Plain classic script, no modules/network/eval/third-party. Load after flow-core.js.
+ */
+(function (global) {
+  'use strict';
+
+  var NoteViz = global.NoteViz = global.NoteViz || {};
+  var shared = global.NoteVizFlowInternals;
+  var VERSION = shared && shared.version ? shared.version : '1.0.0';
+  if (!shared) throw new Error('NoteViz.Flow SegmentBar 需要先加载 src/viz/flow-core.js。');
+  var text = shared.text, own = shared.own, array = shared.array, isNode = shared.isNode,
+    el = shared.el, svgEl = shared.svgEl, setAttrs = shared.setAttrs, setText = shared.setText,
+    clear = shared.clear, numberOr = shared.numberOr, clamp = shared.clamp, textOrEmpty = shared.textOrEmpty,
+    uniqueId = shared.uniqueId, validateHost = shared.validateHost, defaultId = shared.defaultId,
+    component = shared.component, makeSvgAccessible = shared.makeSvgAccessible,
+    setViewportMessage = shared.setViewportMessage, normalizeStatus = shared.normalizeStatus,
+    statusList = shared.statusList;
 
   /* ---------------- SegmentBar ---------------- */
 
@@ -805,9 +1278,85 @@
       if (rangeNodes.has('range:' + key)) return rangeNodes.get('range:' + key);
       return null;
     };
+    instance.getState = function () {
+      if (instance.destroyed) return null;
+      var segments = normalizeSegments();
+      var values = segments.map(function (segment) { return segment.value; });
+      var sum = values.reduce(function (total, value) { return total + value; }, 0);
+      var autoMax = Math.max(sum, values.length ? Math.max.apply(null, values) : 1, 1);
+      var scaleMax = numberOr(model.scaleMax, autoMax);
+      if (!(scaleMax > 0)) scaleMax = autoMax;
+      var minWidth = Math.max(2, numberOr(model.minWidth, 14));
+      var x = 0;
+      var output = segments.map(function (segment) {
+        var ratio = segment.value / scaleMax;
+        var raw = ratio * 1000;
+        var zero = segment.value === 0;
+        var clamped = !zero && raw < minWidth;
+        var displayWidth = zero ? minWidth : Math.max(minWidth, raw);
+        var item = {
+          id: segment.id,
+          label: segment.label,
+          value: segment.value,
+          ratio: Math.round(ratio * 10000) / 10000,
+          zero: zero,
+          clamped: clamped,
+          displayWidth: displayWidth,
+          x: x
+        };
+        x += displayWidth;
+        return item;
+      });
+      var ranges = normalizeRanges(segments);
+      return {
+        segments: output,
+        totalValue: sum,
+        scaleMax: scaleMax,
+        minWidth: minWidth,
+        displayWidth: x,
+        ranges: ranges.valid.map(function (range) {
+          return {
+            id: range.id,
+            label: range.label,
+            start: range.start,
+            end: range.end,
+            startId: segments[range.start].id,
+            endId: segments[range.end].id
+          };
+        }),
+        invalidRanges: ranges.invalid
+      };
+    };
+
     render({});
     return instance;
   };
+
+
+  NoteViz.Flow = NoteViz.Flow || {};
+  NoteViz.Flow.SegmentBar = SegmentBar;
+})(window);
+
+/* ---- source: src/viz/flow-device.js ---- */
+/*!
+ * NoteViz Flow — DeviceLinks.
+ * Scope: window.NoteViz.Flow; shared helpers live in flow-core.js.
+ * Plain classic script, no modules/network/eval/third-party. Load after flow-core.js.
+ */
+(function (global) {
+  'use strict';
+
+  var NoteViz = global.NoteViz = global.NoteViz || {};
+  var shared = global.NoteVizFlowInternals;
+  var VERSION = shared && shared.version ? shared.version : '1.0.0';
+  if (!shared) throw new Error('NoteViz.Flow DeviceLinks 需要先加载 src/viz/flow-core.js。');
+  var text = shared.text, own = shared.own, array = shared.array, isNode = shared.isNode,
+    el = shared.el, svgEl = shared.svgEl, setAttrs = shared.setAttrs, setText = shared.setText,
+    clear = shared.clear, numberOr = shared.numberOr, clamp = shared.clamp, textOrEmpty = shared.textOrEmpty,
+    uniqueId = shared.uniqueId, validateHost = shared.validateHost, defaultId = shared.defaultId,
+    component = shared.component, makeSvgAccessible = shared.makeSvgAccessible,
+    setViewportMessage = shared.setViewportMessage, normalizeStatus = shared.normalizeStatus,
+    statusList = shared.statusList;
 
   /* ---------------- DeviceLinks ---------------- */
 
@@ -1040,6 +1589,45 @@
       if (linkNodes.has(key)) return linkNodes.get(key);
       return null;
     };
+    instance.getState = function () {
+      if (instance.destroyed) return null;
+      var devices = normalizeDevices();
+      var deviceById = Object.create(null);
+      devices.forEach(function (device) {
+        var portIds = Object.create(null);
+        device.ports.forEach(function (port) { portIds[port.id] = true; });
+        deviceById[device.id] = { ports: portIds };
+      });
+      var links = array(model.links).map(function (source, index) {
+        var item = source && typeof source === 'object' ? source : {};
+        var from = item.from && typeof item.from === 'object' ? item.from : {};
+        var to = item.to && typeof item.to === 'object' ? item.to : {};
+        var fromDevice = textOrEmpty(from.device || from.deviceId || from[0]);
+        var fromPort = textOrEmpty(from.port || from.portId || from[1]);
+        var toDevice = textOrEmpty(to.device || to.deviceId || to[0]);
+        var toPort = textOrEmpty(to.port || to.portId || to[1]);
+        var fromInfo = deviceById[fromDevice];
+        var toInfo = deviceById[toDevice];
+        return {
+          id: textOrEmpty(item.id) || defaultId('link', index),
+          from: { device: fromDevice, port: fromPort },
+          to: { device: toDevice, port: toPort },
+          label: item.label == null ? '' : text(item.label),
+          status: normalizeStatus(item.status),
+          valid: !!(fromInfo && fromInfo.ports[fromPort] && toInfo && toInfo.ports[toPort])
+        };
+      });
+      return {
+        devices: devices.map(function (device) {
+          var ports = Object.create(null);
+          device.ports.forEach(function (port) { ports[port.id] = port.label; });
+          return { id: device.id, label: device.label, status: device.status, ports: device.ports.map(function (port) { return { id: port.id, label: port.label }; }) };
+        }),
+        links: links,
+        invalidLinks: links.filter(function (link) { return !link.valid; }).length
+      };
+    };
+
     instance.getLinkPath = function (id) {
       if (instance.destroyed || id == null) return null;
       var key = text(id);
@@ -1067,11 +1655,27 @@
     return instance;
   };
 
-  NoteViz.Flow = {
-    version: VERSION,
-    StageTrack: StageTrack,
-    PacketFlow: PacketFlow,
-    SegmentBar: SegmentBar,
-    DeviceLinks: DeviceLinks
-  };
+
+  NoteViz.Flow = NoteViz.Flow || {};
+  NoteViz.Flow.DeviceLinks = DeviceLinks;
+})(window);
+
+/* ---- source: src/viz/flow.js ---- */
+/*!
+ * NoteViz Flow — public entry/version.
+ * Scope: window.NoteViz.Flow. Load after flow-core.js and the four graphic files:
+ *   flow-core.js -> flow-stage.js -> flow-packet.js -> flow-segment.js -> flow-device.js -> flow.js
+ * flow-core defines shared helpers + NoteViz.Flow.Propagation; the four graphic files define
+ * D07-D10. This entry only publishes version/metadata and never starts playback.
+ * No network, no eval, no third-party.
+ */
+(function (global) {
+  'use strict';
+
+  var NoteViz = global.NoteViz = global.NoteViz || {};
+  var Flow = NoteViz.Flow = NoteViz.Flow || {};
+
+  Flow.version = '1.0.0';
+  Flow.parts = ['StageTrack', 'PacketFlow', 'SegmentBar', 'DeviceLinks'];
+  Flow.propagation = 'Propagation';
 })(window);

@@ -6,7 +6,7 @@
 
 ## 组件范围
 
-- **105 条、18 个构建模块**：88 项组件能力、10 项可复用组合块、7 项共享基础（I01–I07）。
+- **105 条、20 个构建模块**：88 项组件能力、10 项可复用组合块、7 项共享基础（I01–I07）。
 - 计数与类别由 `scripts/expected-ids.json`、`src/manifests` 和构建生成的 `registry.json` 共同约束，不在文档或脚本里另立一份清单。
 
 ## 最小使用
@@ -45,6 +45,7 @@ NoteDemo.mount(document.querySelector('[data-demo-host]'), {
 | 作者装配与聚焦 | [作者入口](examples/authoring/index.html) · [作者预览](dist/作者装配与聚焦-预览.html) · [配方源码](src/demo/recipes.js) |
 | 自定义图形接入 | [传播示例入口](examples/propagation/index.html) · [传播预览](dist/传播过程与局部过渡-预览.html) · [接入说明](examples/propagation/README.md) |
 | 流程与连接图形 | [中性示例入口](examples/flow-kit/index.html) · [中性示例预览](dist/图形扩展-中性示例.html) · [接入说明](examples/flow-kit/README.md) |
+| 流程组合配方 | [组合示例入口](examples/flow-composition/index.html) · [组合预览](dist/流程组合-预览.html) · [说明](examples/flow-composition/README.md) |
 | 最小连续画面接法 | [示例入口](examples/continuous-scene/index.html) · [离线预览](dist/连续画面局部变化-预览.html) · [说明](examples/continuous-scene/README.md) |
 | 查能力与依赖 | `node scripts/query.mjs` · [组件目录](docs/组件目录.md) · [registry](registry.json) |
 | 本地打开与量测 | `node scripts/inspect-note.mjs <成品.html> --json` · [观察入口说明](docs/公共编排层.md#author-inspect-note) |
@@ -111,6 +112,7 @@ node scripts/build-demo-preview.mjs --template examples/reuse-matrix-product/sta
 node scripts/build-demo-preview.mjs --template examples/propagation/index.html --output dist/传播过程与局部过渡-预览.html
 node scripts/build-demo-preview.mjs --template examples/continuous-scene/index.html --output dist/连续画面局部变化-预览.html
 node scripts/build-demo-preview.mjs --template examples/flow-kit/index.html --output dist/图形扩展-中性示例.html
+node scripts/build-demo-preview.mjs --template examples/flow-composition/index.html --output dist/流程组合-预览.html
 node scripts/build-demo-preview.mjs
 
 # 完整候选包

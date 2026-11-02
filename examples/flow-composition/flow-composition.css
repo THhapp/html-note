@@ -1,0 +1,124 @@
+/* Flow composition example — page layout only; component visuals come from the library. */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #f4f6f9;
+  color: var(--hnv-color-ink, #202938);
+  font-family: var(--hnv-font-family, "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif);
+  -webkit-font-smoothing: antialiased;
+}
+
+.fc-page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 42px 30px 64px;
+}
+
+.fc-kicker {
+  margin: 0 0 10px;
+  color: var(--hnv-color-accent, #315cda);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+}
+
+.fc-title {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 680;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+}
+
+.fc-lede {
+  max-width: 82ch;
+  margin: 12px 0 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: 15px;
+  line-height: 1.72;
+}
+
+.fc-lede--sub { margin-top: 8px; }
+
+.fc-lede code,
+.fc-note code,
+.fc-foot code {
+  padding: 1px 5px;
+  border: 1px solid var(--hnv-color-border, #dce2ea);
+  border-radius: 5px;
+  background: var(--hnv-color-page, #f4f6f9);
+  font-family: var(--hnv-font-mono, Consolas, monospace);
+  font-size: 0.92em;
+}
+
+.fc-demo {
+  margin-top: 26px;
+  padding: 18px 20px 22px;
+  background: var(--hnv-color-surface, #fff);
+  border: 1px solid var(--hnv-color-border, #dce2ea);
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(32, 41, 56, 0.04);
+}
+
+.fc-demo-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 18px;
+}
+
+.fc-demo-head h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 660;
+  line-height: 1.35;
+}
+
+.fc-phase {
+  margin: 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.fc-phase span[data-phase="running"] { color: var(--hnv-color-accent, #315cda); }
+.fc-phase span[data-phase="error"] { color: var(--hnv-color-danger, #b23a45); }
+
+.fc-note {
+  max-width: 86ch;
+  margin: 8px 0 16px;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: 13.5px;
+  line-height: 1.68;
+}
+
+.fc-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 8px 18px;
+  margin-top: 12px;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.fc-meta p { margin: 0; }
+
+.fc-foot {
+  margin-top: 30px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hnv-color-border, #dce2ea);
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: 12.5px;
+  line-height: 1.7;
+}
+
+.fc-foot p { margin: 0 0 6px; }
+
+@media (max-width: 720px) {
+  .fc-page { padding: 28px 16px 48px; }
+  .fc-title { font-size: 24px; }
+  .fc-demo { padding: 14px 12px 18px; }
+}

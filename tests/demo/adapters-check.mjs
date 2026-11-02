@@ -80,7 +80,7 @@ await evalChecks('normal adapters', normal.page, async () => {
   const makeHost = () => { const node = document.createElement('div'); rootEl.appendChild(node); return node; };
   const adapters = window.NoteDemoInternals && window.NoteDemoInternals.adapters;
   // 完整 demo-runtime manifest 会注册全部内置 Adapter（含 expression），顺序由 adapters/index.js 决定。
-  const names = ['matrix', 'sequence', 'sequence-edit', 'sequence-insert', 'dom', 'expression'];
+  const names = ['matrix', 'sequence', 'sequence-edit', 'sequence-insert', 'dom', 'expression', 'table', 'flow-stage', 'flow-packet', 'flow-segment', 'flow-device'];
   const ids = (handle) => (handle.readView().model.items || []).map((item) => item.id).join(',');
 
   /* ---------- 注册表 ---------- */

@@ -461,6 +461,61 @@
   fill: var(--hnv-color-danger, #b23a45);
 }
 
+.nviz-flow-packetflow__participant-note {
+  fill: var(--hnv-color-muted, #5c6879);
+  font-size: 10px;
+}
+
+.nviz-flow-packetflow__message-index {
+  fill: var(--hnv-color-muted, #5c6879);
+  font-size: 10px;
+}
+
+.nviz-flow-packetflow__focus-band {
+  fill: var(--hnv-color-accent-soft, #eef2ff);
+  stroke: color-mix(in srgb, var(--hnv-color-accent, #315cda) 22%, transparent);
+  stroke-width: 1;
+}
+
+.nviz-flow-packetflow__message-arrow.is-open {
+  fill: none;
+  stroke: var(--hnv-color-muted, #5c6879);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.nviz-flow-packetflow__message[data-focus="true"] .nviz-flow-packetflow__message-arrow.is-open {
+  stroke: var(--hnv-color-accent, #315cda);
+}
+
+.nviz-flow-packetflow__message[data-type="return"] .nviz-flow-packetflow__message-label {
+  fill: var(--hnv-color-attention, #6f82b7);
+}
+
+/* ---------------- Propagation ---------------- */
+
+.nviz-flow-propagation__marker {
+  fill: var(--hnv-color-accent, #315cda);
+  stroke: var(--hnv-color-surface, #ffffff);
+  stroke-width: 2;
+}
+
+.nviz-flow-propagation__copy[data-outside="true"] {
+  opacity: 0;
+}
+
+.nviz-flow-propagation__copy[data-missing-path="true"] {
+  display: none;
+}
+
+.nviz-flow-propagation__host {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
 @media (max-width: 720px) {
   .nviz-flow-stagetrack,
   .nviz-flow-packetflow,

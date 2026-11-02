@@ -177,43 +177,37 @@
       deviceLinks.update({ links: linkState });
     }
 
-    var sampleRun = null;
-    function sampleLink() {
-      var svg = deviceLinks.el.querySelector('svg');
-      if (!svg) return;
-      if (sampleRun) {
-        cancelAnimationFrame(sampleRun.frame);
-        sampleRun = null;
-      }
-      var marker = svg.querySelector('.flow-kit__packet-dot');
-      if (!marker) {
-        marker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        marker.setAttribute('class', 'flow-kit__packet-dot');
-        marker.setAttribute('r', '6');
-        svg.appendChild(marker);
-      }
-      var start = performance.now();
-      var duration = 1600;
-      var run = { frame: 0 };
-      sampleRun = run;
-      function tick(now) {
-        var ratio = Math.min(1, (now - start) / duration);
-        var point = deviceLinks.pointAt('link-ab', ratio);
-        if (!point) return;
-        marker.setAttribute('cx', point.x.toFixed(1));
-        marker.setAttribute('cy', point.y.toFixed(1));
-        if (readout) {
-          readout.textContent = '采样 link-ab：t=' + ratio.toFixed(2) +
-            '，point=(' + point.x.toFixed(1) + ', ' + point.y.toFixed(1) + ')' +
-            '，angle=' + point.angle.toFixed(2) + ' rad' +
-            '，total=' + point.total.toFixed(1);
-        }
-        if (ratio < 1) run.frame = requestAnimationFrame(tick);
-        else sampleRun = null;
-      }
-      run.frame = requestAnimationFrame(tick);
+    /* 传播副本/路径复用公共机制；不在此手写 rAF 和临时圆点清理。 */
+    var propagation = null;
+    function propagationFor() {
+      if (propagation) return propagation;
+      var svg = deviceLinks.getTarget('svg');
+      var path = deviceLinks.getLinkPath('link-ab');
+      if (!svg || !path || !Flow.Propagation) return null;
+      propagation = Flow.Propagation.mount(svg, {
+        label: '连接传播示例',
+        paths: { ab: path },
+        copies: [
+          { id: 'packet-1', pathId: 'ab' },
+          { id: 'packet-2', pathId: 'ab', offset: -0.18 }
+        ]
+      });
+      return propagation;
     }
-
+    var sampleRatio = 0;
+    function sampleLink() {
+      var runner = propagationFor();
+      if (!runner) return;
+      sampleRatio = sampleRatio === 0 ? 0.5 : (sampleRatio === 0.5 ? 1 : 0);
+      runner.update(sampleRatio);
+      if (readout) {
+        var state = runner.getState();
+        var first = state.copies[0] || {};
+        readout.textContent = '传播 link-ab：t=' + sampleRatio.toFixed(2) +
+          '，首个副本=(' + (first.x || 0).toFixed(1) + ', ' + (first.y || 0).toFixed(1) + ')' +
+          '，副本数=' + state.copies.length;
+      }
+    }
     /* ---------------- wiring ---------------- */
     document.addEventListener('click', function (event) {
       var button = event.target && event.target.closest ? event.target.closest('[data-flow-action]') : null;
@@ -244,6 +238,7 @@
       removeSegment: removeSegment,
       toggleScale: toggleScale,
       toggleLinks: toggleLinks,
+      propagation: propagation,
       sampleLink: sampleLink
     };
   });

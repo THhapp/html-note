@@ -6,8 +6,10 @@
  * 全部数据只在内存，不写文件、不发网络请求、不参与运行决策。
  *
  * fact 字段（scene 发出）：
- *   { kind, at, runId, frameId, sourceFrameId, motion, binding, index, groups, track, group }
+ *   { kind, at, sessionId, runId, frameId, sourceFrameId, motion, binding, index, groups, track, group }
  *   kind: 'focus-arrival' | 'attention-ready' | 'effect-start' | 'ready' | 'finished' | 'reduced'
+ *   sessionId = controller 为会话生成的稳定标识（direct scene.run 无会话时为 null）；
+ *   watch(session) 只收同 sessionId 的事实，collect() 收全局事实并保留 sessionId 供自行分组；
  *   frameId = 本次过渡目标 Frame，sourceFrameId = 来源 Frame；binding 为 scene 参与者；
  *   track: 'default' | 'layout' | 'group'；group 仅在 track==='group' 时为组名；
  *   index/groups 仅 attention 到达/ready 事实携带。
@@ -23,7 +25,7 @@
   'use strict';
 
   var Internals = global.NoteDemoInternals = global.NoteDemoInternals || {};
-  var VERSION = '1.0.0';
+  var VERSION = '1.1.0';
   var recorders = [];
   var installed = false;
 
@@ -92,6 +94,7 @@
     return {
       kind: typeof source.kind === 'string' ? source.kind : '',
       at: at,
+      sessionId: source.sessionId === undefined || source.sessionId === null ? null : source.sessionId,
       runId: source.runId == null ? null : source.runId,
       frameId: source.frameId == null ? null : String(source.frameId),
       sourceFrameId: source.sourceFrameId == null ? null : String(source.sourceFrameId),
@@ -112,6 +115,8 @@
     var recorder = {
       active: false,
       label: config.label == null ? null : String(config.label),
+      /* 会话级 recorder 的固定 sessionId；全局 collect 为 null。 */
+      sessionId: config.sessionId === undefined || config.sessionId === null ? null : config.sessionId,
       startedAt: nowMs(),
       version: VERSION,
       _unsubscribe: null
@@ -166,9 +171,8 @@
       }
       var index = recorders.indexOf(recorder);
       if (index >= 0) recorders.splice(index, 1);
-      if (config.onFact != null && typeof config.onFact === 'function') {
-        /* 通过 listen 注册的回调由 listeners 管；结束不清空已收集事实。 */
-      }
+      /* 已收集事实保留；回调引用随 stop 释放，避免会话销毁后仍持有观察闭包。 */
+      listeners.length = 0;
       if (!recorders.length) uninstall();
     };
 
@@ -184,17 +188,22 @@
     return String(track || '') + '\u0000' + String(group || '');
   }
 
-  /* 汇总：按 run（runId+目标/来源 Frame+motion）→ Binding → 轨道（track+group）聚合。
-   * 同一轨道多次出现时取第一次 startedAt/readyAt/finishedAt；时长只在两者都有时计算。 */
+  /* 汇总：按 sessionId + run（runId+目标/来源 Frame+motion）→ Binding → 轨道（track+group）聚合。
+   * sessionId 进入 run key 与输出，同名 Frame 跨会话不会被合并；同一轨道多次出现时取第一次
+   * startedAt/readyAt/finishedAt；时长只在两者都有时计算。 */
   function summarize(facts) {
     var runs = [];
     var runMap = {};
+    var sessionIds = [];
     for (var i = 0; i < facts.length; i += 1) {
       var fact = facts[i];
-      var runKey = String(fact.runId) + '|' + String(fact.frameId) + '|' + String(fact.sourceFrameId) + '|' + fact.motion;
+      var sessionKey = String(fact.sessionId);
+      var runKey = sessionKey + '|' + String(fact.runId) + '|' + String(fact.frameId) + '|' +
+        String(fact.sourceFrameId) + '|' + fact.motion;
       var run = runMap[runKey];
       if (!run) {
         run = {
+          sessionId: fact.sessionId,
           runId: fact.runId,
           frameId: fact.frameId,
           sourceFrameId: fact.sourceFrameId,
@@ -208,6 +217,7 @@
       }
       if (fact.at < run.firstAt) run.firstAt = fact.at;
       if (fact.at > run.lastAt) run.lastAt = fact.at;
+      if (sessionIds.indexOf(fact.sessionId) < 0) sessionIds.push(fact.sessionId);
       if (!fact.binding) continue;
       var binding = run.bindings[fact.binding];
       if (!binding) {
@@ -256,48 +266,77 @@
       if (firstAt == null || facts[f].at < firstAt) firstAt = facts[f].at;
       if (lastAt == null || facts[f].at > lastAt) lastAt = facts[f].at;
     }
+    /* 单一来源（watch 会话）时顶层也给出 sessionId；全局 collect 用 sessionIds 区分。 */
+    var soleSessionId = sessionIds.length === 1 ? sessionIds[0] : null;
     return {
       count: facts.length,
       firstAt: firstAt,
       lastAt: lastAt,
+      sessionId: soleSessionId,
+      sessionIds: sessionIds,
       runs: runs
     };
   }
 
-  /* 会话级窄订阅：只收集该 session 已知 Frame（当前/目标/历史停点）相关的 fact；
-   * 多会话并发且 Frame ID 相同时可能互相可见，观察工具不承担会话隔离判断。 */
+  /* 会话级窄订阅：只收集 session.__sessionId 相同的 fact；Frame 只用于会话内内容分组，
+   * 不再是跨会话判断依据。session 销毁、watch 初始化失败、stop 都释放订阅。 */
   function watch(session, options) {
     if (!session || typeof session.getState !== 'function' || typeof session.subscribe !== 'function') {
       fail('watch(session, options) 需要一个 NoteDemo 会话。');
     }
-    var knownFrames = {};
-    function remember(state) {
-      if (!isObject(state)) return;
-      if (state.settledFrameId != null) knownFrames[state.settledFrameId] = true;
-      if (state.targetFrameId != null) knownFrames[state.targetFrameId] = true;
+    var sessionId = session.__sessionId;
+    if (sessionId === undefined || sessionId === null) {
+      fail('watch(session, options) 需要一个带稳定 __sessionId 的会话（旧构建或非 controller 会话无法隔离观察）。');
     }
-    remember(session.getState());
-    var unsubscribe = session.subscribe(remember);
-    var recorder = createRecorder({
-      label: isObject(options) && options.label != null ? options.label : null,
-      onFact: isObject(options) && typeof options.onFact === 'function' ? options.onFact : null,
-      predicate: function (fact) {
-        var state = null;
-        try {
-          state = session.getState();
-        } catch (error) {
-          state = null;
-        }
-        if (isObject(state)) {
-          if (state.targetFrameId != null && fact.frameId === state.targetFrameId) return true;
-          if (state.settledFrameId != null &&
-              (fact.frameId === state.settledFrameId || fact.sourceFrameId === state.settledFrameId)) return true;
-        }
-        return (fact.frameId != null && knownFrames[fact.frameId] === true) ||
-          (fact.sourceFrameId != null && knownFrames[fact.sourceFrameId] === true);
+    var initialState = null;
+    try {
+      initialState = session.getState();
+    } catch (error) {
+      initialState = null;
+    }
+    if (isObject(initialState) && initialState.phase === 'disposed') {
+      fail('watch(session, options) 的会话已销毁，不能继续观察。');
+    }
+    var config = isObject(options) ? options : {};
+    var recorder = null;
+    var disposedWhileSettingUp = false;
+    /* 订阅只用于会话销毁时自动收尾，不再缓存/匹配 Frame。 */
+    var unsubscribe = session.subscribe(function (state) {
+      if (!isObject(state) || state.phase !== 'disposed') return;
+      disposedWhileSettingUp = true;
+      if (!recorder) return;
+      try {
+        recorder.stop();
+      } catch (error) {
+        /* 清理失败不影响会话销毁。 */
       }
     });
+    try {
+      recorder = createRecorder({
+        label: config.label == null ? null : config.label,
+        onFact: typeof config.onFact === 'function' ? config.onFact : null,
+        sessionId: sessionId,
+        predicate: function (fact) {
+          return fact.sessionId === sessionId;
+        }
+      });
+    } catch (error) {
+      /* 初始化失败（如 scene 出口不支持）必须退订，不能留下半成品监听。 */
+      try {
+        unsubscribe();
+      } catch (cleanupError) {
+        /* 会话已销毁等，忽略 */
+      }
+      throw error;
+    }
     recorder._unsubscribe = unsubscribe;
+    if (disposedWhileSettingUp) {
+      try {
+        recorder.stop();
+      } catch (error) {
+        /* 已停止 */
+      }
+    }
     return recorder;
   }
 

@@ -3,7 +3,7 @@ window.NOTE_LIBRARY_REGISTRY = {
   "schemaVersion": 1,
   "generatedBy": "scripts/build.mjs",
   "build": {
-    "time": "2026-11-02T11:55:00.212Z",
+    "time": "2026-11-02T12:56:19.909Z",
     "mode": "final",
     "command": "node scripts/build.mjs --final --release",
     "moduleOrder": [
@@ -22,6 +22,8 @@ window.NOTE_LIBRARY_REGISTRY = {
       "viz-flow",
       "viz-mechanisms",
       "viz-chart",
+      "blocks-base",
+      "demo-stage",
       "blocks",
       "demo-runtime",
       "demo-ui"
@@ -42,7 +44,7 @@ window.NOTE_LIBRARY_REGISTRY = {
     "preview": {
       "path": "dist/组件库-预览.html",
       "selfContained": true,
-      "bytes": 3923515
+      "bytes": 4035988
     }
   },
   "statusLegend": {
@@ -206,10 +208,12 @@ window.NOTE_LIBRARY_REGISTRY = {
       ],
       "js": [
         "src/ui/content.js",
+        "src/ui/table.js",
         "src/ui/expression.js"
       ],
       "css": [
         "src/ui/content.css",
+        "src/ui/table.css",
         "src/ui/expression.css"
       ],
       "demos": [
@@ -345,12 +349,14 @@ window.NOTE_LIBRARY_REGISTRY = {
       ],
       "js": [
         "src/ui/forms-advanced-internal.js",
+        "src/ui/slider.js",
         "src/ui/forms-advanced.js",
         "src/ui/forms-advanced-pickers.js",
         "src/ui/forms-advanced-inputs.js"
       ],
       "css": [
-        "src/ui/forms-advanced.css"
+        "src/ui/forms-advanced.css",
+        "src/ui/slider.css"
       ],
       "demos": [
         "gallery/demos/ui-forms-advanced.js"
@@ -511,6 +517,11 @@ window.NOTE_LIBRARY_REGISTRY = {
         "src/manifests/viz-flow.json"
       ],
       "js": [
+        "src/viz/flow-core.js",
+        "src/viz/flow-stage.js",
+        "src/viz/flow-packet.js",
+        "src/viz/flow-segment.js",
+        "src/viz/flow-device.js",
         "src/viz/flow.js"
       ],
       "css": [
@@ -590,6 +601,55 @@ window.NOTE_LIBRARY_REGISTRY = {
       ]
     },
     {
+      "module": "blocks-base",
+      "title": "组合块共享基础",
+      "dependencies": [
+        "core"
+      ],
+      "manifests": [
+        "src/manifests/blocks-base.json"
+      ],
+      "js": [
+        "src/blocks/shared.js"
+      ],
+      "css": [],
+      "demos": [],
+      "dist": [
+        "dist/modules/blocks-base.js",
+        "dist/modules/blocks-base.css"
+      ],
+      "entries": []
+    },
+    {
+      "module": "demo-stage",
+      "title": "默认演示舞台",
+      "dependencies": [
+        "core",
+        "legacy",
+        "ui-layout",
+        "blocks-base"
+      ],
+      "manifests": [
+        "src/manifests/demo-stage.json"
+      ],
+      "js": [
+        "src/blocks/demo-stage.js"
+      ],
+      "css": [
+        "src/blocks/demo-stage.css"
+      ],
+      "demos": [
+        "gallery/demos/blocks-stage.js"
+      ],
+      "dist": [
+        "dist/modules/demo-stage.js",
+        "dist/modules/demo-stage.css"
+      ],
+      "entries": [
+        "B01"
+      ]
+    },
+    {
       "module": "blocks",
       "title": "可复用组合块",
       "dependencies": [
@@ -599,14 +659,16 @@ window.NOTE_LIBRARY_REGISTRY = {
         "ui-content",
         "ui-navigation",
         "viz-objects",
-        "viz-chart"
+        "viz-chart",
+        "blocks-base",
+        "viz-flow",
+        "demo-stage"
       ],
       "manifests": [
         "src/manifests/blocks-explain.json",
         "src/manifests/blocks-stage.json"
       ],
       "js": [
-        "src/blocks/shared.js",
         "src/blocks/codetrace.js",
         "src/blocks/framefields.js",
         "src/blocks/flow.js",
@@ -641,7 +703,6 @@ window.NOTE_LIBRARY_REGISTRY = {
         "B08",
         "B09",
         "B10",
-        "B01",
         "B02",
         "B03",
         "B04"
@@ -677,6 +738,11 @@ window.NOTE_LIBRARY_REGISTRY = {
         "src/demo/adapters/sequence-insert.js",
         "src/demo/adapters/dom.js",
         "src/demo/adapters/expression.js",
+        "src/demo/adapters/table.js",
+        "src/demo/adapters/flow-stage.js",
+        "src/demo/adapters/flow-packet.js",
+        "src/demo/adapters/flow-segment.js",
+        "src/demo/adapters/flow-device.js",
         "src/demo/adapters/index.js",
         "src/demo/authoring.js",
         "src/demo/index.js"
@@ -702,11 +768,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "core",
         "legacy",
         "ui-layout",
-        "ui-content",
-        "ui-navigation",
-        "viz-objects",
-        "viz-chart",
-        "blocks",
+        "demo-stage",
         "demo-runtime"
       ],
       "manifests": [
@@ -1965,8 +2027,10 @@ window.NOTE_LIBRARY_REGISTRY = {
       ],
       "source": [
         "src/ui/content.js",
+        "src/ui/table.js",
         "src/ui/expression.js",
         "src/ui/content.css",
+        "src/ui/table.css",
         "src/ui/expression.css"
       ],
       "dist": [
@@ -2033,8 +2097,10 @@ window.NOTE_LIBRARY_REGISTRY = {
       ],
       "source": [
         "src/ui/content.js",
+        "src/ui/table.js",
         "src/ui/expression.js",
         "src/ui/content.css",
+        "src/ui/table.css",
         "src/ui/expression.css"
       ],
       "dist": [
@@ -2098,8 +2164,10 @@ window.NOTE_LIBRARY_REGISTRY = {
       ],
       "source": [
         "src/ui/content.js",
+        "src/ui/table.js",
         "src/ui/expression.js",
         "src/ui/content.css",
+        "src/ui/table.css",
         "src/ui/expression.css"
       ],
       "dist": [
@@ -2162,8 +2230,10 @@ window.NOTE_LIBRARY_REGISTRY = {
       ],
       "source": [
         "src/ui/content.js",
+        "src/ui/table.js",
         "src/ui/expression.js",
         "src/ui/content.css",
+        "src/ui/table.css",
         "src/ui/expression.css"
       ],
       "dist": [
@@ -2231,8 +2301,10 @@ window.NOTE_LIBRARY_REGISTRY = {
       ],
       "source": [
         "src/ui/content.js",
+        "src/ui/table.js",
         "src/ui/expression.js",
         "src/ui/content.css",
+        "src/ui/table.css",
         "src/ui/expression.css"
       ],
       "dist": [
@@ -2315,8 +2387,10 @@ window.NOTE_LIBRARY_REGISTRY = {
       ],
       "source": [
         "src/ui/content.js",
+        "src/ui/table.js",
         "src/ui/expression.js",
         "src/ui/content.css",
+        "src/ui/table.css",
         "src/ui/expression.css"
       ],
       "dist": [
@@ -2390,8 +2464,10 @@ window.NOTE_LIBRARY_REGISTRY = {
       ],
       "source": [
         "src/ui/content.js",
+        "src/ui/table.js",
         "src/ui/expression.js",
         "src/ui/content.css",
+        "src/ui/table.css",
         "src/ui/expression.css"
       ],
       "dist": [
@@ -2462,8 +2538,10 @@ window.NOTE_LIBRARY_REGISTRY = {
       ],
       "source": [
         "src/ui/content.js",
+        "src/ui/table.js",
         "src/ui/expression.js",
         "src/ui/content.css",
+        "src/ui/table.css",
         "src/ui/expression.css"
       ],
       "dist": [
@@ -2530,8 +2608,10 @@ window.NOTE_LIBRARY_REGISTRY = {
       ],
       "source": [
         "src/ui/content.js",
+        "src/ui/table.js",
         "src/ui/expression.js",
         "src/ui/content.css",
+        "src/ui/table.css",
         "src/ui/expression.css"
       ],
       "dist": [
@@ -2594,8 +2674,10 @@ window.NOTE_LIBRARY_REGISTRY = {
       ],
       "source": [
         "src/ui/content.js",
+        "src/ui/table.js",
         "src/ui/expression.js",
         "src/ui/content.css",
+        "src/ui/table.css",
         "src/ui/expression.css"
       ],
       "dist": [
@@ -2662,8 +2744,10 @@ window.NOTE_LIBRARY_REGISTRY = {
       ],
       "source": [
         "src/ui/content.js",
+        "src/ui/table.js",
         "src/ui/expression.js",
         "src/ui/content.css",
+        "src/ui/table.css",
         "src/ui/expression.css"
       ],
       "dist": [
@@ -2733,8 +2817,10 @@ window.NOTE_LIBRARY_REGISTRY = {
       ],
       "source": [
         "src/ui/content.js",
+        "src/ui/table.js",
         "src/ui/expression.js",
         "src/ui/content.css",
+        "src/ui/table.css",
         "src/ui/expression.css"
       ],
       "dist": [
@@ -2804,8 +2890,10 @@ window.NOTE_LIBRARY_REGISTRY = {
       ],
       "source": [
         "src/ui/content.js",
+        "src/ui/table.js",
         "src/ui/expression.js",
         "src/ui/content.css",
+        "src/ui/table.css",
         "src/ui/expression.css"
       ],
       "dist": [
@@ -4179,10 +4267,12 @@ window.NOTE_LIBRARY_REGISTRY = {
       ],
       "source": [
         "src/ui/forms-advanced-internal.js",
+        "src/ui/slider.js",
         "src/ui/forms-advanced.js",
         "src/ui/forms-advanced-pickers.js",
         "src/ui/forms-advanced-inputs.js",
-        "src/ui/forms-advanced.css"
+        "src/ui/forms-advanced.css",
+        "src/ui/slider.css"
       ],
       "dist": [
         "dist/modules/ui-forms-advanced.js",
@@ -4257,10 +4347,12 @@ window.NOTE_LIBRARY_REGISTRY = {
       ],
       "source": [
         "src/ui/forms-advanced-internal.js",
+        "src/ui/slider.js",
         "src/ui/forms-advanced.js",
         "src/ui/forms-advanced-pickers.js",
         "src/ui/forms-advanced-inputs.js",
-        "src/ui/forms-advanced.css"
+        "src/ui/forms-advanced.css",
+        "src/ui/slider.css"
       ],
       "dist": [
         "dist/modules/ui-forms-advanced.js",
@@ -4331,10 +4423,12 @@ window.NOTE_LIBRARY_REGISTRY = {
       ],
       "source": [
         "src/ui/forms-advanced-internal.js",
+        "src/ui/slider.js",
         "src/ui/forms-advanced.js",
         "src/ui/forms-advanced-pickers.js",
         "src/ui/forms-advanced-inputs.js",
-        "src/ui/forms-advanced.css"
+        "src/ui/forms-advanced.css",
+        "src/ui/slider.css"
       ],
       "dist": [
         "dist/modules/ui-forms-advanced.js",
@@ -4411,10 +4505,12 @@ window.NOTE_LIBRARY_REGISTRY = {
       ],
       "source": [
         "src/ui/forms-advanced-internal.js",
+        "src/ui/slider.js",
         "src/ui/forms-advanced.js",
         "src/ui/forms-advanced-pickers.js",
         "src/ui/forms-advanced-inputs.js",
-        "src/ui/forms-advanced.css"
+        "src/ui/forms-advanced.css",
+        "src/ui/slider.css"
       ],
       "dist": [
         "dist/modules/ui-forms-advanced.js",
@@ -4487,10 +4583,12 @@ window.NOTE_LIBRARY_REGISTRY = {
       ],
       "source": [
         "src/ui/forms-advanced-internal.js",
+        "src/ui/slider.js",
         "src/ui/forms-advanced.js",
         "src/ui/forms-advanced-pickers.js",
         "src/ui/forms-advanced-inputs.js",
-        "src/ui/forms-advanced.css"
+        "src/ui/forms-advanced.css",
+        "src/ui/slider.css"
       ],
       "dist": [
         "dist/modules/ui-forms-advanced.js",
@@ -4559,10 +4657,12 @@ window.NOTE_LIBRARY_REGISTRY = {
       ],
       "source": [
         "src/ui/forms-advanced-internal.js",
+        "src/ui/slider.js",
         "src/ui/forms-advanced.js",
         "src/ui/forms-advanced-pickers.js",
         "src/ui/forms-advanced-inputs.js",
-        "src/ui/forms-advanced.css"
+        "src/ui/forms-advanced.css",
+        "src/ui/slider.css"
       ],
       "dist": [
         "dist/modules/ui-forms-advanced.js",
@@ -4634,10 +4734,12 @@ window.NOTE_LIBRARY_REGISTRY = {
       ],
       "source": [
         "src/ui/forms-advanced-internal.js",
+        "src/ui/slider.js",
         "src/ui/forms-advanced.js",
         "src/ui/forms-advanced-pickers.js",
         "src/ui/forms-advanced-inputs.js",
-        "src/ui/forms-advanced.css"
+        "src/ui/forms-advanced.css",
+        "src/ui/slider.css"
       ],
       "dist": [
         "dist/modules/ui-forms-advanced.js",
@@ -5917,6 +6019,11 @@ window.NOTE_LIBRARY_REGISTRY = {
         "core"
       ],
       "source": [
+        "src/viz/flow-core.js",
+        "src/viz/flow-stage.js",
+        "src/viz/flow-packet.js",
+        "src/viz/flow-segment.js",
+        "src/viz/flow-device.js",
         "src/viz/flow.js",
         "src/viz/flow.css"
       ],
@@ -5983,6 +6090,11 @@ window.NOTE_LIBRARY_REGISTRY = {
         "core"
       ],
       "source": [
+        "src/viz/flow-core.js",
+        "src/viz/flow-stage.js",
+        "src/viz/flow-packet.js",
+        "src/viz/flow-segment.js",
+        "src/viz/flow-device.js",
         "src/viz/flow.js",
         "src/viz/flow.css"
       ],
@@ -6049,6 +6161,11 @@ window.NOTE_LIBRARY_REGISTRY = {
         "core"
       ],
       "source": [
+        "src/viz/flow-core.js",
+        "src/viz/flow-stage.js",
+        "src/viz/flow-packet.js",
+        "src/viz/flow-segment.js",
+        "src/viz/flow-device.js",
         "src/viz/flow.js",
         "src/viz/flow.css"
       ],
@@ -6113,6 +6230,11 @@ window.NOTE_LIBRARY_REGISTRY = {
         "core"
       ],
       "source": [
+        "src/viz/flow-core.js",
+        "src/viz/flow-stage.js",
+        "src/viz/flow-packet.js",
+        "src/viz/flow-segment.js",
+        "src/viz/flow-device.js",
         "src/viz/flow.js",
         "src/viz/flow.css"
       ],
@@ -7087,7 +7209,7 @@ window.NOTE_LIBRARY_REGISTRY = {
       "name": "NoteBlocks.DemoStage",
       "cn": "演示舞台",
       "category": "可复用组合块",
-      "module": "blocks",
+      "module": "demo-stage",
       "purpose": "组织宿主提供的演示画面、位置稳定的字幕与基本控制，不规定统一尺寸，也不安装整页主题。",
       "inputs": [
         "title",
@@ -7117,15 +7239,16 @@ window.NOTE_LIBRARY_REGISTRY = {
       "dependencies": [
         "core",
         "ui-layout",
-        "legacy"
+        "legacy",
+        "blocks-base"
       ],
       "source": [
-        "src/blocks/stage.js",
-        "src/blocks/stage.css"
+        "src/blocks/demo-stage.js",
+        "src/blocks/demo-stage.css"
       ],
       "dist": [
-        "dist/modules/blocks.js",
-        "dist/modules/blocks.css",
+        "dist/modules/demo-stage.js",
+        "dist/modules/demo-stage.css",
         "dist/note-library.js",
         "dist/note-library.css"
       ],
@@ -7155,7 +7278,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "K13"
       ],
       "docs": "docs/blocks-stage.md#B01",
-      "notes": "组合 NoteUI.Stack、Inline 与 Button；返回 stageEl/captionEl，供 StepPlayer 和宿主复用。"
+      "notes": "B01 已拆到 demo-stage 模块，组合 NoteUI.Stack、Inline 与 Button；返回 stageEl/captionEl，供 StepPlayer 和宿主复用。"
     },
     {
       "id": "B02",
@@ -7585,7 +7708,7 @@ window.NOTE_LIBRARY_REGISTRY = {
       ],
       "customizable": [
         "节点、边、分组与可选手动坐标",
-        "每个停点的字幕、nodeId、edgeIds 与说明",
+        "每个停点的字幕、nodeId、edgeIds、可选 changedEdgeIds 与说明",
         "流程标题、控制文案与最大宽度",
         "可访问名称",
         "用户步进回调"
@@ -7594,7 +7717,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "分层自动布局与全坐标 manual 布局",
         "初始停点静止",
         "当前节点关注",
-        "当前边文字关系列出",
+        "当前边图内强调 + 补充关系说明",
         "已完成 / 当前 / 未到达步骤指示",
         "无 edgeIds 的停点",
         "停点引用不存在的节点或边",
@@ -7624,12 +7747,12 @@ window.NOTE_LIBRARY_REGISTRY = {
       "preview": "gallery/index.html#B07",
       "example": "examples/run.html?id=B07",
       "limitations": [
-        "冻结的 NoteViz.Graph 公开 API 只有节点 focus/changed 与节点 getTarget，没有边关注或边 target 接口。当前节点由 Graph 的虚线关注表达；当前边在本块图下的“本步关系”条文中以“当前边”文字强调，没有在 SVG 边上直接加样式。",
-        "edgeIds 先匹配边的 id，其次匹配 from -> to 字符串，最后匹配 edges 数组索引；没有 id 的平行同向边用 route 与 route #n 区分。flow 中不存在的引用会显示可见警告。",
-        "不会根据 nodeId 推断 edgeIds，也不会自动把已完成节点标为“本步变化”；变化与关注保持分开。",
+        "edgeIds 先匹配边的 id，其次匹配 from -> to 字符串，最后匹配 edges 数组索引；无 id 的平行同向边用 route 与 route #n 区分。flow 中不存在的引用会显示可见警告。",
+        "当前边由图内 NoteViz.Graph 的 edgeFocus/edgeChanged 表达；图下“本步关系”只补充起止节点、标签和警告，不再是唯一强调。",
+        "可选 step.changedEdgeIds 表达本步变化边；未提供时只强调当前边，不推断变化。",
         "只有所有节点都有有限 x/y 时才使用 manual 布局，否则使用 Graph 的 layered 布局；本块不做拖拽、缩放或流程编辑。",
-        "getTarget 优先返回 Graph 节点；也接受 edge:<edgeKey> 与当前边卡 key；只有当前停点 id 返回进度区元素，非当前 step id 与不存在的引用返回 null。",
-        "图内滚动、节点标签与箭头由 NoteViz.Graph 提供；本块不复制图布局内部实现。",
+        "getTarget 优先返回 Graph 节点；edge:<edgeKey> 或当前边 key 返回当前停点的 Graph 边目标；非当前停点、未解析或未渲染边返回 null/可见警告。",
+        "图内滚动、节点标签、箭头和边状态由 NoteViz.Graph 提供；本块不复制图布局内部实现。",
         "无自动播放；程序 update 和 go/next/prev 不触发 onStep。"
       ],
       "status": "verified",
@@ -7649,7 +7772,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "K13"
       ],
       "docs": "docs/blocks-explain.md#B07",
-      "notes": "组合 NoteBlocks.StepPlayer、NoteViz.Graph 与 NoteUI.Steps/Notice；已报告 Graph 缺少边关注接口，当前边以可读关系条补偿并在文档标明。"
+      "notes": "组合 NoteBlocks.StepPlayer、NoteViz.Graph 与 NoteUI.Steps/Notice；当前边与变化边使用 Graph 公开 edgeFocus/edgeChanged 和边 target，关系条只作补充。"
     },
     {
       "id": "B08",
@@ -7688,7 +7811,8 @@ window.NOTE_LIBRARY_REGISTRY = {
       "dependencies": [
         "core",
         "legacy",
-        "ui-layout"
+        "ui-layout",
+        "viz-flow"
       ],
       "source": [
         "src/blocks/sequence-diagram.js",
@@ -7704,6 +7828,7 @@ window.NOTE_LIBRARY_REGISTRY = {
       "preview": "gallery/index.html#B08",
       "example": "examples/run.html?id=B08",
       "limitations": [
+        "参与者、生命线、消息线、箭头和当前行由 NoteViz.Flow.PacketFlow 绘制；B08 只保留 StepPlayer、字幕、块级 chrome 与滚动语义。",
         "只实现参与者、生命线、消息顺序、当前强调和必要字幕，不是任意图语法解析、拖拽编辑器或完整时序图引擎。",
         "消息必须按 from/to 引用有效参与者；未知端点的消息被跳过并显示可见警告。重复消息 id 会令 getTarget 指向最后渲染的同 id 消息。",
         "所有消息一次性由宿主提供；没有自动播放、自动动画或自动推进。图的当前行随 StepPlayer 的用户步进改变。",
@@ -7729,7 +7854,7 @@ window.NOTE_LIBRARY_REGISTRY = {
         "K13"
       ],
       "docs": "docs/blocks-explain.md#B08",
-      "notes": "组合 NoteBlocks.StepPlayer 提供步进和稳定字幕；时序图本身为本块有限 SVG 实现，未复制任何基础图组件内部。"
+      "notes": "组合 NoteBlocks.StepPlayer 与 NoteViz.Flow.PacketFlow；消息类型/参与者 note/当前行由 PacketFlow 承载，B08 负责停点、字幕、滚动与错误提示。"
     },
     {
       "id": "B09",
@@ -8415,6 +8540,11 @@ window.NOTE_LIBRARY_REGISTRY = {
         "src/demo/adapters/sequence-insert.js",
         "src/demo/adapters/dom.js",
         "src/demo/adapters/expression.js",
+        "src/demo/adapters/table.js",
+        "src/demo/adapters/flow-stage.js",
+        "src/demo/adapters/flow-packet.js",
+        "src/demo/adapters/flow-segment.js",
+        "src/demo/adapters/flow-device.js",
         "src/demo/adapters/index.js",
         "src/demo/authoring.js",
         "src/demo/index.js",

@@ -3,12 +3,14 @@
   "title": "高级输入与表单控件",
   "js": [
     "src/ui/forms-advanced-internal.js",
+    "src/ui/slider.js",
     "src/ui/forms-advanced.js",
     "src/ui/forms-advanced-pickers.js",
     "src/ui/forms-advanced-inputs.js"
   ],
   "css": [
-    "src/ui/forms-advanced.css"
+    "src/ui/forms-advanced.css",
+    "src/ui/slider.css"
   ],
   "demos": [
     "gallery/demos/ui-forms-advanced.js"

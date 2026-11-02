@@ -1,0 +1,13 @@
+{
+  "module": "blocks-base",
+  "title": "组合块共享基础",
+  "js": [
+    "src/blocks/shared.js"
+  ],
+  "css": [],
+  "dependencies": [
+    "core"
+  ],
+  "entries": [],
+  "demos": []
+}

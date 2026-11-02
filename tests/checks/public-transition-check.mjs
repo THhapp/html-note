@@ -14,7 +14,7 @@ const checks = [];
 const pageErrors = [];
 function check(name, ok, detail = '') { checks.push({ name, ok: !!ok, detail: String(detail) }); }
 // 源码加载清单从 src/manifests 推导：demo-runtime / demo-ui / objects 等拆分后自动覆盖新文件。
-const CHECK_MODULES = ['core', 'legacy', 'ui-layout', 'ui-content', 'viz-objects', 'blocks', 'demo-runtime', 'demo-ui'];
+const CHECK_MODULES = ['core', 'legacy', 'ui-layout', 'ui-content', 'viz-objects', 'blocks-base', 'demo-stage', 'blocks', 'demo-runtime', 'demo-ui'];
 const SCRIPTS = moduleScripts(root, CHECK_MODULES);
 const STYLES = moduleStyles(root, CHECK_MODULES);
 const browser = await chromium.launch({ executablePath: 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', headless: true });

@@ -18,7 +18,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
 const src = (rel) => path.join(root, rel);
 const edge = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
-const MODULES = ['core', 'legacy', 'ui-layout', 'ui-content', 'blocks', 'viz-objects', 'viz-mechanisms', 'demo-runtime', 'demo-ui'];
+const MODULES = ['core', 'legacy', 'ui-layout', 'ui-content', 'blocks-base', 'demo-stage', 'blocks', 'viz-objects', 'viz-mechanisms', 'demo-runtime', 'demo-ui'];
 const STYLES = moduleStyles(root, MODULES);
 const SCRIPTS = moduleScripts(root, MODULES);
 

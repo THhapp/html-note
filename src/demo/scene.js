@@ -175,6 +175,8 @@
     var presentation = options.presentation || null;
     var motionName = options.motion === 'reduced' ? 'reduced' : 'normal';
     var reason = normalizeReason(options);
+    /* 会话稳定标识（controller 生成）；时序事实携带它，观察工具按会话隔离。 */
+    var sessionId = options.sessionId == null ? null : options.sessionId;
     var factSink = factsSink();
     var factRunId = factSink ? (factsRunSequence += 1) : 0;
 
@@ -183,6 +185,7 @@
       var payload = {
         kind: kind,
         at: nowMs(),
+        sessionId: sessionId,
         runId: factRunId,
         frameId: transition ? transition.to : null,
         sourceFrameId: transition ? transition.from : null,

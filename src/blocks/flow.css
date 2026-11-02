@@ -2,8 +2,9 @@
  * Scope: .nblk-flow
  * Dependencies: core tokens, NoteBlocks.StepPlayer, NoteViz.Graph,
  * NoteUI.Steps/Notice visuals. The flow is a stage, not a flow editor.
- * Current edge emphasis is shown in the readable relation strip because the
- * frozen Graph API exposes node focus/targets only. */
+ * Current edge emphasis is drawn inside the Graph via edgeFocus/edgeChanged;
+ * the relation area is supplementary text (route/label/warnings), not a
+ * replacement for in-graph edge state. */
 
 .nblk-flow {
   box-sizing: border-box;
@@ -94,46 +95,53 @@
 
 .nblk-flow__relations {
   box-sizing: border-box;
-  padding: var(--hnv-space-3, 12px);
-  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
-  border-radius: var(--hnv-radius-object, 10px);
-  background: var(--hnv-color-surface, #ffffff);
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.nblk-flow__relations-meta {
+  margin: var(--hnv-space-1, 4px) 0 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-small, 13px);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
 }
 
 .nblk-flow__relation-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
-  gap: var(--hnv-space-2, 8px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--hnv-space-1, 4px);
   min-width: 0;
   margin-top: var(--hnv-space-2, 8px);
 }
 
+/* 普通行只是图内边状态的文字补充：无边框/底色，避免看起来像第二套边强调。 */
 .nblk-flow__relation {
   box-sizing: border-box;
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: var(--hnv-space-1, 4px) var(--hnv-space-2, 8px);
+  align-items: baseline;
+  gap: 2px var(--hnv-space-2, 8px);
   min-width: 0;
-  padding: var(--hnv-space-2, 8px) var(--hnv-space-3, 12px);
-  border: var(--hnv-border-width, 1px) solid var(--hnv-color-accent, #315cda);
-  border-left-width: 4px;
-  border-radius: var(--hnv-radius-control, 8px);
-  background: var(--hnv-color-accent-soft, #eef2ff);
 }
 
 .nblk-flow__relation--missing {
-  border-color: var(--hnv-color-warning, #8a5a12);
+  align-items: center;
+  gap: var(--hnv-space-1, 4px) var(--hnv-space-2, 8px);
+  padding: var(--hnv-space-2, 8px) var(--hnv-space-3, 12px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-warning, #8a5a12);
   border-left-width: 4px;
+  border-radius: var(--hnv-radius-control, 8px);
   background: var(--hnv-color-warning-soft, #fdf5e4);
 }
 
 .nblk-flow__relation-tag {
   flex: 0 0 auto;
-  padding: 1px 7px;
-  border: var(--hnv-border-width, 1px) solid var(--hnv-color-accent, #315cda);
+  padding: 0 6px;
   border-radius: var(--hnv-radius-pill, 999px);
-  background: var(--hnv-color-surface, #ffffff);
+  background: var(--hnv-color-accent-soft, #eef2ff);
   color: var(--hnv-color-accent, #315cda);
   font-size: var(--hnv-font-size-caption, 12px);
   font-weight: 600;
@@ -141,21 +149,20 @@
 }
 
 .nblk-flow__relation--missing .nblk-flow__relation-tag {
-  border-color: var(--hnv-color-warning, #8a5a12);
+  background: var(--hnv-color-surface, #ffffff);
   color: var(--hnv-color-warning, #8a5a12);
 }
 
 .nblk-flow__relation-route {
   min-width: 0;
   color: var(--hnv-color-ink, #202938);
-  font-size: var(--hnv-font-size-label, 14px);
+  font-size: var(--hnv-font-size-small, 13px);
   font-weight: 600;
   line-height: 1.55;
   overflow-wrap: anywhere;
 }
 
 .nblk-flow__relation-label {
-  flex-basis: 100%;
   min-width: 0;
   color: var(--hnv-color-muted, #5c6879);
   font-size: var(--hnv-font-size-small, 13px);

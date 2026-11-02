@@ -1,175 +1,8 @@
 /*! note-library module: blocks
- * dependencies: core, legacy, ui-layout, ui-content, ui-navigation, viz-objects, viz-chart
+ * dependencies: core, legacy, ui-layout, ui-content, ui-navigation, viz-objects, viz-chart, blocks-base, viz-flow, demo-stage
  * type: JavaScript
  * generated-by: scripts/build.mjs; do-not-edit.
  */
-
-/* ---- source: src/blocks/shared.js ---- */
-/*! NoteBlocks internal shared helpers for B01–B10.
- *  INTERNAL SHARED FILE, NOT A PUBLIC ENTRY. It only defines the internal
- *  namespace window.NoteBlocksInternals and the window.NoteBlocks namespace;
- *  the public block implementations live in stage.js, compare.js,
- *  codetrace.js, framefields.js, flow.js, sequence-diagram.js, hierarchy.js and
- *  chart-explain.js and must be loaded after this file.
- *  Load order: src/blocks/shared.js first in src/manifests/blocks-*.json.
- *  NoteBlocksInternals is an implementation detail, not a public API.
- *  Plain JavaScript; uses NoteCore helpers when present. No network, no eval,
- *  no HTML parsing, no timers. */
-(function (global) {
-  'use strict';
-
-  global.NoteBlocks = global.NoteBlocks || {};
-  var fallbackUid = 0;
-
-  function core() {
-    return global.NoteCore || {};
-  }
-
-  function ui() {
-    return global.NoteUI || {};
-  }
-
-  function viz() {
-    return global.NoteViz || {};
-  }
-
-  function own(object, key) {
-    return object != null && Object.prototype.hasOwnProperty.call(object, key);
-  }
-
-  function text(value) {
-    return value == null ? '' : String(value);
-  }
-
-  function isNode(value) {
-    return !!value && (value.nodeType === 1 || value.nodeType === 3 || value.nodeType === 11);
-  }
-
-  function make(tag, className, content) {
-    var node = global.document.createElement(tag);
-    if (className) node.className = className;
-    if (content !== undefined) node.textContent = text(content);
-    return node;
-  }
-
-  function clear(target) {
-    if (!target) return target;
-    var C = core();
-    if (typeof C.clear === 'function') return C.clear(target);
-    if (typeof target.replaceChildren === 'function') target.replaceChildren();
-    else if (typeof target.textContent === 'string') target.textContent = '';
-    return target;
-  }
-
-  function setContent(target, value) {
-    if (!target) return target;
-    var C = core();
-    if (typeof C.setContent === 'function') return C.setContent(target, value);
-    clear(target);
-    if (value == null) return target;
-    if (Array.isArray(value)) {
-      value.forEach(function (item) {
-        if (item == null) return;
-        target.appendChild(isNode(item) ? item : global.document.createTextNode(text(item)));
-      });
-      return target;
-    }
-    if (isNode(value)) target.appendChild(value);
-    else target.textContent = text(value);
-    return target;
-  }
-
-  function uniqueId(prefix) {
-    var C = core();
-    if (typeof C.uid === 'function') return C.uid(prefix);
-    fallbackUid += 1;
-    return text(prefix || 'nblk') + '-' + fallbackUid;
-  }
-
-  function validateHost(host, label) {
-    var C = core();
-    if (typeof C.validateHost === 'function') return C.validateHost(host);
-    if (!host || (host.nodeType !== 1 && host.nodeType !== 11) || typeof host.appendChild !== 'function') {
-      throw new TypeError(text(label || 'NoteBlocks.mount') + ' 需要一个元素或 DocumentFragment 容器。');
-    }
-    return host;
-  }
-
-  function componentValue(path) {
-    var parts = text(path).split('.');
-    var scope = global;
-    for (var i = 0; i < parts.length; i += 1) {
-      if (!scope) return null;
-      scope = scope[parts[i]];
-    }
-    return scope || null;
-  }
-
-  /* names use fully qualified paths, e.g. 'NoteUI.Table' or 'NoteBlocks.StepPlayer'. */
-  function requireComponents(label, names) {
-    var missing = (Array.isArray(names) ? names : []).filter(function (name) {
-      var api = componentValue(name);
-      return !api || typeof api.mount !== 'function';
-    });
-    if (missing.length) {
-      throw new Error(text(label || 'NoteBlocks') + ' 需要先加载对应公开组件：' + missing.join('、') + '。');
-    }
-  }
-
-  function safeDestroy(instance) {
-    if (!instance || typeof instance.destroy !== 'function') return;
-    try { instance.destroy(); } catch (error) { /* keep cleanup moving */ }
-  }
-
-  function array(value) {
-    return Array.isArray(value) ? value.slice() : [];
-  }
-
-  function stepArray(value) {
-    if (!Array.isArray(value)) return [];
-    return value.filter(function (step) {
-      return step && typeof step === 'object';
-    }).slice();
-  }
-
-  function stepName(step, index) {
-    if (!step) return '停点 ' + (index + 1);
-    var label = step.label != null ? text(step.label).trim() : '';
-    return label || '停点 ' + (index + 1);
-  }
-
-  function stepWrappers(steps) {
-    return (Array.isArray(steps) ? steps : []).map(function (step, index) {
-      return {
-        id: step.id,
-        label: stepName(step, index),
-        caption: step.caption == null ? '' : text(step.caption),
-        state: step
-      };
-    });
-  }
-
-  global.NoteBlocksInternals = {
-    core: core,
-    ui: ui,
-    viz: viz,
-    own: own,
-    text: text,
-    isNode: isNode,
-    make: make,
-    clear: clear,
-    setContent: setContent,
-    uniqueId: uniqueId,
-    validateHost: validateHost,
-    requireComponents: requireComponents,
-    safeDestroy: safeDestroy,
-    array: array,
-    stepArray: stepArray,
-    stepName: stepName,
-    stepWrappers: stepWrappers
-  };
-
-})(window);
 
 /* ---- source: src/blocks/codetrace.js ---- */
 /* NoteBlocks B05 — CodeTrace.
@@ -1009,9 +842,10 @@
 /* ---- source: src/blocks/flow.js ---- */
 /* NoteBlocks B07 — ProcessFlow.
  * Composes public NoteBlocks.StepPlayer, NoteViz.Graph and NoteUI.Steps.
- * Flow data and stops are host-owned. Node focus uses the Graph public API;
- * Graph currently exposes node targets but no edge focus/target API, so the
- * current edge set is also stated in a readable relation strip below the graph.
+ * Flow data and stops are host-owned. Node focus and edge focus/changed use the
+ * Graph public options; current edge targets are Graph.getEdgeTarget() rather
+ * than a parallel text card. The relation area keeps only supplementary text
+ * (route/label/warnings), never the only edge emphasis.
  * No automatic playback, no general-purpose flow editor.
  * Loads after src/blocks/shared.js (internal helpers, not a public entry).
  */
@@ -1067,6 +901,7 @@
       };
       var destroyed = false;
       var player = null;
+      var liveGraph = null;   // 跨停点复用的 Graph 实例；只通过公开 mount/update/getTarget 操作
       var refs = { graph: null, edges: Object.create(null), unresolved: Object.create(null), progress: null, stepIds: Object.create(null) };
 
       function nodeMap() {
@@ -1083,8 +918,11 @@
         return node && node.label != null ? text(node.label) : (id == null ? '未指定' : text(id));
       }
 
+      /* 与 NoteViz.Graph 的 normalizeGraphEdges 使用同一套稳定 ID 规则，
+         这样 getTarget('edge:<key>') 才能直接对应 Graph.getEdgeTarget(key)。 */
       function edgeRecords() {
         var routeSeen = Object.create(null);
+        var used = Object.create(null);
         return state.edges.map(function (edge, index) {
           var source = edge && typeof edge === 'object' ? edge : {};
           var from = source.from == null ? '' : text(source.from);
@@ -1092,10 +930,17 @@
           var route = from + ' -> ' + to;
           var routeCount = routeSeen[route] || 0;
           routeSeen[route] = routeCount + 1;
-          var key;
-          if (source.id != null && text(source.id) !== '') key = text(source.id);
-          else if (routeCount === 0) key = route;
-          else key = route + ' #' + (routeCount + 1);
+          var base;
+          if (source.id != null && text(source.id) !== '') base = text(source.id);
+          else if (routeCount === 0) base = route;
+          else base = route + ' #' + (routeCount + 1);
+          var key = base;
+          var suffix = 1;
+          while (used[key]) {
+            suffix += 1;
+            key = base + ' #' + suffix;
+          }
+          used[key] = true;
           return {
             key: key,
             route: route,
@@ -1121,10 +966,8 @@
         });
       }
 
-      function resolveEdgesForStep(step, records) {
-        var refsIn = step && step.edgeIds != null
-          ? (Array.isArray(step.edgeIds) ? step.edgeIds : [step.edgeIds])
-          : [];
+      function resolveEdgeRefs(refsValue, records) {
+        var refsIn = refsValue == null ? [] : (Array.isArray(refsValue) ? refsValue : [refsValue]);
         var resolved = [];
         var unresolved = [];
         refsIn.forEach(function (ref) {
@@ -1167,51 +1010,133 @@
           '第 ' + (stepIndex + 1) + ' / ' + state.steps.length + ' 个停点。节点关注由宿主停点数据指定。');
         summary.append(summaryTitle, summaryMeta);
 
+        var records = edgeRecords();
+        var focusRelation = resolveEdgeRefs(step && step.edgeIds, records);
+        var changedRelation = resolveEdgeRefs(step && step.changedEdgeIds, records);
+        var focusKeys = focusRelation.edges.map(function (record) { return record.key; });
+        var changedKeys = changedRelation.edges.map(function (record) { return record.key; });
+
         var canvas = make('div', 'nblk-flow__canvas');
-        var graph = V.Graph.mount(canvas, {
+        var graphOptions = {
           nodes: state.nodes,
           edges: state.edges,
           layout: hasManualPositions(state.nodes) ? 'manual' : 'layered',
           focus: exists ? [stepNode] : [],
           changed: [],
+          /* 边强调在图中由 Graph 的公开状态表达；关系区只保留文字说明与警告。 */
+          edgeFocus: focusKeys,
+          edgeChanged: changedKeys,
           label: (state.label || '流程') + '：' + currentLabel
-        });
+        };
+        var graph;
+        if (!liveGraph) {
+          graph = V.Graph.mount(canvas, graphOptions);
+          liveGraph = graph;
+        } else {
+          /* 停点切换/flow.update 复用同一 Graph：节点与边按稳定 ID 保留目标，
+             只更新 focus/edgeFocus/edgeChanged 与数据，避免每步重建 SVG。 */
+          graph = liveGraph;
+          canvas.appendChild(graph.el);
+          graph.update(graphOptions);
+        }
         refs.graph = graph;
 
-        var records = edgeRecords();
-        var relation = resolveEdgesForStep(step, records);
+        var canEdgeTargets = typeof graph.getEdgeTarget === 'function';
+        var refsEdges = Object.create(null);
+        var refsUnresolved = Object.create(null);
+        var missingEdges = Object.create(null);
+        function registerRecord(record) {
+          if (!canEdgeTargets) return;
+          var target = graph.getEdgeTarget(record.key);
+          if (target) refsEdges[record.key] = target;
+          else missingEdges[record.key] = record;
+        }
+        focusRelation.edges.forEach(registerRecord);
+        changedRelation.edges.forEach(registerRecord);
+
         var relations = make('section', 'nblk-flow__relations');
         var relationsTitle = make('h4', 'nblk-flow__relations-title', '本步关系');
         relations.appendChild(relationsTitle);
+        if (focusRelation.edges.length || changedRelation.edges.length) {
+          relations.appendChild(make('p', 'nblk-flow__relations-meta',
+            '边强调已画在图中；这里只补充起止节点、边标签和未解析引用。'));
+        }
         var relationList = make('div', 'nblk-flow__relation-list');
+        var changedOnly = changedRelation.edges.filter(function (record) {
+          return focusRelation.edges.indexOf(record) < 0;
+        });
 
-        if (!relation.edges.length && !relation.unresolved.length) {
+        if (!focusRelation.edges.length && !changedRelation.edges.length &&
+            !focusRelation.unresolved.length && !changedRelation.unresolved.length) {
           relationList.appendChild(make('p', 'nblk-flow__relation-empty',
             '本停点未指定边；当前关注节点仍由图中虚线标记。'));
         }
-        relation.edges.forEach(function (record) {
-          var card = make('div', 'nblk-flow__relation');
-          card.setAttribute('data-edge-key', record.key);
-          var tag = make('span', 'nblk-flow__relation-tag', '当前边');
+
+        function relationRow(record, tagText) {
+          var row = make('div', 'nblk-flow__relation');
+          row.setAttribute('data-edge-key', record.key);
+          var tag = make('span', 'nblk-flow__relation-tag', tagText);
           var route = make('span', 'nblk-flow__relation-route',
             nodeLabel(record.from) + ' → ' + nodeLabel(record.to));
           var label = record.label
             ? make('span', 'nblk-flow__relation-label', record.label)
             : null;
-          card.append(tag, route);
-          if (label) card.appendChild(label);
-          relationList.appendChild(card);
-          refs.edges[record.key] = card;
+          row.append(tag, route);
+          if (label) row.appendChild(label);
+          relationList.appendChild(row);
+          return row;
+        }
+
+        focusRelation.edges.forEach(function (record) {
+          var both = changedRelation.edges.indexOf(record) >= 0;
+          var row = relationRow(record, both ? '当前边 · 变化边' : '当前边');
+          if (canEdgeTargets) {
+            if (!refsEdges[record.key]) row.classList.add('nblk-flow__relation--missing');
+          } else {
+            refsEdges[record.key] = row;   // 旧版 Graph 回退：关系行仍是可查询目标
+          }
         });
-        relation.unresolved.forEach(function (key) {
+        changedOnly.forEach(function (record) {
+          var row = relationRow(record, '变化边');
+          if (canEdgeTargets) {
+            if (!refsEdges[record.key]) row.classList.add('nblk-flow__relation--missing');
+          } else if (!refsEdges[record.key]) {
+            refsEdges[record.key] = row;
+          }
+        });
+
+        function addUnresolved(key, changedFlag) {
           var card = make('div', 'nblk-flow__relation nblk-flow__relation--missing');
-          var tag = make('span', 'nblk-flow__relation-tag', '未找到边');
+          card.setAttribute('data-edge-key', key);
+          var tag = make('span', 'nblk-flow__relation-tag', changedFlag ? '未找到变化边' : '未找到边');
           var msg = make('span', 'nblk-flow__relation-route',
             '停点引用了边 ' + key + '，但 edges 中没有匹配的 id、from -> to 或索引。');
           card.append(tag, msg);
           relationList.appendChild(card);
-          refs.unresolved[key] = card;
+          refsUnresolved[key] = card;
+        }
+        focusRelation.unresolved.forEach(function (key) { addUnresolved(key, false); });
+        changedRelation.unresolved.forEach(function (key) {
+          if (!refsUnresolved[key]) addUnresolved(key, true);
         });
+
+        if (canEdgeTargets) {
+          Object.keys(missingEdges).forEach(function (key) {
+            if (refsUnresolved[key]) return;
+            var record = missingEdges[key];
+            var card = make('div', 'nblk-flow__relation nblk-flow__relation--missing');
+            card.setAttribute('data-edge-key', key);
+            var tag = make('span', 'nblk-flow__relation-tag', '边不在图中');
+            var msg = make('span', 'nblk-flow__relation-route',
+              '边「' + record.key + '」引用存在，但 Graph 未渲染该边（端点无效或 ID 冲突）。');
+            card.append(tag, msg);
+            relationList.appendChild(card);
+            refsUnresolved[key] = card;
+          });
+        }
+
+        refs.edges = refsEdges;
+        refs.unresolved = refsUnresolved;
         relations.appendChild(relationList);
 
         var noteHost = make('div', 'nblk-flow__note');
@@ -1262,7 +1187,7 @@
         return function cleanup() {
           safeDestroy(stepsInstance);
           safeDestroy(notice);
-          safeDestroy(graph);
+          /* Graph 保留给下一个停点/update 复用；由 destroyBlock 统一销毁。 */
           refs = { graph: null, edges: Object.create(null), unresolved: Object.create(null), progress: null, stepIds: Object.create(null) };
           wrap.remove();
         };
@@ -1332,6 +1257,10 @@
         refs = { graph: null, edges: Object.create(null), unresolved: Object.create(null), progress: null, stepIds: Object.create(null) };
         safeDestroy(player);
         player = null;
+        if (liveGraph) {
+          safeDestroy(liveGraph);
+          liveGraph = null;
+        }
       }
 
       return {
@@ -1353,10 +1282,13 @@
 /* ---- source: src/blocks/sequence-diagram.js ---- */
 /* NoteBlocks B08 — SequenceDiagram.
  * A bounded, host-data sequence diagram (participants, lifelines, ordered
- * messages, current message). It composes NoteBlocks.StepPlayer for the
- * stop controls and caption; the diagram itself is a small SVG renderer, not a
- * general graph editor. No automatic playback and no network access.
- * Loads after src/blocks/shared.js (internal helpers, not a public entry).
+ * messages, current message). It composes NoteBlocks.StepPlayer for stop
+ * controls and caption; participant/lifeline/message drawing comes from the
+ * public NoteViz.Flow.PacketFlow renderer. This block owns the stop player,
+ * legend/hint, warnings, stable target mapping and the current-message scroll.
+ * No automatic playback and no network access.
+ * Loads after src/blocks/shared.js (internal helpers, not a public entry) and
+ * after the viz-flow module (PacketFlow).
  */
 (function (global) {
   'use strict';
@@ -1371,26 +1303,15 @@
   var own = shared.own;
   var text = shared.text;
   var make = shared.make;
-  var uniqueId = shared.uniqueId;
   var validateHost = shared.validateHost;
   var requireComponents = shared.requireComponents;
   var safeDestroy = shared.safeDestroy;
   var array = shared.array;
-  var SVG_NS = 'http://www.w3.org/2000/svg';
   var TYPES = {
-    sync: { label: '同步', line: 'is-sync' },
-    async: { label: '异步', line: 'is-async' },
-    return: { label: '返回', line: 'is-return' }
+    sync: { label: '同步' },
+    async: { label: '异步' },
+    return: { label: '返回' }
   };
-  function svgEl(tag, attributes) {
-    var node = global.document.createElementNS(SVG_NS, tag);
-    if (attributes) {
-      Object.keys(attributes).forEach(function (name) {
-        node.setAttribute(name, text(attributes[name]));
-      });
-    }
-    return node;
-  }
 
   function typeInfo(value) {
     return TYPES[value] || TYPES.sync;
@@ -1398,61 +1319,6 @@
 
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
-  }
-
-  function charUnits(char) {
-    var code = char.codePointAt ? char.codePointAt(0) : char.charCodeAt(0);
-    return code > 0x2e7f ? 2 : 1;
-  }
-
-  function wrapText(value, maxUnits, maxLines) {
-    var source = text(value).replace(/\s+/g, ' ').trim();
-    if (!source) return { lines: [''], truncated: false };
-    var lines = [];
-    var current = '';
-    var units = 0;
-    var chars = Array.from ? Array.from(source) : source.split('');
-    chars.forEach(function (char) {
-      var width = char === ' ' ? 1 : charUnits(char);
-      if (units + width > maxUnits && current) {
-        lines.push(current.trim());
-        current = '';
-        units = 0;
-      }
-      current += char;
-      units += width;
-    });
-    if (current.trim()) lines.push(current.trim());
-    if (!lines.length) lines.push('');
-    if (lines.length <= maxLines) return { lines: lines, truncated: false };
-    var visible = lines.slice(0, maxLines);
-    var last = visible[maxLines - 1];
-    while (last.length) {
-      var lastUnits = 0;
-      Array.from(last).some(function (char) {
-        lastUnits += char === ' ' ? 1 : charUnits(char);
-        return lastUnits > maxUnits - 1;
-      });
-      if (lastUnits <= maxUnits - 1) break;
-      last = Array.from(last).slice(0, -1).join('');
-    }
-    visible[maxLines - 1] = last + '…';
-    return { lines: visible, truncated: true };
-  }
-
-  function appendLines(parent, lines, options) {
-    var settings = options || {};
-    var firstX = settings.x == null ? 0 : settings.x;
-    var firstY = settings.y == null ? 0 : settings.y;
-    var lineHeight = settings.lineHeight == null ? 16 : settings.lineHeight;
-    lines.forEach(function (line, index) {
-      var tspan = svgEl('tspan', {
-        x: firstX,
-        y: firstY + index * lineHeight
-      });
-      tspan.textContent = line;
-      parent.appendChild(tspan);
-    });
   }
 
   function resolveCurrent(value, messages) {
@@ -1486,7 +1352,7 @@
     version: '1.0.0',
     mount: function (host, options) {
       validateHost(host, 'NoteBlocks.SequenceDiagram');
-      requireComponents('NoteBlocks.SequenceDiagram', ['NoteBlocks.StepPlayer', 'NoteUI.Button']);
+      requireComponents('NoteBlocks.SequenceDiagram', ['NoteBlocks.StepPlayer', 'NoteUI.Button', 'NoteViz.Flow.PacketFlow']);
       var C = core();
       var input = options || {};
       var raw = {
@@ -1601,260 +1467,73 @@
         return wrapper && wrapper.state ? wrapper.state : null;
       }
 
-      function buildMarkers(defs) {
-        var base = uniqueId('nblk-sequence-arrow');
-        var markers = {};
-        ['sync', 'async', 'return'].forEach(function (type) {
-          markers[type] = {};
-          [false, true].forEach(function (current) {
-            var id = base + '-' + type + (current ? '-current' : '');
-            var marker = svgEl('marker', {
-              id: id,
-              viewBox: '0 0 10 10',
-              refX: '9',
-              refY: '5',
-              markerWidth: '8',
-              markerHeight: '8',
-              orient: 'auto'
-            });
-            var path = svgEl('path', {
-              d: type === 'return' ? 'M 1 1 L 9 5 L 1 9' : 'M 0 0 L 10 5 L 0 10 z',
-              class: 'nblk-sequence-diagram__arrowhead' +
-                (type === 'return' ? ' is-return' : '') +
-                (current ? ' is-current' : '')
-            });
-            marker.appendChild(path);
-            defs.appendChild(marker);
-            markers[type][current ? 'current' : 'normal'] = id;
-          });
-        });
-        return markers;
-      }
-
+      /* PacketFlow 负责参与者、生命线、消息线与当前行；B08 只保留块级 chrome、
+         StepPlayer 停点与公开目标映射，不再私有绘制消息图。 */
       function renderDiagram(message, context) {
         var index = context.index;
         renderedIndex = index;
         var wrap = make('div', 'nblk-sequence-diagram__layout');
-        var titleId = uniqueId('nblk-sequence-title');
-        var descId = uniqueId('nblk-sequence-desc');
-        var svgTitleText = (raw.title || raw.label || '消息时序');
         var contextText = text(raw.caption).trim();
-
         if (contextText) {
-          var contextEl = make('p', 'nblk-sequence-diagram__context', contextText);
-          wrap.appendChild(contextEl);
+          wrap.appendChild(make('p', 'nblk-sequence-diagram__context', contextText));
         }
-
         if (transformed.warnings.length) {
           var warning = make('p', 'nblk-sequence-diagram__warning', transformed.warnings.join(' '));
           warning.setAttribute('role', 'status');
           wrap.appendChild(warning);
         }
-
-        var viewport = make('div', 'nblk-sequence-diagram__viewport');
-        viewport.tabIndex = 0;
-        viewport.setAttribute('role', 'region');
-        viewport.setAttribute('aria-label', (raw.label || '消息时序') + '，可滚动查看全部参与者与消息');
-        var svg = svgEl('svg', {
-          class: 'nblk-sequence-diagram__svg',
-          role: 'group',
-          'aria-labelledby': titleId + ' ' + descId,
-          focusable: 'false'
+        var Flow = global.NoteViz && global.NoteViz.Flow;
+        if (!Flow || !Flow.PacketFlow || typeof Flow.PacketFlow.mount !== 'function') {
+          throw new Error('NoteBlocks.SequenceDiagram 需要先加载 NoteViz.Flow.PacketFlow（viz-flow 模块）。');
+        }
+        var label = raw.label || '消息时序';
+        var diagramHost = make('div', 'nblk-sequence-diagram__diagram');
+        wrap.appendChild(diagramHost);
+        var flow = Flow.PacketFlow.mount(diagramHost, {
+          participants: transformed.participants.map(function (participant) {
+            return { id: participant.id, label: participant.label, note: participant.note };
+          }),
+          messages: transformed.messages.map(function (item) {
+            return {
+              id: item.id,
+              from: item.from,
+              to: item.to,
+              label: typeInfo(item.type).label + ' · ' + (item.label || '未命名消息'),
+              type: item.type,
+              note: item.note || ''
+            };
+          }),
+          visibleCount: transformed.messages.length,
+          focus: message ? message.id : null,
+          showIndexes: true,
+          label: label
         });
-        var titleEl = svgEl('title', { id: titleId });
-        titleEl.textContent = svgTitleText;
-        var descEl = svgEl('desc', { id: descId });
-        descEl.textContent = '共 ' + transformed.participants.length + ' 位参与者、' +
-          transformed.messages.length + ' 条消息。' +
-          (message
-            ? '当前为第 ' + (index + 1) + ' 条：' + message.fromLabel + ' 到 ' +
-              message.toLabel + '，' + message.typeLabel + '，' + message.label + '。'
-            : '当前没有消息。');
-        svg.append(titleEl, descEl);
-
-        var defs = svgEl('defs');
-        var markers = buildMarkers(defs);
-        svg.appendChild(defs);
-
-        var count = transformed.participants.length;
-        var width = Math.max(580, 274 + Math.max(0, count - 1) * 220);
-        var headerTop = 14;
-        var headerHeight = 68;
-        var headerBottom = headerTop + headerHeight;
-        var boxWidth = 170;
-        var leftCenter = 124;
-        var rightCenter = width - 110;
-        var centers = transformed.participants.map(function (participant, participantIndex) {
-          if (count === 1) return width / 2;
-          return leftCenter + participantIndex * (rightCenter - leftCenter) / (count - 1);
-        });
-        var rowTop = 104;
-        var rowHeight = 92;
-        var height = rowTop + transformed.messages.length * rowHeight + 22;
-
-        svg.setAttribute('width', String(Math.ceil(width)));
-        svg.setAttribute('height', String(Math.ceil(height)));
-        svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
-
-        var participantTargets = Object.create(null);
+        var svg = flow.getTarget('svg');
+        if (svg && svg.classList) svg.classList.add('nblk-sequence-diagram__svg');
+        var viewport = flow.getTarget('viewport');
+        if (viewport) {
+          /* PacketFlow 负责绘图与横向滚动；B08 继续保留原视口的纵向高度语义。 */
+          viewport.style.maxHeight = 'min(34rem, 66vh)';
+          viewport.style.overflowY = 'auto';
+          viewport.setAttribute('role', 'region');
+          viewport.setAttribute('aria-label', label + '，可滚动查看全部参与者与消息');
+        }
         var messageTargets = Object.create(null);
-
-        var lifelines = svgEl('g', { class: 'nblk-sequence-diagram__lifelines', 'aria-hidden': 'true' });
-        transformed.participants.forEach(function (participant, participantIndex) {
-          lifelines.appendChild(svgEl('line', {
-            x1: centers[participantIndex],
-            y1: headerBottom,
-            x2: centers[participantIndex],
-            y2: height - 16,
-            class: 'nblk-sequence-diagram__lifeline'
-          }));
+        var participantTargets = Object.create(null);
+        transformed.participants.forEach(function (participant) {
+          var node = flow.getTarget('participant:' + participant.id);
+          if (!node) return;
+          node.setAttribute('data-participant-id', participant.id);
+          participantTargets[participant.id] = node;
         });
-        svg.appendChild(lifelines);
-
-        transformed.participants.forEach(function (participant, participantIndex) {
-          var center = centers[participantIndex];
-          var group = svgEl('g', {
-            class: 'nblk-sequence-diagram__participant',
-            'data-participant-id': participant.id,
-            role: 'group',
-            'aria-label': '参与者：' + participant.label + (participant.note ? '，' + participant.note : '')
-          });
-          var full = svgEl('title');
-          full.textContent = participant.label + (participant.note ? '：' + participant.note : '');
-          group.appendChild(full);
-          group.appendChild(svgEl('rect', {
-            x: center - boxWidth / 2,
-            y: headerTop,
-            width: boxWidth,
-            height: headerHeight,
-            rx: 8,
-            class: 'nblk-sequence-diagram__participant-box'
-          }));
-          var wrapped = wrapText(participant.label, 20, 2);
-          var labelEl = svgEl('text', {
-            x: center,
-            y: participant.note ? 38 : (wrapped.lines.length > 1 ? 38 : 48),
-            'text-anchor': 'middle',
-            class: 'nblk-sequence-diagram__participant-label'
-          });
-          appendLines(labelEl, wrapped.lines, {
-            x: center,
-            y: participant.note ? 38 : (wrapped.lines.length > 1 ? 38 : 48),
-            lineHeight: 16
-          });
-          group.appendChild(labelEl);
-          if (participant.note) {
-            var noteWrap = wrapText(participant.note, 24, 1);
-            var noteEl = svgEl('text', {
-              x: center,
-              y: 68,
-              'text-anchor': 'middle',
-              class: 'nblk-sequence-diagram__participant-note'
-            });
-            noteEl.textContent = noteWrap.lines[0] || '';
-            group.appendChild(noteEl);
-          }
-          participantTargets[participant.id] = group;
-          svg.appendChild(group);
+        transformed.messages.forEach(function (item) {
+          var node = flow.getTarget('message:' + item.id);
+          if (!node) return;
+          node.setAttribute('data-message-id', item.id);
+          messageTargets[item.id] = node;
         });
+        refs = { messages: messageTargets, participants: participantTargets };
 
-        transformed.messages.forEach(function (item, itemIndex) {
-          var current = itemIndex === index;
-          var fromCenter = centers[transformed.participants.indexOf(transformed.participantById[item.from])];
-          var toCenter = centers[transformed.participants.indexOf(transformed.participantById[item.to])];
-          if (fromCenter == null) fromCenter = leftCenter;
-          if (toCenter == null) toCenter = rightCenter;
-          var lineY = rowTop + itemIndex * rowHeight + 48;
-          var group = svgEl('g', {
-            class: 'nblk-sequence-diagram__message' +
-              (current ? ' is-current' : '') +
-              ' ' + typeInfo(item.type).line,
-            'data-message-id': item.id,
-            role: 'group',
-            'aria-label': '第 ' + (itemIndex + 1) + ' 条消息，' +
-              item.fromLabel + ' 到 ' + item.toLabel + '，' + item.typeLabel + '，' +
-              item.label + (current ? '，当前消息' : '')
-          });
-          if (current) group.setAttribute('aria-current', 'step');
-          var full = svgEl('title');
-          full.textContent = item.fromLabel + ' → ' + item.toLabel + '：' + item.label +
-            '（' + item.typeLabel + '）' + (item.note ? '。' + item.note : '');
-          group.appendChild(full);
-
-          if (current) {
-            group.appendChild(svgEl('rect', {
-              x: 8,
-              y: rowTop + itemIndex * rowHeight + 2,
-              width: width - 16,
-              height: rowHeight - 6,
-              rx: 8,
-              class: 'nblk-sequence-diagram__current-row'
-            }));
-          }
-
-          var lineClass = 'nblk-sequence-diagram__message-line ' + typeInfo(item.type).line +
-            (current ? ' is-current' : '');
-          if (Math.abs(fromCenter - toCenter) < 1) {
-            var loop = svgEl('path', {
-              d: 'M ' + fromCenter + ' ' + lineY +
-                ' C ' + (fromCenter + 76) + ' ' + (lineY - 38) + ' ' +
-                (fromCenter + 76) + ' ' + (lineY + 38) + ' ' +
-                (fromCenter + 4) + ' ' + (lineY + 16),
-              class: lineClass,
-              'marker-end': 'url(#' + markers[item.type][current ? 'current' : 'normal'] + ')'
-            });
-            group.appendChild(loop);
-          } else {
-            var line = svgEl('line', {
-              x1: fromCenter,
-              y1: lineY,
-              x2: toCenter,
-              y2: lineY,
-              class: lineClass,
-              'marker-end': 'url(#' + markers[item.type][current ? 'current' : 'normal'] + ')'
-            });
-            group.appendChild(line);
-          }
-
-          var labelX = Math.abs(fromCenter - toCenter) < 1
-            ? clamp(fromCenter + 96, 96, width - 96)
-            : clamp((fromCenter + toCenter) / 2, 92, width - 92);
-          var labelText = item.typeLabel + ' · ' + (item.label || '未命名消息');
-          var wrappedLabel = wrapText(labelText, 38, 2);
-          var labelEl = svgEl('text', {
-            x: labelX,
-            y: lineY - (wrappedLabel.lines.length > 1 ? 28 : 14),
-            'text-anchor': 'middle',
-            class: 'nblk-sequence-diagram__message-label' + (current ? ' is-current' : '')
-          });
-          appendLines(labelEl, wrappedLabel.lines, {
-            x: labelX,
-            y: lineY - (wrappedLabel.lines.length > 1 ? 28 : 14),
-            lineHeight: 15
-          });
-          group.appendChild(labelEl);
-
-          var number = svgEl('text', {
-            x: 16,
-            y: current ? lineY - 5 : lineY + 4,
-            class: 'nblk-sequence-diagram__row-number'
-          });
-          number.textContent = String(itemIndex + 1).padStart(2, '0');
-          group.appendChild(number);
-          if (current) {
-            var currentTag = svgEl('text', {
-              x: 16,
-              y: lineY + 13,
-              class: 'nblk-sequence-diagram__current-tag'
-            });
-            currentTag.textContent = '当前';
-            group.appendChild(currentTag);
-          }
-          messageTargets[item.id] = group;
-          svg.appendChild(group);
-        });
-
-        viewport.appendChild(svg);
         var hint = make('p', 'nblk-sequence-diagram__hint',
           '消息按编号自上而下排列；实线为同步，虚线为异步，点线为返回。参与者较多时可在图内滚动。');
         var legend = make('div', 'nblk-sequence-diagram__legend');
@@ -1870,12 +1549,10 @@
           entry.textContent = item.text;
           legend.appendChild(entry);
         });
-
-        wrap.append(viewport, hint, legend);
+        wrap.append(hint, legend);
         context.stageEl.appendChild(wrap);
-        refs = { messages: messageTargets, participants: participantTargets };
 
-        if (message && messageTargets[message.id] &&
+        if (message && messageTargets[message.id] && viewport &&
             typeof C.scrollIntoViewIfNeeded === 'function') {
           C.scrollIntoViewIfNeeded(messageTargets[message.id], viewport, {
             block: 'nearest',
@@ -1885,9 +1562,12 @@
 
         return function cleanup() {
           refs = { messages: Object.create(null), participants: Object.create(null) };
+          safeDestroy(flow);
+          flow = null;
           wrap.remove();
         };
       }
+
 
       function applyCurrentAfterUpdate(patch) {
         if (!own(patch, 'current')) return;
@@ -2610,11 +2290,11 @@
 })(window);
 
 /* ---- source: src/blocks/stage.js ---- */
-/* NoteBlocks stage compositions — B01 DemoStage, B02 StepPlayer.
- * Plain JavaScript; depends on NoteCore, NoteUI.Stack/Inline/Button.
- * This file composes public components only. It does not copy their markup.
- * Loads after src/blocks/shared.js (internal helpers, not a public entry).
- * No network, no eval, no HTML parsing. */
+/* NoteBlocks B02 — StepPlayer（稳定状态步进）。
+ * B01 DemoStage 已拆到 src/blocks/demo-stage.js；本文件只保留 B02 及其中私有 helper。
+ * Depends on: 先加载 src/blocks/shared.js，再加载 src/blocks/demo-stage.js
+ * （StepPlayer 在 mount 时使用 NoteBlocks.DemoStage）。
+ * 不复制 DemoStage 实现，也不另造播放器；经典脚本，无模块 / 无网络 / 无 eval。 */
 (function (global) {
   'use strict';
 
@@ -2628,230 +2308,10 @@
   var ui = shared.ui;
   var own = shared.own;
   var text = shared.text;
-  var isNode = shared.isNode;
   var make = shared.make;
   var clear = shared.clear;
-  var setContent = shared.setContent;
-  var uniqueId = shared.uniqueId;
   var validateHost = shared.validateHost;
   var requireComponents = shared.requireComponents;
-  function cssLength(value) {
-    if (typeof value === 'number' && isFinite(value)) return Math.max(0, value) + 'px';
-    if (typeof value === 'string' && value.trim()) return value.trim();
-    return '';
-  }
-
-  function resolveIcon(icon) {
-    if (typeof icon !== 'string') return icon;
-    var C = core();
-    var name = icon.trim();
-    if (!name || !C.icons || typeof C.icons.get !== 'function') return icon;
-    var node = null;
-    try { node = C.icons.get(name); } catch (error) { node = null; }
-    return node || icon;
-  }
-
-  /* =====================================================================
-   * B01 — DemoStage
-   * ===================================================================== */
-
-  NoteBlocks.DemoStage = {
-    version: '1.0.0',
-    mount: function (host, options) {
-      validateHost(host);
-      requireComponents('NoteBlocks', ['NoteUI.Stack', 'NoteUI.Inline', 'NoteUI.Button']);
-      var UI = ui();
-      var input = options || {};
-      var state = Object.assign({
-        title: '',
-        stage: undefined,
-        caption: '',
-        captionLabel: '',
-        controls: [],
-        maxWidth: null,
-        minStageHeight: null,
-        label: ''
-      }, input);
-      var destroyed = false;
-      var buttonInstances = [];
-      var titleId = uniqueId('nblk-demo-title');
-      var captionId = uniqueId('nblk-demo-caption');
-
-      var root = make('section', 'nblk-demo-stage');
-      var stack = UI.Stack.mount(root, { gap: 'sm', align: 'stretch' });
-      var titleEl = make('h3', 'nblk-demo-stage__title');
-      var presentation = make('div', 'nblk-demo-stage__presentation');
-      var stageEl = make('div', 'nblk-demo-stage__stage');
-      var narration = make('div', 'nblk-demo-stage__narration');
-      var captionLabelEl = make('span', 'nblk-demo-stage__caption-label');
-      var captionEl = make('p', 'nblk-demo-stage__caption');
-      var controlsWrap = make('div', 'nblk-demo-stage__controls');
-      var inline = UI.Inline.mount(controlsWrap, { gap: 'sm', align: 'center' });
-
-      titleEl.id = titleId;
-      captionEl.id = captionId;
-      captionEl.setAttribute('aria-live', 'polite');
-      captionEl.setAttribute('aria-atomic', 'true');
-      inline.el.setAttribute('role', 'group');
-      inline.el.setAttribute('aria-label', '演示控制');
-      titleEl.hidden = true;
-      controlsWrap.hidden = true;
-      captionLabelEl.setAttribute('aria-hidden', 'true');
-      narration.append(captionLabelEl, captionEl);
-      presentation.append(stageEl, narration);
-      stack.append(titleEl, presentation, controlsWrap);
-
-      function applyLabel() {
-        var label = text(state.label).trim();
-        if (label) {
-          root.setAttribute('aria-label', label);
-          root.removeAttribute('aria-labelledby');
-          return;
-        }
-        if (!titleEl.hidden && text(titleEl.textContent).trim()) {
-          root.removeAttribute('aria-label');
-          root.setAttribute('aria-labelledby', titleId);
-        } else {
-          root.removeAttribute('aria-labelledby');
-          root.setAttribute('aria-label', '演示舞台');
-        }
-      }
-
-      function applyCaptionDescription() {
-        if (text(state.caption).trim()) root.setAttribute('aria-describedby', captionId);
-        else root.removeAttribute('aria-describedby');
-      }
-
-      function applyCaptionLabel() {
-        var label = text(state.captionLabel).trim();
-        var hasCaption = !!text(state.caption).trim();
-        captionLabelEl.textContent = label;
-        captionLabelEl.hidden = !label || !hasCaption;
-        narration.setAttribute('data-caption-label', label && hasCaption ? 'true' : 'false');
-      }
-
-      function renderTitle() {
-        if (state.title !== undefined && state.title !== null && state.title !== '') {
-          setContent(titleEl, state.title);
-          titleEl.hidden = !text(titleEl.textContent).trim() && !titleEl.firstChild;
-        } else {
-          clear(titleEl);
-          titleEl.hidden = true;
-        }
-        applyLabel();
-      }
-
-      function applyDimensions() {
-        var maxWidth = cssLength(state.maxWidth);
-        if (maxWidth) root.style.maxWidth = maxWidth;
-        else root.style.removeProperty('max-width');
-        var stageHeight = cssLength(state.minStageHeight);
-        if (stageHeight) stageEl.style.minHeight = stageHeight;
-        else stageEl.style.removeProperty('min-height');
-      }
-
-      function destroyButtons() {
-        buttonInstances.forEach(function (instance) {
-          try { instance.destroy(); } catch (error) { /* keep cleanup moving */ }
-        });
-        buttonInstances = [];
-      }
-
-      function renderControls() {
-        destroyButtons();
-        clear(inline.el);
-        var items = Array.isArray(state.controls) ? state.controls : [];
-        var count = 0;
-        items.forEach(function (item) {
-          if (isNode(item)) {
-            inline.append(item);
-            count += 1;
-            return;
-          }
-          if (!item || typeof item !== 'object') return;
-          var config = {
-            label: text(item.label),
-            variant: item.variant,
-            disabled: Boolean(item.disabled),
-            onClick: typeof item.onClick === 'function' ? item.onClick : null,
-            icon: resolveIcon(item.icon),
-            ariaLabel: item.ariaLabel
-          };
-          var instance = UI.Button.mount(inline.el, config);
-          buttonInstances.push(instance);
-          count += 1;
-        });
-        controlsWrap.hidden = count === 0;
-      }
-
-      function setStage(value) {
-        if (destroyed) return;
-        state.stage = value;
-        setContent(stageEl, value);
-      }
-
-      function setCaption(value) {
-        if (destroyed) return;
-        state.caption = text(value);
-        captionEl.textContent = state.caption;
-        applyCaptionDescription();
-        applyCaptionLabel();
-      }
-
-      function setControls(items) {
-        if (destroyed) return;
-        state.controls = Array.isArray(items) ? items.slice() : [];
-        renderControls();
-      }
-
-      function update(patch) {
-        if (destroyed || !patch || typeof patch !== 'object') return;
-        Object.keys(patch).forEach(function (key) { state[key] = patch[key]; });
-        if (own(patch, 'title') || own(patch, 'label')) renderTitle();
-        if (own(patch, 'stage')) setStage(state.stage);
-        if (own(patch, 'caption')) setCaption(state.caption);
-        if (own(patch, 'captionLabel')) applyCaptionLabel();
-        if (own(patch, 'controls')) setControls(state.controls);
-        applyDimensions();
-        applyLabel();
-      }
-
-      function destroy() {
-        if (destroyed) return;
-        destroyed = true;
-        destroyButtons();
-        clear(stageEl);
-        clear(captionEl);
-        clear(titleEl);
-        try { inline.destroy(); } catch (error) { /* already optional */ }
-        try { stack.destroy(); } catch (error) { /* already optional */ }
-        root.remove();
-      }
-
-      renderTitle();
-      applyDimensions();
-      setStage(state.stage);
-      setCaption(state.caption);
-      applyCaptionLabel();
-      setControls(state.controls);
-      applyLabel();
-      applyCaptionDescription();
-      host.appendChild(root);
-
-      return {
-        el: root,
-        stageEl: stageEl,
-        captionEl: captionEl,
-        captionLabelEl: captionLabelEl,
-        narrationEl: narration,
-        setStage: setStage,
-        setCaption: setCaption,
-        setControls: setControls,
-        update: update,
-        destroy: destroy
-      };
-    }
-  };
 
   /* =====================================================================
    * B02 — StepPlayer

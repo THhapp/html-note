@@ -1,5 +1,5 @@
 /*! note-library full bundle (CSS)
- * modules: core, legacy, ui-layout, ui-content, ui-actions, ui-navigation, ui-forms-basic, ui-forms-advanced, ui-overlay, ui-feedback, ui-extended, viz-objects, viz-flow, viz-mechanisms, viz-chart, blocks, demo-runtime, demo-ui
+ * modules: core, legacy, ui-layout, ui-content, ui-actions, ui-navigation, ui-forms-basic, ui-forms-advanced, ui-overlay, ui-feedback, ui-extended, viz-objects, viz-flow, viz-mechanisms, viz-chart, blocks-base, demo-stage, blocks, demo-runtime, demo-ui
  * vendor: KaTeX 0.19.1 CSS with embedded woff2 at ui-content
  * generated-by: scripts/build.mjs; do-not-edit.
  */
@@ -1606,7 +1606,7 @@
 
 /* ---- source: src/ui/content.css ---- */
 /*!
- * NoteUI content module styles — C01–C12
+ * NoteUI content module styles — C01–C12（C06 Table 样式见 table.css）
  * Scope: .nui-* only. Shared values: --hnv-* tokens from core.
  * This file does not load fonts or external resources.
  */
@@ -1621,7 +1621,6 @@
 .nui-inline-text,
 .nui-quote,
 .nui-list,
-.nui-table,
 .nui-code,
 .nui-figure,
 .nui-math,
@@ -1917,186 +1916,7 @@
 .nui-list__content > :first-child { margin-top: 0; }
 .nui-list__content > :last-child { margin-bottom: 0; }
 
-/* ------------------------------------------------------------------ *
- * C06 Table
- * ------------------------------------------------------------------ */
-
-.nui-table {
-  display: grid;
-  gap: 8px;
-}
-
-.nui-table__scroll {
-  box-sizing: border-box;
-  width: 100%;
-  max-width: 100%;
-  overflow: auto;
-  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
-  border-radius: var(--hnv-radius-control, 8px);
-  background: var(--hnv-color-surface, #ffffff);
-  scrollbar-width: thin;
-  -webkit-overflow-scrolling: touch;
-}
-
-.nui-table__table {
-  box-sizing: border-box;
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  color: var(--hnv-color-ink, #202938);
-  font-family: var(--hnv-font-family, "Segoe UI", "Microsoft YaHei", sans-serif);
-  font-size: var(--hnv-font-size-label, 14px);
-  line-height: 1.55;
-}
-
-.nui-table__caption {
-  padding: 12px 14px 10px;
-  border-bottom: 1px solid var(--hnv-color-border, #dce2ea);
-  background: var(--hnv-color-surface, #ffffff);
-  color: var(--hnv-color-ink, #202938);
-  font-size: var(--hnv-font-size-label, 14px);
-  font-weight: 650;
-  line-height: 1.5;
-  text-align: start;
-  overflow-wrap: anywhere;
-}
-
-.nui-table__cell {
-  box-sizing: border-box;
-  padding: 11px 14px;
-  border-bottom: 1px solid var(--hnv-color-border, #dce2ea);
-  font-variant-numeric: tabular-nums;
-  text-align: start;
-  vertical-align: top;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}
-
-.nui-table__head-cell {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  background: var(--hnv-color-page, #f4f6f9);
-  color: var(--hnv-color-ink, #202938);
-  font-weight: 650;
-}
-
-.nui-table__body > .nui-table__row:last-child > .nui-table__cell {
-  border-bottom: 0;
-}
-
-.nui-table__cell--center { text-align: center; }
-.nui-table__cell--end { text-align: end; }
-.nui-table__cell--start { text-align: start; }
-
-.nui-table__sort {
-  box-sizing: border-box;
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 8px;
-  width: 100%;
-  margin: -4px -6px;
-  padding: 4px 6px;
-  border: 0;
-  border-radius: 5px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  font-weight: inherit;
-  text-align: inherit;
-  cursor: pointer;
-  touch-action: manipulation;
-  transition: background-color var(--hnv-motion-ui, 160ms) var(--hnv-motion-ease-ui, ease),
-    color var(--hnv-motion-ui, 160ms) var(--hnv-motion-ease-ui, ease);
-}
-
-.nui-table__sort:hover {
-  background: var(--hnv-color-accent-soft, #eef2ff);
-  color: var(--hnv-color-accent, #315cda);
-}
-
-.nui-table__cell--center .nui-table__sort {
-  justify-content: center;
-  text-align: center;
-}
-
-.nui-table__cell--end .nui-table__sort {
-  justify-content: flex-end;
-  text-align: end;
-}
-
-.nui-table__sort-indicator {
-  flex: none;
-  color: var(--hnv-color-muted, #5c6879);
-  font-family: var(--hnv-font-mono, Consolas, monospace);
-  font-size: var(--hnv-font-size-caption, 12px);
-  line-height: 1;
-}
-
-.nui-table__head-cell[aria-sort] .nui-table__sort,
-.nui-table__head-cell[aria-sort] .nui-table__sort-indicator {
-  color: var(--hnv-color-accent, #315cda);
-}
-
-.nui-table__row--emphasis > .nui-table__cell {
-  background: var(--hnv-color-accent-soft, #eef2ff);
-}
-
-.nui-table__row--emphasis > .nui-table__cell:first-child {
-  box-shadow: inset 3px 0 0 var(--hnv-color-accent, #315cda);
-}
-
-.nui-table__cell--emphasis {
-  background: color-mix(in srgb, var(--hnv-color-accent-soft, #eef2ff) 70%, transparent);
-  font-weight: 600;
-}
-
-/* C06 作者状态：只提供可读标签与稳定槽位，不预设“当前/新增/刷新”的颜色含义。
-   宿主可用 [data-row-state] / [data-cell-state] 或
-   .nui-table__row--state-<type> / .nui-table__cell--state-<type> 自行上色。 */
-.nui-table__state {
-  display: inline-flex;
-  align-items: center;
-  max-width: 100%;
-  margin-inline-start: 6px;
-  padding: 1px 7px;
-  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
-  border-radius: 999px;
-  background: var(--hnv-color-page, #f4f6f9);
-  color: var(--hnv-color-muted, #5c6879);
-  font-size: var(--hnv-font-size-caption, 12px);
-  font-weight: 500;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-  vertical-align: middle;
-  white-space: normal;
-}
-
-.nui-table--dense .nui-table__state {
-  margin-inline-start: 4px;
-  padding: 0 6px;
-}
-
-.nui-table__head-cell.nui-table__cell--emphasis {
-  color: var(--hnv-color-accent, #315cda);
-  border-bottom-color: var(--hnv-color-accent, #315cda);
-}
-
-.nui-table__empty-cell {
-  padding: 27px 16px;
-  color: var(--hnv-color-muted, #5c6879);
-  font-size: var(--hnv-font-size-label, 14px);
-  line-height: 1.6;
-  text-align: center;
-  overflow-wrap: anywhere;
-}
-
-.nui-table--dense .nui-table__caption { padding: 9px 11px; }
-.nui-table--dense .nui-table__cell { padding: 7px 10px; }
-.nui-table--dense .nui-table__empty-cell { padding: 20px 12px; }
-
-.nui-table__scroll-hint,
+/* C06 Table 的样式已拆到 table.css；这里只保留 C07 的滚动提示共用声明。 */
 .nui-code__scroll-hint {
   display: flex;
   align-items: flex-start;
@@ -2107,7 +1927,6 @@
   overflow-wrap: anywhere;
 }
 
-.nui-table__scroll-hint::before,
 .nui-code__scroll-hint::before {
   flex: none;
   color: var(--hnv-color-attention, #6f82b7);
@@ -2998,8 +2817,6 @@
 
 .nui-text-link:focus-visible,
 .nui-quote__source-link:focus-visible,
-.nui-table__scroll:focus-visible,
-.nui-table__sort:focus-visible,
 .nui-code__viewport:focus-visible,
 .nui-code__copy:focus-visible,
 .nui-code__copy-area:focus-visible,
@@ -3013,7 +2830,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .nui-text-link,
-  .nui-table__sort,
   .nui-code__copy,
   .nui-cdemo-button {
     transition: none;
@@ -3029,8 +2845,6 @@
 .nui-quote [hidden],
 .nui-list[hidden],
 .nui-list [hidden],
-.nui-table[hidden],
-.nui-table [hidden],
 .nui-code[hidden],
 .nui-code [hidden],
 .nui-figure[hidden],
@@ -3044,6 +2858,255 @@
 .nui-metric[hidden],
 .nui-metric [hidden] {
   display: none !important;
+}
+
+/* ---- source: src/ui/table.css ---- */
+/*!
+ * NoteUI table module styles — C06 Table（从 content.css 按职责拆出）
+ * Scope: .nui-table-* only. Shared values: --hnv-* tokens from core.
+ */
+
+/* 基础排版与 content.css 中其它组件共用同一套值；拆分后在此保留等价规则。 */
+.nui-table {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  color: var(--hnv-color-ink, #202938);
+  font-family: var(--hnv-font-family, "Segoe UI", "Microsoft YaHei", sans-serif);
+}
+
+/* ------------------------------------------------------------------ *
+ * C06 Table
+ * ------------------------------------------------------------------ */
+
+.nui-table {
+  display: grid;
+  gap: 8px;
+}
+
+.nui-table__scroll {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  overflow: auto;
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-control, 8px);
+  background: var(--hnv-color-surface, #ffffff);
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.nui-table__table {
+  box-sizing: border-box;
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  color: var(--hnv-color-ink, #202938);
+  font-family: var(--hnv-font-family, "Segoe UI", "Microsoft YaHei", sans-serif);
+  font-size: var(--hnv-font-size-label, 14px);
+  line-height: 1.55;
+}
+
+.nui-table__caption {
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--hnv-color-border, #dce2ea);
+  background: var(--hnv-color-surface, #ffffff);
+  color: var(--hnv-color-ink, #202938);
+  font-size: var(--hnv-font-size-label, 14px);
+  font-weight: 650;
+  line-height: 1.5;
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+
+.nui-table__cell {
+  box-sizing: border-box;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--hnv-color-border, #dce2ea);
+  font-variant-numeric: tabular-nums;
+  text-align: start;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.nui-table__head-cell {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--hnv-color-page, #f4f6f9);
+  color: var(--hnv-color-ink, #202938);
+  font-weight: 650;
+}
+
+.nui-table__body > .nui-table__row:last-child > .nui-table__cell {
+  border-bottom: 0;
+}
+
+.nui-table__cell--center { text-align: center; }
+.nui-table__cell--end { text-align: end; }
+.nui-table__cell--start { text-align: start; }
+
+.nui-table__sort {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  width: 100%;
+  margin: -4px -6px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color var(--hnv-motion-ui, 160ms) var(--hnv-motion-ease-ui, ease),
+    color var(--hnv-motion-ui, 160ms) var(--hnv-motion-ease-ui, ease);
+}
+
+.nui-table__sort:hover {
+  background: var(--hnv-color-accent-soft, #eef2ff);
+  color: var(--hnv-color-accent, #315cda);
+}
+
+.nui-table__cell--center .nui-table__sort {
+  justify-content: center;
+  text-align: center;
+}
+
+.nui-table__cell--end .nui-table__sort {
+  justify-content: flex-end;
+  text-align: end;
+}
+
+.nui-table__sort-indicator {
+  flex: none;
+  color: var(--hnv-color-muted, #5c6879);
+  font-family: var(--hnv-font-mono, Consolas, monospace);
+  font-size: var(--hnv-font-size-caption, 12px);
+  line-height: 1;
+}
+
+.nui-table__head-cell[aria-sort] .nui-table__sort,
+.nui-table__head-cell[aria-sort] .nui-table__sort-indicator {
+  color: var(--hnv-color-accent, #315cda);
+}
+
+.nui-table__row--emphasis > .nui-table__cell {
+  background: var(--hnv-color-accent-soft, #eef2ff);
+}
+
+.nui-table__row--emphasis > .nui-table__cell:first-child {
+  box-shadow: inset 3px 0 0 var(--hnv-color-accent, #315cda);
+}
+
+.nui-table__cell--emphasis {
+  background: color-mix(in srgb, var(--hnv-color-accent-soft, #eef2ff) 70%, transparent);
+  font-weight: 600;
+}
+
+/* C06 作者状态：只提供可读标签与稳定槽位，不预设“当前/新增/刷新”的颜色含义。
+   宿主可用 [data-row-state] / [data-cell-state] 或
+   .nui-table__row--state-<type> / .nui-table__cell--state-<type> 自行上色。 */
+.nui-table__state {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  margin-inline-start: 6px;
+  padding: 1px 7px;
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: 999px;
+  background: var(--hnv-color-page, #f4f6f9);
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+  font-weight: 500;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  vertical-align: middle;
+  white-space: normal;
+}
+
+.nui-table--dense .nui-table__state {
+  margin-inline-start: 4px;
+  padding: 0 6px;
+}
+
+.nui-table__head-cell.nui-table__cell--emphasis {
+  color: var(--hnv-color-accent, #315cda);
+  border-bottom-color: var(--hnv-color-accent, #315cda);
+}
+
+.nui-table__empty-cell {
+  padding: 27px 16px;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-label, 14px);
+  line-height: 1.6;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.nui-table--dense .nui-table__caption { padding: 9px 11px; }
+.nui-table--dense .nui-table__cell { padding: 7px 10px; }
+.nui-table--dense .nui-table__empty-cell { padding: 20px 12px; }
+
+.nui-table__scroll-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-label, 14px);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.nui-table__scroll-hint::before {
+  flex: none;
+  color: var(--hnv-color-attention, #6f82b7);
+  content: "↔";
+  font-family: var(--hnv-font-mono, Consolas, monospace);
+}
+
+.nui-table__scroll:focus-visible,
+.nui-table__sort:focus-visible {
+  outline: 3px solid var(--hnv-color-focus, #90aafa);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nui-table__sort {
+    transition: none;
+  }
+}
+
+/* Hidden wins over the component display rules above. */
+.nui-table[hidden],
+.nui-table [hidden] {
+  display: none !important;
+}
+
+/* scene table Adapter：值变化期间的来源文字覆盖层与定位；只在动效运行期存在。 */
+.nui-table__cell--scene-anchor {
+  position: relative;
+}
+
+.nui-table__scene-source {
+  position: absolute;
+  inset: 0;
+  display: block;
+  box-sizing: border-box;
+  padding: inherit;
+  background: var(--hnv-color-surface, #ffffff);
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  line-height: inherit;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 /* ---- source: src/ui/expression.css ---- */
@@ -5541,14 +5604,14 @@
 }
 
 /* ---- source: src/ui/forms-advanced.css ---- */
-/* NoteUI forms-advanced — F09–F15 advanced form controls.
-   Scope: .nui-switch, .nui-slider, .nui-form, .nui-datepicker,
+/* NoteUI forms-advanced — F09/F11–F15 advanced form controls.
+   Scope: .nui-switch, .nui-form, .nui-datepicker,
    .nui-timepicker, .nui-colorpicker, .nui-fileinput and their __parts.
+   F10 Slider 的样式已拆到 src/ui/slider.css。
    Dependencies: src/core/tokens.css, src/core/base.css (.hnv-floating,
    .hnv-visually-hidden); forms-basic styles Field rows used by Form. */
 
 .nui-switch,
-.nui-slider,
 .nui-form,
 .nui-datepicker,
 .nui-timepicker,
@@ -5566,9 +5629,6 @@
 .nui-switch *,
 .nui-switch *::before,
 .nui-switch *::after,
-.nui-slider *,
-.nui-slider *::before,
-.nui-slider *::after,
 .nui-form *,
 .nui-form *::before,
 .nui-form *::after,
@@ -5594,7 +5654,6 @@
 }
 
 .nui-switch [hidden],
-.nui-slider [hidden],
 .nui-form [hidden],
 .nui-datepicker [hidden],
 .nui-timepicker [hidden],
@@ -5607,7 +5666,6 @@
 
 /* Shared label, hint, error and focus treatment. */
 .nui-switch__head,
-.nui-slider__head,
 .nui-form__field,
 .nui-datepicker__head,
 .nui-timepicker__head,
@@ -5616,7 +5674,6 @@
   min-width: 0;
 }
 
-.nui-slider__head,
 .nui-datepicker__head,
 .nui-timepicker__head,
 .nui-colorpicker__head,
@@ -5628,7 +5685,6 @@
   justify-content: space-between;
 }
 
-.nui-slider__label,
 .nui-datepicker__label,
 .nui-timepicker__label,
 .nui-colorpicker__label,
@@ -5640,7 +5696,6 @@
   overflow-wrap: anywhere;
 }
 
-.nui-slider__required,
 .nui-switch__required,
 .nui-datepicker__required,
 .nui-timepicker__required,
@@ -5659,7 +5714,6 @@
 }
 
 .nui-switch__hint,
-.nui-slider__hint,
 .nui-datepicker__hint,
 .nui-timepicker__hint,
 .nui-colorpicker__hint,
@@ -5673,7 +5727,6 @@
 }
 
 .nui-switch__error,
-.nui-slider__error,
 .nui-datepicker__error,
 .nui-timepicker__error,
 .nui-colorpicker__error {
@@ -5698,7 +5751,6 @@
 }
 
 .nui-switch__button:focus-visible,
-.nui-slider__input:focus-visible,
 .nui-form__summary-link:focus-visible,
 .nui-form__submit:focus-visible,
 .nui-form__reset:focus-visible,
@@ -5814,130 +5866,6 @@
 .nui-switch--checked .nui-switch__state {
   color: var(--hnv-color-accent, #315cda);
   font-weight: var(--hnv-font-weight-strong, 600);
-}
-
-/* F10 Slider */
-.nui-slider {
-  display: flex;
-  flex-direction: column;
-  gap: var(--hnv-space-1, 4px);
-}
-
-.nui-slider__head {
-  align-items: center;
-}
-
-.nui-slider__readout {
-  flex: 0 0 auto;
-  padding: 1px var(--hnv-space-2, 8px);
-  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
-  border-radius: var(--hnv-radius-control, 8px);
-  background: var(--hnv-color-code-bg, #f3f5f8);
-  color: var(--hnv-color-ink, #202938);
-  font-family: var(--hnv-font-mono, "Cascadia Mono", Consolas, monospace);
-  font-size: var(--hnv-font-size-small, 13px);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.nui-slider__range-track {
-  position: relative;
-  height: 6px;
-  margin: 2px 10px;
-  border-radius: var(--hnv-radius-pill, 999px);
-  background: var(--hnv-color-border, #dce2ea);
-}
-
-.nui-slider__range-fill {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  border-radius: inherit;
-  background: var(--hnv-color-accent, #315cda);
-}
-
-/* F10 可选刻度：默认隐藏，只有传 ticks 时才渲染；标签不拦截指针拖动。 */
-.nui-slider__ticks {
-  position: relative;
-  height: 18px;
-  margin: 0 10px;
-}
-
-.nui-slider__tick {
-  position: absolute;
-  top: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: max-content;
-  transform: translateX(-50%);
-  pointer-events: none;
-}
-
-.nui-slider__tick--start {
-  transform: none;
-  align-items: flex-start;
-}
-
-.nui-slider__tick--end {
-  transform: translateX(-100%);
-  align-items: flex-end;
-}
-
-.nui-slider__tick-mark {
-  width: 1px;
-  height: 5px;
-  background: var(--hnv-color-border, #dce2ea);
-}
-
-.nui-slider__tick-label {
-  margin-top: 2px;
-  color: var(--hnv-color-muted, #5c6879);
-  font-size: var(--hnv-font-size-caption, 12px);
-  line-height: 1.4;
-  white-space: nowrap;
-}
-
-.nui-slider--disabled .nui-slider__tick-label {
-  color: var(--hnv-color-muted, #5c6879);
-}
-
-.nui-slider__controls {
-  display: flex;
-  flex-direction: column;
-  gap: var(--hnv-space-1, 4px);
-  min-width: 0;
-}
-
-.nui-slider__input {
-  width: 100%;
-  min-width: 0;
-  margin: 0;
-  accent-color: var(--hnv-color-accent, #315cda);
-  cursor: pointer;
-}
-
-.nui-slider__input:disabled {
-  cursor: not-allowed;
-}
-
-.nui-slider__part {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: var(--hnv-space-2, 8px);
-  align-items: center;
-  min-width: 0;
-}
-
-.nui-slider__part-label {
-  color: var(--hnv-color-muted, #5c6879);
-  font-size: var(--hnv-font-size-small, 13px);
-  white-space: nowrap;
-}
-
-.nui-slider--disabled .nui-slider__readout {
-  color: var(--hnv-color-muted, #5c6879);
-  background: var(--hnv-color-code-bg, #f3f5f8);
 }
 
 /* F11 Form */
@@ -6736,15 +6664,6 @@
 }
 
 @media (max-width: 520px) {
-  .nui-slider__part {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0;
-  }
-
-  .nui-slider__part-label {
-    padding-top: 2px;
-  }
-
   .nui-datepicker__row,
   .nui-timepicker__row,
   .nui-colorpicker__row {
@@ -6768,6 +6687,214 @@
   .nui-switch__track,
   .nui-switch__thumb {
     transition: none;
+  }
+}
+
+/* ---- source: src/ui/slider.css ---- */
+/* NoteUI forms-advanced — F10 Slider styles（从 forms-advanced.css 拆出）。
+   Scope: .nui-slider and its __parts only.
+   Dependencies: src/core/tokens.css, src/core/base.css.
+   只包含 Slider 自身字段样式；其他高级表单仍在 forms-advanced.css。 */
+
+.nui-slider {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  font-family: var(--hnv-font-family, "Segoe UI","Microsoft YaHei UI","Microsoft YaHei","PingFang SC",sans-serif);
+  color: var(--hnv-color-ink, #202938);
+  display: flex;
+  flex-direction: column;
+  gap: var(--hnv-space-1, 4px);
+}
+
+.nui-slider *,
+.nui-slider *::before,
+.nui-slider *::after {
+  box-sizing: border-box;
+}
+
+.nui-slider [hidden] {
+  display: none !important;
+}
+
+/* Shared label, hint, error and focus treatment（Slider 专属副本，文件自足）。 */
+.nui-slider__head {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hnv-space-2, 8px);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nui-slider__label {
+  min-width: 0;
+  color: var(--hnv-color-ink, #202938);
+  font-size: var(--hnv-font-size-label, 14px);
+  font-weight: var(--hnv-font-weight-strong, 600);
+  overflow-wrap: anywhere;
+}
+
+.nui-slider__required {
+  display: inline-block;
+  margin-inline-start: 4px;
+  padding: 0 5px;
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-pill, 999px);
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+  font-weight: 400;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.nui-slider__hint {
+  margin: 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-small, 13px);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.nui-slider__error {
+  display: block;
+  margin: 0;
+  padding: var(--hnv-space-1, 4px) var(--hnv-space-2, 8px);
+  border-inline-start: 3px solid var(--hnv-color-danger, #b23a45);
+  border-radius: 0 var(--hnv-radius-control, 8px) var(--hnv-radius-control, 8px) 0;
+  background: var(--hnv-color-danger-soft, #fbeef0);
+  color: var(--hnv-color-danger, #b23a45);
+  font-size: var(--hnv-font-size-small, 13px);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.nui-slider__input:focus-visible {
+  outline: var(--hnv-focus-ring-width, 3px) solid var(--hnv-color-focus, #315cda);
+  outline-offset: 2px;
+}
+
+.nui-slider__readout {
+  flex: 0 0 auto;
+  padding: 1px var(--hnv-space-2, 8px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-control, 8px);
+  background: var(--hnv-color-code-bg, #f3f5f8);
+  color: var(--hnv-color-ink, #202938);
+  font-family: var(--hnv-font-mono, "Cascadia Mono", Consolas, monospace);
+  font-size: var(--hnv-font-size-small, 13px);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.nui-slider__range-track {
+  position: relative;
+  height: 6px;
+  margin: 2px 10px;
+  border-radius: var(--hnv-radius-pill, 999px);
+  background: var(--hnv-color-border, #dce2ea);
+}
+
+.nui-slider__range-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: inherit;
+  background: var(--hnv-color-accent, #315cda);
+}
+
+/* F10 可选刻度：默认隐藏，只有传 ticks 时才渲染；标签不拦截指针拖动。 */
+.nui-slider__ticks {
+  position: relative;
+  height: 18px;
+  margin: 0 10px;
+}
+
+.nui-slider__tick {
+  position: absolute;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: max-content;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.nui-slider__tick--start {
+  transform: none;
+  align-items: flex-start;
+}
+
+.nui-slider__tick--end {
+  transform: translateX(-100%);
+  align-items: flex-end;
+}
+
+.nui-slider__tick-mark {
+  width: 1px;
+  height: 5px;
+  background: var(--hnv-color-border, #dce2ea);
+}
+
+.nui-slider__tick-label {
+  margin-top: 2px;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.nui-slider--disabled .nui-slider__tick-label {
+  color: var(--hnv-color-muted, #5c6879);
+}
+
+.nui-slider__controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hnv-space-1, 4px);
+  min-width: 0;
+}
+
+.nui-slider__input {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  accent-color: var(--hnv-color-accent, #315cda);
+  cursor: pointer;
+}
+
+.nui-slider__input:disabled {
+  cursor: not-allowed;
+}
+
+.nui-slider__part {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--hnv-space-2, 8px);
+  align-items: center;
+  min-width: 0;
+}
+
+.nui-slider__part-label {
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-small, 13px);
+  white-space: nowrap;
+}
+
+.nui-slider--disabled .nui-slider__readout {
+  color: var(--hnv-color-muted, #5c6879);
+  background: var(--hnv-color-code-bg, #f3f5f8);
+}
+
+@media (max-width: 520px) {
+  .nui-slider__part {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .nui-slider__part-label {
+    padding-top: 2px;
   }
 }
 
@@ -11816,6 +11943,61 @@
   fill: var(--hnv-color-danger, #b23a45);
 }
 
+.nviz-flow-packetflow__participant-note {
+  fill: var(--hnv-color-muted, #5c6879);
+  font-size: 10px;
+}
+
+.nviz-flow-packetflow__message-index {
+  fill: var(--hnv-color-muted, #5c6879);
+  font-size: 10px;
+}
+
+.nviz-flow-packetflow__focus-band {
+  fill: var(--hnv-color-accent-soft, #eef2ff);
+  stroke: color-mix(in srgb, var(--hnv-color-accent, #315cda) 22%, transparent);
+  stroke-width: 1;
+}
+
+.nviz-flow-packetflow__message-arrow.is-open {
+  fill: none;
+  stroke: var(--hnv-color-muted, #5c6879);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.nviz-flow-packetflow__message[data-focus="true"] .nviz-flow-packetflow__message-arrow.is-open {
+  stroke: var(--hnv-color-accent, #315cda);
+}
+
+.nviz-flow-packetflow__message[data-type="return"] .nviz-flow-packetflow__message-label {
+  fill: var(--hnv-color-attention, #6f82b7);
+}
+
+/* ---------------- Propagation ---------------- */
+
+.nviz-flow-propagation__marker {
+  fill: var(--hnv-color-accent, #315cda);
+  stroke: var(--hnv-color-surface, #ffffff);
+  stroke-width: 2;
+}
+
+.nviz-flow-propagation__copy[data-outside="true"] {
+  opacity: 0;
+}
+
+.nviz-flow-propagation__copy[data-missing-path="true"] {
+  display: none;
+}
+
+.nviz-flow-propagation__host {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
 @media (max-width: 720px) {
   .nviz-flow-stagetrack,
   .nviz-flow-packetflow,
@@ -13331,6 +13513,148 @@
   }
 }
 
+/* ---- source: src/blocks/demo-stage.css ---- */
+/* NoteBlocks B01 — DemoStage styles.
+ * 从 src/blocks/stage.css 拆出；只拥有 .nblk-demo-stage* 根与内部结构。
+ * Dependencies: core tokens + NoteUI layout/Button visuals.
+ * Scope only .nblk-*; no page/body/element-wide selectors.
+ * Internal spacing is owned here; external spacing belongs to the host. */
+
+.nblk-demo-stage {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  color: var(--hnv-color-ink, #202938);
+  font-family: var(--hnv-font-family, "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif);
+  font-size: var(--hnv-font-size-label, 14px);
+  line-height: 1.6;
+  text-align: start;
+}
+
+.nblk-demo-stage__title {
+  margin: 0;
+  color: var(--hnv-color-ink, #202938);
+  font-family: inherit;
+  font-size: var(--hnv-font-size-heading, 20px);
+  font-weight: 650;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+
+.nblk-demo-stage__title[hidden],
+.nblk-demo-stage__controls[hidden] {
+  display: none !important;
+}
+
+.nblk-demo-stage__presentation {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* The stage deliberately has no forced border, background or fixed height.
+ * Host content defines its own visual frame; minStageHeight is optional. */
+.nblk-demo-stage__stage {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+  gap: 0;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  color: var(--hnv-color-ink, #202938);
+}
+
+.nblk-demo-stage__stage > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* 字幕区与画面同属演示内容；标签提供身份，正文只保留阅读文本。
+ * 高度仍由 Presentation/B01 的既有预留机制控制，长句自然换行。 */
+.nblk-demo-stage__narration {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  width: 100%;
+  min-width: 0;
+  margin-top: 14px;
+}
+
+.nblk-demo-stage__narration[data-caption-label="false"] {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+
+.nblk-demo-stage__caption-label {
+  grid-column: 1;
+  padding-top: 3px;
+  color: var(--hnv-color-accent, #315cda);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.5;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+}
+
+.nblk-demo-stage__caption-label[hidden] {
+  display: none !important;
+}
+
+.nblk-demo-stage__caption {
+  grid-column: 2;
+  max-width: 72ch;
+  margin: 0;
+  min-height: 3.3em;
+  padding: 0;
+  color: var(--hnv-color-ink, #202938);
+  font-family: inherit;
+  font-size: var(--hnv-font-size-reading, 16px);
+  font-weight: 400;
+  line-height: var(--hnv-font-line-reading, 1.65);
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+
+.nblk-demo-stage__narration[data-caption-label="false"] .nblk-demo-stage__caption {
+  grid-column: 1;
+}
+
+.nblk-demo-stage__controls {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.nblk-demo-stage__controls .nui-hstack {
+  align-items: center;
+}
+
+@media (max-width: 520px) {
+  .nblk-demo-stage__title {
+    font-size: var(--hnv-font-size-title, 18px);
+  }
+
+  .nblk-demo-stage__narration {
+    gap: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nblk-demo-stage,
+  .nblk-demo-stage * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* ---- source: src/blocks/codetrace.css ---- */
 /* NoteBlocks B05 — CodeTrace
  * Scope: .nblk-codetrace
@@ -13768,8 +14092,9 @@
  * Scope: .nblk-flow
  * Dependencies: core tokens, NoteBlocks.StepPlayer, NoteViz.Graph,
  * NoteUI.Steps/Notice visuals. The flow is a stage, not a flow editor.
- * Current edge emphasis is shown in the readable relation strip because the
- * frozen Graph API exposes node focus/targets only. */
+ * Current edge emphasis is drawn inside the Graph via edgeFocus/edgeChanged;
+ * the relation area is supplementary text (route/label/warnings), not a
+ * replacement for in-graph edge state. */
 
 .nblk-flow {
   box-sizing: border-box;
@@ -13860,46 +14185,53 @@
 
 .nblk-flow__relations {
   box-sizing: border-box;
-  padding: var(--hnv-space-3, 12px);
-  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
-  border-radius: var(--hnv-radius-object, 10px);
-  background: var(--hnv-color-surface, #ffffff);
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.nblk-flow__relations-meta {
+  margin: var(--hnv-space-1, 4px) 0 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-small, 13px);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
 }
 
 .nblk-flow__relation-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
-  gap: var(--hnv-space-2, 8px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--hnv-space-1, 4px);
   min-width: 0;
   margin-top: var(--hnv-space-2, 8px);
 }
 
+/* 普通行只是图内边状态的文字补充：无边框/底色，避免看起来像第二套边强调。 */
 .nblk-flow__relation {
   box-sizing: border-box;
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: var(--hnv-space-1, 4px) var(--hnv-space-2, 8px);
+  align-items: baseline;
+  gap: 2px var(--hnv-space-2, 8px);
   min-width: 0;
-  padding: var(--hnv-space-2, 8px) var(--hnv-space-3, 12px);
-  border: var(--hnv-border-width, 1px) solid var(--hnv-color-accent, #315cda);
-  border-left-width: 4px;
-  border-radius: var(--hnv-radius-control, 8px);
-  background: var(--hnv-color-accent-soft, #eef2ff);
 }
 
 .nblk-flow__relation--missing {
-  border-color: var(--hnv-color-warning, #8a5a12);
+  align-items: center;
+  gap: var(--hnv-space-1, 4px) var(--hnv-space-2, 8px);
+  padding: var(--hnv-space-2, 8px) var(--hnv-space-3, 12px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-warning, #8a5a12);
   border-left-width: 4px;
+  border-radius: var(--hnv-radius-control, 8px);
   background: var(--hnv-color-warning-soft, #fdf5e4);
 }
 
 .nblk-flow__relation-tag {
   flex: 0 0 auto;
-  padding: 1px 7px;
-  border: var(--hnv-border-width, 1px) solid var(--hnv-color-accent, #315cda);
+  padding: 0 6px;
   border-radius: var(--hnv-radius-pill, 999px);
-  background: var(--hnv-color-surface, #ffffff);
+  background: var(--hnv-color-accent-soft, #eef2ff);
   color: var(--hnv-color-accent, #315cda);
   font-size: var(--hnv-font-size-caption, 12px);
   font-weight: 600;
@@ -13907,21 +14239,20 @@
 }
 
 .nblk-flow__relation--missing .nblk-flow__relation-tag {
-  border-color: var(--hnv-color-warning, #8a5a12);
+  background: var(--hnv-color-surface, #ffffff);
   color: var(--hnv-color-warning, #8a5a12);
 }
 
 .nblk-flow__relation-route {
   min-width: 0;
   color: var(--hnv-color-ink, #202938);
-  font-size: var(--hnv-font-size-label, 14px);
+  font-size: var(--hnv-font-size-small, 13px);
   font-weight: 600;
   line-height: 1.55;
   overflow-wrap: anywhere;
 }
 
 .nblk-flow__relation-label {
-  flex-basis: 100%;
   min-width: 0;
   color: var(--hnv-color-muted, #5c6879);
   font-size: var(--hnv-font-size-small, 13px);
@@ -14488,13 +14819,12 @@
 }
 
 /* ---- source: src/blocks/stage.css ---- */
-/* NoteBlocks stage compositions — B01 DemoStage, B02 StepPlayer.
- * Owned roots: .nblk-demo-stage, .nblk-step-player.
+/* NoteBlocks B02 — StepPlayer styles.
+ * B01 DemoStage 的样式已拆到 src/blocks/demo-stage.css；本文件只拥有
+ * .nblk-step-player* 根、跳转控件、空态与错误态。
  * Dependencies: core tokens + NoteUI layout/Button visuals.
- * Scope only .nblk-*; no page/body/element-wide selectors.
- * Internal spacing is owned here; external spacing belongs to the host. */
+ * Scope only .nblk-*; no page/body/element-wide selectors. */
 
-.nblk-demo-stage,
 .nblk-step-player {
   box-sizing: border-box;
   min-width: 0;
@@ -14506,112 +14836,6 @@
   line-height: 1.6;
   text-align: start;
 }
-
-.nblk-demo-stage__title {
-  margin: 0;
-  color: var(--hnv-color-ink, #202938);
-  font-family: inherit;
-  font-size: var(--hnv-font-size-heading, 20px);
-  font-weight: 650;
-  line-height: 1.4;
-  letter-spacing: -0.01em;
-  overflow-wrap: anywhere;
-}
-
-.nblk-demo-stage__title[hidden],
-.nblk-demo-stage__controls[hidden] {
-  display: none !important;
-}
-
-.nblk-demo-stage__presentation {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-  max-width: 100%;
-}
-
-/* The stage deliberately has no forced border, background or fixed height.
- * Host content defines its own visual frame; minStageHeight is optional. */
-.nblk-demo-stage__stage {
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: stretch;
-  gap: 0;
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  color: var(--hnv-color-ink, #202938);
-}
-
-.nblk-demo-stage__stage > * {
-  min-width: 0;
-  max-width: 100%;
-}
-
-/* 字幕区与画面同属演示内容；标签提供身份，正文只保留阅读文本。
- * 高度仍由 Presentation/B01 的既有预留机制控制，长句自然换行。 */
-.nblk-demo-stage__narration {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 12px;
-  align-items: start;
-  width: 100%;
-  min-width: 0;
-  margin-top: 14px;
-}
-
-.nblk-demo-stage__narration[data-caption-label="false"] {
-  grid-template-columns: minmax(0, 1fr);
-  gap: 0;
-}
-
-.nblk-demo-stage__caption-label {
-  grid-column: 1;
-  padding-top: 3px;
-  color: var(--hnv-color-accent, #315cda);
-  font-size: 11px;
-  font-weight: 650;
-  line-height: 1.5;
-  letter-spacing: 0.12em;
-  white-space: nowrap;
-}
-
-.nblk-demo-stage__caption-label[hidden] {
-  display: none !important;
-}
-
-.nblk-demo-stage__caption {
-  grid-column: 2;
-  max-width: 72ch;
-  margin: 0;
-  min-height: 3.3em;
-  padding: 0;
-  color: var(--hnv-color-ink, #202938);
-  font-family: inherit;
-  font-size: var(--hnv-font-size-reading, 16px);
-  font-weight: 400;
-  line-height: var(--hnv-font-line-reading, 1.65);
-  text-align: start;
-  overflow-wrap: anywhere;
-}
-
-.nblk-demo-stage__narration[data-caption-label="false"] .nblk-demo-stage__caption {
-  grid-column: 1;
-}
-
-.nblk-demo-stage__controls {
-  min-width: 0;
-  max-width: 100%;
-}
-
-.nblk-demo-stage__controls .nui-hstack {
-  align-items: center;
-}
-
-/* ---- B02 StepPlayer controls ---- */
 
 .nblk-step-player__jump {
   display: inline-flex;
@@ -14705,14 +14929,6 @@
 }
 
 @media (max-width: 520px) {
-  .nblk-demo-stage__title {
-    font-size: var(--hnv-font-size-title, 18px);
-  }
-
-  .nblk-demo-stage__narration {
-    gap: 8px;
-  }
-
   .nblk-step-player__jump {
     flex-basis: 100%;
   }
@@ -14724,8 +14940,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nblk-demo-stage,
-  .nblk-demo-stage *,
   .nblk-step-player,
   .nblk-step-player * {
     animation: none !important;

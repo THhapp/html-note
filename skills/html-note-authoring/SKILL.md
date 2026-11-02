@@ -25,8 +25,8 @@ description: 使用 html-note 组件库和公共演示层，将指定知识、MD
 | 新制作、将 MD 预留组织成任务，或需要完整制作要求 | [制作底稿与按任务条款](references/task-brief.md) |
 | 安排整体阅读、字幕、状态和动效，或判断视觉取舍 | [阅读与演示共识](references/principles.md) |
 | 找库、选资产、取接口与示例，或核对加载和公共接入 | [查询与组件取用](references/library-usage.md) |
-| 自定义连续画面或 Adapter 接入 | 先取 [连续画面最小示例](../../examples/continuous-scene/index.html) 或运行 `node scripts/query.mjs show example:continuous-scene`，再按疑点深入公共层契约 |
-| 阶段轨、消息流、分段长度条、设备连接等图形 | 先取 [流程图形中性示例](../../examples/flow-kit/index.html) 或运行 `node scripts/query.mjs show example:flow-kit`；需要场景协调时再查公共接入 |
+| 自定义连续画面或 Adapter 接入 | 先取 [连续画面最小示例](../../examples/continuous-scene/index.html) 或运行 `node scripts/query.mjs show example:continuous-scene`；使用内置 Adapter 或配方时查 `public:table-adapter`、`flow-stage/flow-packet/flow-segment/flow-device` 与 `recipe:composition` |
+| 阶段轨、消息流、分段长度条、设备连接、沿路径传播 | 先取 [流程图形中性示例](../../examples/flow-kit/index.html) 或运行 `node scripts/query.mjs show example:flow-kit`；组合阶段/报文/状态表时取 [流程组合示例](../../examples/flow-composition/index.html) 或 `show example:flow-composition` |
 | 验证实际打开、过渡、焦点/内容放行或时序疑点 | [验证与观察](references/validation.md) |
 
 已有有效上下文继续使用，局部修改只补相关信息。参考文件按任务读取，不把所有文档加载一遍。

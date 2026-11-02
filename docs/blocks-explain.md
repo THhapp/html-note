@@ -6,34 +6,35 @@
 
 B05–B10 是预制组合块，不是课程页面、测验或业务系统。它们：
 
-- 只消费公开 API：`NoteBlocks.StepPlayer`、`NoteUI.CodeBlock/DataObject/Badge/Notice/Stack/Panel/TreeView/Steps/Button`、`NoteViz.Sequence/Graph/Chart`；
+- 只消费公开 API：`NoteBlocks.StepPlayer`、`NoteUI.CodeBlock/DataObject/Badge/Notice/Stack/Panel/TreeView/Steps/Button`、`NoteViz.Sequence/Graph/Chart`、`NoteViz.Flow.PacketFlow`（B08 绘制）；
 - 所有代码、位串、节点、消息、目录、图表和字幕数据都由宿主给出；
 - 默认静止；如果存在步进，只由用户操作触发；
 - 不执行代码、不请求网络、不解析任意图语法、不写死协议或业务规则；
 - `update(patch)` 不触发用户回调；程序 `go/next/prev/replay/reset` 也不触发 `onStep`；
 - 每次停点重建/更新所需子组件并释放旧实例，销毁时清理子组件、计时器和临时节点。
 
-B01–B10 共用 `src/blocks/shared.js`：它只定义内部 `window.NoteBlocksInternals`（元素创建、内容写入、宿主校验、依赖检查、幂等销毁、步进快照包装等），不是公开 API。`blocks` 模块加载时 `shared.js` 在各块文件之前；单独按文件加载时也必须先加载它，否则块文件会抛出可读错误。
+B01–B10 共用 `src/blocks/shared.js`（`blocks-base` 模块）：它只定义内部 `window.NoteBlocksInternals`（元素创建、内容写入、宿主校验、依赖检查、幂等销毁、步进快照包装等），不是公开 API。块实现加载前必须先加载 `blocks-base`，否则会抛出可读错误。
 
 模块级加载顺序（模块包或全量包）：
 
 ```text
 core → legacy → ui-layout → ui-content → ui-navigation
-     → viz-objects → viz-chart → blocks
+     → viz-objects → viz-flow → viz-chart
+     → blocks-base → demo-stage → blocks
 ```
 
-`blocks` 模块同时包含 B01–B04（`stage.js`、`compare.js`）与 B05–B10，并由 `src/manifests/blocks-*.json` 按 `shared.js` → 各块文件的顺序合并。B05、B07、B08、B10 在 `mount()` 时要求同模块的 `NoteBlocks.StepPlayer` 已经定义；加载完整 `blocks` 模块即可，单独按文件加载时先加载 `shared.js` 与 `stage.js`。未加载 StepPlayer 会抛出可读错误，不会静默拼一个私有步进器。
+模块拆分为：`blocks-base`（共享内部 helper）、`demo-stage`（B01 DemoStage）、`blocks`（B02–B10，由 `blocks-stage.json` 与 `blocks-explain.json` 合并）。B05、B07、B08、B10 在 `mount()` 时要求 `NoteBlocks.StepPlayer` 已经定义；StepPlayer 随 `demo-stage` 模块提供，因此只加载 `blocks` 模块不够，需同时加载 `blocks-base` 与 `demo-stage`。未加载 StepPlayer 会抛出可读错误，不会静默拼一个私有步进器。
 
 依赖摘要：
 
 | ID | 公开组件组合 | 额外模块 |
 | --- | --- | --- |
-| B05 | StepPlayer（含 DemoStage/Button/栈布局）、CodeBlock、DataObject、Badge、Notice | core、legacy、ui-layout、ui-content |
-| B06 | NoteViz.Sequence、NoteUI.Stack/Badge/Notice | core、legacy、ui-layout、viz-objects |
-| B07 | StepPlayer、NoteViz.Graph、NoteUI.Steps/Notice | core、legacy、ui-layout、ui-navigation、viz-objects |
-| B08 | StepPlayer（步进与字幕）；本块自己的有限时序 SVG | core、legacy、ui-layout |
-| B09 | NoteUI.TreeView/Panel/DataObject/Badge/Notice | core、legacy、ui-layout、ui-navigation |
-| B10 | StepPlayer、NoteViz.Chart、NoteUI.Notice | core、legacy、ui-layout、viz-chart |
+| B05 | StepPlayer（含 DemoStage/Button/栈布局）、CodeBlock、DataObject、Badge、Notice | core、legacy、ui-layout、ui-content、blocks-base、demo-stage |
+| B06 | NoteViz.Sequence、NoteUI.Stack/Badge/Notice | core、legacy、ui-layout、viz-objects、blocks-base |
+| B07 | StepPlayer、NoteViz.Graph、NoteUI.Steps/Notice | core、legacy、ui-layout、ui-navigation、viz-objects、blocks-base、demo-stage |
+| B08 | StepPlayer；NoteViz.Flow.PacketFlow 负责消息图，B08 只保留块级容器、字幕和公开目标映射 | core、legacy、ui-layout、viz-flow、blocks-base、demo-stage |
+| B09 | NoteUI.TreeView/Panel/DataObject/Badge/Notice | core、legacy、ui-layout、ui-navigation、blocks-base |
+| B10 | StepPlayer、NoteViz.Chart、NoteUI.Notice | core、legacy、ui-layout、viz-chart、blocks-base、demo-stage |
 
 所有组件根只向宿主追加节点，不清空宿主原有内容；组合块根类名为 `.nblk-*`，CSS 只使用 `--hnv-*` tokens，不包含全局裸选择器。
 
@@ -183,7 +184,8 @@ var flow = NoteBlocks.ProcessFlow.mount(host, {
   edges: [{ id: 'ab', from: 'a', to: 'b', label: '进入', directed: true }],
   steps: [
     { id: 's1', caption: '从接收开始。', nodeId: 'a' },
-    { id: 's2', caption: '沿进入边到处理。', nodeId: 'b', edgeIds: ['ab'] }
+    { id: 's2', caption: '沿进入边到处理。', nodeId: 'b', edgeIds: ['ab'] },
+    { id: 's3', caption: '进入边完成，处理边变为当前。', nodeId: 'b', edgeIds: ['ab'], changedEdgeIds: ['ab'] }
   ],
   title: '流程',
   labels: { prev: '上一步', next: '下一步' },
@@ -193,7 +195,7 @@ var flow = NoteBlocks.ProcessFlow.mount(host, {
 });
 ```
 
-`nodes/edges` 形状遵循 NoteViz.Graph；手写坐标时节点可带 `x/y`，全部节点都有有限坐标才使用 `manual` 布局，否则使用 `layered`。`steps` 使用 `{id,caption,nodeId,edgeIds?,note?,label?}`。
+`nodes/edges` 形状遵循 NoteViz.Graph；手写坐标时节点可带 `x/y`，全部节点都有有限坐标才使用 `manual` 布局，否则使用 `layered`。`steps` 使用 `{id,caption,nodeId,edgeIds?,changedEdgeIds?,note?,label?}`；`edgeIds` 表达当前边，`changedEdgeIds` 只表达本步变化边，二者都交给 Graph 的 `edgeFocus`/`edgeChanged`。
 
 ### 5.2 实例与当前边处理
 
@@ -202,18 +204,19 @@ flow.el
 flow.go(index); flow.next(); flow.prev(); flow.replay(); flow.reset();
 flow.getStep();                 // 当前宿主停点
 flow.getTarget('b');            // 当前 Graph 中节点 b 的 SVG g
-flow.getTarget('edge:ab');      // 当前本步关系条里的边卡
-flow.getTarget('ab');           // 同上（无 node/step 冲突时）
+flow.getTarget('edge:ab');      // 当前 Graph 中边 ab 的 SVG g
+flow.getTarget('ab');           // 无 node/step 冲突时同上
 flow.getTarget('s2');           // 当前停点的进度区元素；非当前 step id 返回 null
 flow.update(patch); flow.destroy();
 ```
 
-- 当前节点使用 `NoteViz.Graph` 的公开 `focus`，图中以虚线关注与状态文字呈现；已完成/当前/未到达由 `NoteUI.Steps` 的公开状态表达。
-- **接口缺口**：冻结的 Graph API 只有节点 `focus/changed` 和节点 `getTarget`，没有边关注、边 target 或边 ID 接口。本块不修改 Graph、不查询其内部 SVG；当前边改为在图下“本步关系”区以“当前边”文字、起止节点和边标签突出。图中所有边仍可读，但没有直接边样式强调。该限制已在 manifest 与交付报告中标明。
-- `edgeIds` 解析顺序：边的 `id`（宿主可在 Graph 边对象上附加）、`from -> to` 字符串、edges 数组索引；无 id 的平行同向边暴露为 `from -> to` 与 `from -> to #n`。找不到的引用显示可见警告。
+- 当前节点使用 `NoteViz.Graph` 的公开 `focus`；当前边/变化边使用 Graph 的公开 `edgeFocus`/`edgeChanged`，图中直接给出边样式强调与可读状态，不再另画“当前边”文字卡。已完成/当前/未到达由 `NoteUI.Steps` 的公开状态表达。
+- 图下“本步关系”区只保留起止节点、边标签和未解析引用等补充文字；图内边强调是主通道，补充文字不是唯一提示。
+- `edgeIds`/`changedEdgeIds` 解析顺序：边的 `id`（宿主可在 Graph 边对象上附加）、`from -> to` 字符串、edges 数组索引；无 id 的平行同向边暴露为 `from -> to` 与 `from -> to #n`。找不到的引用显示可见警告。
+- `getTarget('edge:<key>')` 直接返回 Graph 当前边的 `<g>`；普通 id 先按节点解析，再按边解析，最后才尝试当前 step 进度区，避免与节点/边 id 冲突。
 - 只改 `title`/`maxWidth` 等展示项不重建当前图；改 `nodes`/`edges`/`steps`/`label` 才重建当前停点画面。
 - 不把已完成节点写成 `changed`；关注和变化语义保持分开。无自动串播，`go/next/prev/update` 不触发 `onStep`。
-- 图内滚动和标签由 Graph 提供；本块不扩展成流程编辑器，也不做拖拽/自动避障。
+- 图内滚动和标签由 Graph 提供；更新时复用同一 Graph/StepPlayer，只更新 focus、edgeFocus/edgeChanged 与数据，不每步重建 SVG。本块不扩展成流程编辑器，也不做拖拽/自动避障。
 
 ## 6. B08 NoteBlocks.SequenceDiagram
 
@@ -242,8 +245,8 @@ var sd = NoteBlocks.SequenceDiagram.mount(host, {
 - `messages`：`{id,from,to,label,type:'sync'|'async'|'return',note?}`；from/to 必须引用参与者，未知端点会被跳过并显示警告。
 - `current`：索引、消息 id 或 `{id}`/`{index}`。
 - `caption`：显示在图上的稳定上下文；当前消息解释（含类型、方向与 note）由 StepPlayer 放在图下字幕。
-- 消息按数组顺序自上而下排列；`type` 同时用线型、箭头形态和文字表示：同步实线/实心箭头、异步虚线、返回点线/开口箭头。颜色不是唯一通道。
-- 本块内部用 StepPlayer 管理停点，不另造自动播放器。
+- 参与者、生命线、消息线、当前消息与序号由 `NoteViz.Flow.PacketFlow`（`viz-flow` 模块）绘制；`type` 同时用线型、箭头形态和文字表示：同步实线/实心箭头、异步虚线、返回点线/开口箭头。未知 `type` 按同步处理并给出可见警告。颜色不是唯一通道。
+- 本块内部用 StepPlayer 管理停点，不另造自动播放器；PacketFlow 只负责图，不创建播放器或计时器。
 
 ### 6.2 实例、状态与 getTarget
 
@@ -258,11 +261,11 @@ sd.update(patch); sd.destroy();
 ```
 
 - 消息 id 优先于同名参与者 id；重复消息 id 时 `getTarget` 返回最后渲染的同 id 消息。
-- 参与者多时画布保持最小可读宽度，由视口横向局部滚动；当前消息行在重绘后会滚入视口；视口有最大高度，可纵向滚动。
+- 参与者多时画布保持最小可读宽度，由 PacketFlow 视口横向局部滚动；当前消息行在重绘后会滚入视口；块保留视口的最大高度与纵向滚动语义。
 - 长消息/参与者标签最多显示两行并可能以省略号收束；完整消息在 SVG `<title>` 与当前字幕中，完整参与者文本在 `<title>` 中。
-- `update({participants,messages,current,title,caption,label,maxWidth})` 不触发任何宿主回调（本块无 `onStep`）。消息、当前行、字幕和 getTarget 映射同步重建。
+- `update({participants,messages,current,title,caption,label,maxWidth})` 不触发任何宿主回调（本块无 `onStep`）。消息、当前行、字幕和 getTarget 映射同步重建；图仍由 PacketFlow 按稳定消息/参与者 id 复用渲染。
 - 无自动播放；重看/重来使用 StepPlayer 的公开行为，不产生自造动画。
-- 不是通用图编辑器：不做拖拽、缩放、任意图语法解析或复杂避障。
+- 不是通用图编辑器：不做拖拽、缩放、任意图语法解析或复杂避障；不复制 PacketFlow 的图形实现。
 
 ## 7. B09 NoteBlocks.HierarchyDetail
 
@@ -382,8 +385,8 @@ explain.update(patch); explain.destroy();
 
 ## 10. 已知限制与接口缺口
 
-1. **B07 边强调缺口**：NoteViz.Graph 冻结 API 没有边的 focus/changed/getTarget。当前边只能以图下关系条文字强调；没有修改 Graph 内部。若后续需要直接边样式，应先扩展 Graph 公开契约，而不是在 B07 私有实现。
-2. **B08 范围**：有限时序图，不是通用图编辑器；长标签两行后截断；完整文本在 title/字幕；消息 ID 应唯一。
+1. **B07 图内边强调**：使用 NoteViz.Graph 的公开 `edgeFocus/edgeChanged` 与 `getEdgeTarget`；图下关系条只补充文字，不再承担唯一强调。
+2. **B08 范围**：消息图由 `NoteViz.Flow.PacketFlow` 绘制，B08 只负责块级容器、StepPlayer 停点、字幕与目标映射；不是通用图编辑器，长标签两行后截断，完整文本在 title/字幕，消息 ID 应唯一。
 3. **B10 数据表状态**：停点切换重新挂载 Chart，数据表展开状态不保留；数据本身保持一致。
 4. **B06 位序是通用显示算法**：不内置端序检测、不解释协议；重叠字段的 Sequence 分组采用基础组件“第一个分组覆盖”的行为。
 5. **B09 内容节点**：DOM 内容会被移入详情面板而非克隆；销毁不负责把宿主节点恢复到原位置。

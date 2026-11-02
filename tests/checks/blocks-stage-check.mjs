@@ -10,7 +10,8 @@ const root = path.resolve(here, '../..');
 const edge = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
 const outDir = cacheDir(root, 'checks', 'blocks-stage');
 // 源码加载清单从 src/manifests 推导，模块拆分后自动包含新增文件。
-const PAGE_MODULES = ['core', 'legacy', 'ui-layout', 'ui-content', 'viz-objects', 'blocks'];
+// blocks 拆分后：blocks-base（共享）、demo-stage（B01 舞台）、blocks（B02–B04）必须同时加载。
+const PAGE_MODULES = ['core', 'legacy', 'ui-layout', 'ui-content', 'viz-objects', 'blocks-base', 'demo-stage', 'blocks'];
 const results = [];
 const consoleRecords = [];
 let browser;
@@ -28,7 +29,8 @@ async function addStyles(page) {
 }
 
 async function addScripts(page) {
-  for (const file of [...moduleScripts(root, PAGE_MODULES), ...moduleDemos(root, ['blocks'])]) {
+  const demos = Array.from(new Set([...moduleDemos(root, ['blocks']), ...moduleDemos(root, ['demo-stage'])]));
+  for (const file of [...moduleScripts(root, PAGE_MODULES), ...demos]) {
     await page.addScriptTag({ path: path.join(root, file) });
   }
 }

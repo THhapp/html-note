@@ -22,6 +22,11 @@
     "src/demo/adapters/sequence-insert.js",
     "src/demo/adapters/dom.js",
     "src/demo/adapters/expression.js",
+    "src/demo/adapters/table.js",
+    "src/demo/adapters/flow-stage.js",
+    "src/demo/adapters/flow-packet.js",
+    "src/demo/adapters/flow-segment.js",
+    "src/demo/adapters/flow-device.js",
     "src/demo/adapters/index.js",
     "src/demo/authoring.js",
     "src/demo/index.js"
