@@ -78,7 +78,7 @@ flow.getTarget('svg');                       // 整张 SVG
 flow.update({ visibleCount: 2, focus: 'ack' }); // 逐步显现由宿主显式推进
 ```
 
-方向由参与者顺序与 `from`/`to` 决定，写成 `data-direction="left|right|self"`；未显现消息保留节点并标 `data-hidden="true"`。`revealed` 优先于 `visibleCount`；组件不创建自动播放或计时器。
+方向由参与者顺序与 `from`/`to` 决定，写成 `data-direction="left|right|self"`；未显现消息保留节点并标 `data-hidden="true"`。`revealed` 优先于 `visibleCount`；布局按完整已知消息范围分配，逐步显现只改 `data-hidden`，不重排坐标/高度。组件不创建自动播放或计时器。
 
 ### SegmentBar（D09）
 

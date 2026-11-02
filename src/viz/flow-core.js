@@ -59,7 +59,27 @@
   }
 
   function setText(node, value) {
-    if (node) node.textContent = text(value);
+    if (node) {
+      var next = text(value);
+      if (node.textContent !== next) node.textContent = next;
+    }
+  }
+
+  /* 只在值真正变化时写属性/文字，避免同模型 update 产生无意义 DOM 变更。 */
+  function setAttributeIf(node, name, value) {
+    if (!node) return;
+    if (value == null) {
+      if (node.hasAttribute(name)) node.removeAttribute(name);
+      return;
+    }
+    var next = String(value);
+    if (node.getAttribute(name) !== next) node.setAttribute(name, next);
+  }
+
+  function setTextIf(node, value) {
+    if (!node) return;
+    var next = text(value);
+    if (node.textContent !== next) node.textContent = next;
   }
 
   function clear(node) {
@@ -149,12 +169,13 @@
 
   function setViewportMessage(node, message) {
     if (!node) return;
-    if (textOrEmpty(message)) {
-      node.textContent = text(message);
-      node.hidden = false;
+    var next = textOrEmpty(message);
+    if (next) {
+      if (node.textContent !== text(next)) node.textContent = text(next);
+      if (node.hidden) node.hidden = false;
     } else {
-      node.textContent = '';
-      node.hidden = true;
+      if (node.textContent !== '') node.textContent = '';
+      if (!node.hidden) node.hidden = true;
     }
   }
 
@@ -379,7 +400,8 @@
     version: VERSION,
     SVG_NS: SVG_NS,
     text: text, own: own, array: array, isNode: isNode, el: el, svgEl: svgEl,
-    setAttrs: setAttrs, setText: setText, clear: clear, numberOr: numberOr,
+    setAttrs: setAttrs, setText: setText, setAttributeIf: setAttributeIf, setTextIf: setTextIf,
+    clear: clear, numberOr: numberOr,
     clamp: clamp, textOrEmpty: textOrEmpty, uniqueId: uniqueId,
     validateHost: validateHost, defaultId: defaultId, component: component,
     makeSvgAccessible: makeSvgAccessible, setViewportMessage: setViewportMessage,

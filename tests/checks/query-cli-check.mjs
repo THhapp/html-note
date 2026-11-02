@@ -101,6 +101,77 @@ expect(flowStageEntry.ok === true && flowStageEntry.entries && flowStageEntry.en
 const recipeComposition = json(run(['show', 'recipe:composition', '--json']));
 expect(recipeComposition.ok === true && recipeComposition.entries && recipeComposition.entries[0] && recipeComposition.entries[0].resources.some((item) => item.key === 'source'),
   'show recipe:composition 返回配方源码', JSON.stringify(recipeComposition.entries && recipeComposition.entries[0] && recipeComposition.entries[0].resources));
+function dependencyModules(entry) {
+  const context = entry && entry.contexts && entry.contexts[0];
+  return context && Array.isArray(context.dependencies) ? context.dependencies.map((item) => item.module) : null;
+}
+const expectedDeps = {
+  propagation: ['core', 'viz-flow'],
+  tableAdapter: ['core', 'ui-content', 'demo-runtime'],
+  flowAdapter: ['core', 'viz-flow', 'demo-runtime'],
+  flowKit: ['core', 'viz-flow'],
+  flowComposition: ['core', 'legacy', 'ui-layout', 'ui-content', 'viz-flow', 'blocks-base', 'demo-stage', 'demo-runtime', 'demo-ui'],
+  recipeSkeleton: ['core', 'legacy', 'ui-layout', 'blocks-base', 'demo-stage', 'demo-runtime', 'demo-ui']
+};
+function sameModules(actual, expected) {
+  return JSON.stringify(actual) === JSON.stringify(expected);
+}
+const propagationDeps = dependencyModules(propagationEntry.entries[0]);
+expect(sameModules(propagationDeps, expectedDeps.propagation), 'propagation 实际依赖闭包是 core + viz-flow（不含 demo-runtime）', JSON.stringify(propagationDeps));
+expect(propagationEntry.entries[0].contexts[0].runtime === 'independent', 'propagation 标注 independent 运行入口', propagationEntry.entries[0].contexts[0].runtime);
+const propagationIndependent = json(run(['show', 'public:propagation', '--context', 'independent', '--json']));
+expect(propagationIndependent.ok === true && propagationIndependent.entries[0].contexts[0].key === 'independent' &&
+  sameModules(dependencyModules(propagationIndependent.entries[0]), expectedDeps.propagation) &&
+  propagationIndependent.entries[0].contexts[0].dependencySummary === expectedDeps.propagation.join(' + ') &&
+  propagationIndependent.entries[0].contexts[0].wholeLibrary.length === 2,
+  'show public:propagation --context independent 返回真实闭包与整库补充入口', JSON.stringify(propagationIndependent.entries && propagationIndependent.entries[0] && propagationIndependent.entries[0].contexts));
+const propagationPublicContext = json(run(['show', 'public:propagation', '--context', 'public', '--json']));
+expect(propagationPublicContext.ok === false && propagationPublicContext.missing && propagationPublicContext.missing[0].availableContexts.some((item) => item.key === 'independent'),
+  'propagation 不再暴露 public context，availableContexts 指向 independent', JSON.stringify(propagationPublicContext.missing));
+const tableAdapterDeps = dependencyModules(tableAdapterEntry.entries[0]);
+expect(sameModules(tableAdapterDeps, expectedDeps.tableAdapter), 'table adapter 实际依赖闭包含 core + ui-content + demo-runtime', JSON.stringify(tableAdapterDeps));
+const flowAdapterDeps = dependencyModules(flowStageEntry.entries[0]);
+expect(sameModules(flowAdapterDeps, expectedDeps.flowAdapter), 'flow-stage adapter 实际依赖闭包含 core + viz-flow + demo-runtime', JSON.stringify(flowAdapterDeps));
+const flowPacketEntry = json(run(['show', 'public:flow-packet-adapter', '--json']));
+const flowSegmentEntry = json(run(['show', 'public:flow-segment-adapter', '--json']));
+const flowDeviceEntry = json(run(['show', 'public:flow-device-adapter', '--json']));
+expect(sameModules(dependencyModules(flowPacketEntry.entries[0]), expectedDeps.flowAdapter) &&
+  sameModules(dependencyModules(flowSegmentEntry.entries[0]), expectedDeps.flowAdapter) &&
+  sameModules(dependencyModules(flowDeviceEntry.entries[0]), expectedDeps.flowAdapter),
+  'flow-packet/segment/device adapter 共用同一真实闭包', JSON.stringify({ packet: dependencyModules(flowPacketEntry.entries[0]), segment: dependencyModules(flowSegmentEntry.entries[0]), device: dependencyModules(flowDeviceEntry.entries[0]) }));
+const flowKitDeps = dependencyModules(flowKitEntry);
+expect(sameModules(flowKitDeps, expectedDeps.flowKit) && !flowKitDeps.includes('demo-ui'), 'flow-kit 实际依赖闭包是 core + viz-flow（不套 demo-ui）', JSON.stringify(flowKitDeps));
+const compositionDeps = dependencyModules(compositionExample.entries[0]);
+expect(sameModules(compositionDeps, expectedDeps.flowComposition), 'flow-composition 实际依赖闭包含 demo-ui + ui-content + viz-flow', JSON.stringify(compositionDeps));
+const recipeDeps = dependencyModules(recipeComposition.entries[0]);
+expect(sameModules(recipeDeps, expectedDeps.recipeSkeleton), 'recipe:composition 骨架依赖闭包是 demo-ui，不把区域组件并入骨架', JSON.stringify(recipeDeps));
+const recipeContext = recipeComposition.entries[0].contexts[0];
+expect(recipeContext.dependencySummary.includes('配方骨架') && recipeContext.dependencySummary.includes('区域组件') &&
+  Array.isArray(recipeContext.regionDependencies) &&
+  recipeContext.regionDependencies.some((item) => item.module === 'ui-content' && item.regions.includes('table')) &&
+  recipeContext.regionDependencies.some((item) => item.module === 'viz-flow' && item.regions.includes('packet')),
+  'recipe:composition 分述骨架依赖与区域组件依赖', JSON.stringify({ summary: recipeContext.dependencySummary, regions: recipeContext.regionDependencies }));
+const focusWorkbench = json(run(['show', 'recipe:focusWorkbench', '--context', 'recipe', '--json']));
+const focusContext = focusWorkbench.entries[0].contexts[0];
+expect(sameModules(dependencyModules(focusWorkbench.entries[0]), expectedDeps.recipeSkeleton) &&
+  focusContext.regionDependencies && focusContext.regionDependencies.length === 0 &&
+  /区域组件由调用方 bindings 决定/.test(focusContext.dependencySummary),
+  'focusWorkbench 骨架依赖 demo-ui，区域组件标记为调用方决定', JSON.stringify({ deps: dependencyModules(focusWorkbench.entries[0]), summary: focusContext.dependencySummary }));
+const exampleDefaultContext = json(run(['show', 'example:flow-kit', '--json']));
+const exampleAuthoringContext = json(run(['show', 'example:flow-kit', '--context', 'authoring', '--json']));
+expect(exampleDefaultContext.ok === true && exampleDefaultContext.entries[0].contexts[0].key === 'authoring' &&
+  exampleDefaultContext.entries[0].contexts[0].runtime === 'example' &&
+  exampleAuthoringContext.ok === true && exampleAuthoringContext.entries[0].contexts[0].key === 'authoring',
+  '完整示例没有独立 example context，按 authoring 提供并可 --context authoring 取用', JSON.stringify({ defaultKey: exampleDefaultContext.entries && exampleDefaultContext.entries[0] && exampleDefaultContext.entries[0].contexts[0].key }));
+const recipeExplicitContext = json(run(['show', 'recipe:composition', '--context', 'recipe', '--json']));
+expect(recipeExplicitContext.ok === true && recipeExplicitContext.entries[0].contexts[0].key === 'recipe' &&
+  sameModules(dependencyModules(recipeExplicitContext.entries[0]), expectedDeps.recipeSkeleton),
+  'recipe:composition --context recipe 保持骨架依赖与 recipe key', JSON.stringify(recipeExplicitContext.entries && recipeExplicitContext.entries[0] && recipeExplicitContext.entries[0].contexts));
+const toolForDeps = json(run(['show', 'tool:inspect-note', '--json'])).entries[0].contexts[0];
+const toolDeps = toolForDeps.dependencies.map((item) => item.module);
+expect(toolDeps.length === 0 && toolForDeps.moduleDependencies.length === 0, '工具 topic 的结构化模块依赖为空，不混入浏览器模块', JSON.stringify(toolDeps));
+
+
 const flowKitDoc = json(run(['read', 'public:propagation', 'api', '--json']));
 expect(flowKitDoc.ok === true && /Propagation/.test(flowKitDoc.content), 'public:propagation API 含 Propagation 说明');
 const empty = json(run(['search', '不存在词xyz', '--json']));

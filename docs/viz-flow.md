@@ -75,6 +75,8 @@ var track = NoteViz.Flow.StageTrack.mount(host, {
 
 状态：`pending | current | done | skipped | failed`。阶段自带 `status` 优先；否则 `failed`/`skipped` 集合优先，`current` 为当前阶段，当前阶段之前默认 `done`，之后默认 `pending`。状态写成 `data-status`；当前阶段同时有 `aria-current="step"`。
 
+圆点、连接线与文本槽使用同源 CSS 几何：节点尺寸、节点边框、阶段上下 padding 与连接线高度由 `--nviz-flow-stagetrack-*` 变量提供，连接线 top 为 `padding-top + node-size/2 - line-height/2`，因此圆点圆心与连接线中心始终对齐。目标徽标槽常驻：未命中目标时 `data-empty="true"` 且不可见，但仍占位；阶段标签/状态换行、容器宽度变化时行高与徽标位置保持对齐。旁路端点按已声明阶段数量与 `from`/`to` 计算，只画作者显式声明的端点。
+
 `getTarget(id)`：阶段 id 返回对应 `<li>`；`bypass:<from>><to>`（如 `bypass:s2>s4`）返回旁路行；`track` 返回阶段列表容器；`bypasses` 返回旁路容器。未知阶段端点的旁路会被跳过，并在图下提示跳过数量；旁路不自动推断分支剧情。
 
 **更新与限制**：`update({ current, target, skipped, failed })` 只改状态；`update({ stages })` 按 id 复用阶段节点，仅新增/移除变化项。组件不提供播放按钮、计时器、阶段内容面板，也不自动根据步骤推进推断完成/跳过。
@@ -111,6 +113,7 @@ var flow = NoteViz.Flow.PacketFlow.mount(host, {
 | `visibleCount` | 按消息顺序显示前 N 条；取整并夹紧到 `0..messages.length`。 |
 | `focus` | 当前关注的消息 id，写入 `data-focus="true"` 并显示焦点带；不是显现开关。 |
 | `showIndexes` | 布尔，默认 `false`；为 `true` 时在每条消息前显示序号。 |
+| `layoutCount` | 可选整数，覆盖消息流布局行数；实际取 `max(1, validMessages.length, floor(layoutCount))`。用于预留额外行，不会少于完整已知消息数。 |
 | `label` | 根容器可访问名称，默认“消息流”。 |
 
 消息方向由参与者顺序与 `from`/`to` 决定，写成 `data-direction="left|right|self"`，箭头指向 `to`；消息的 `data-target` 是目标参与者 id，另有 `data-type` 与 `data-dashed` 供样式和检查读取。未显现的消息保留节点并标记 `data-hidden="true"`，以便宿主逐步揭示；组件本身不创建计时器、自动下一帧或播放循环。长标签最多两行，完整文本进入 SVG `<title>` 与可访问名称。
@@ -119,7 +122,7 @@ var flow = NoteViz.Flow.PacketFlow.mount(host, {
 
 `getState()` 返回 `{ participants, messages, revealed, visibleCount, focus, current }` 快照：消息含 `id/from/to/label/note/type/dashed/status/revealed`，`revealed` 是当前显示的消息 id 数组，`visibleCount` 等于其数量，`current` 是 `focus` 对应的规范化消息或 `null`；销毁后返回 `null`。
 
-**更新与限制**：`update({ participants, messages, visibleCount, revealed, focus, showIndexes })` 按 id 复用参与者和消息节点。布局是确定性的参与者列 + 消息行；消息过多时在局部视口滚动，不做自动避让、协议语义或复杂序列图排版。B08 `NoteBlocks.SequenceDiagram` 消费本组件，负责块级 chrome、StepPlayer 停点与当前消息滚动。
+**更新与限制**：`update({ participants, messages, visibleCount, revealed, focus, showIndexes, layoutCount })` 按 id 复用参与者和消息节点。布局按完整已知的 `validMessages` 分配：`viewBox` 高度、生命线长度与消息行范围由 `layoutCount`（缺省为完整 valid 消息数）决定，`visibleCount`/`revealed` 只控制 `data-hidden`，不改变坐标、行距或画布高度；因此同数据/布局下逐步显现不会重排，初始也可能先占满已知消息范围。`layoutCount` 可在作者需要额外预留行时覆盖，但不会小于完整 valid 消息数。消息过多时在局部视口滚动，不做自动避让、协议语义或复杂序列图排版。B08 `NoteBlocks.SequenceDiagram` 与 flow-kit 用法不变：B08 传完整消息集合并用 `visibleCount`/`current` 控制显现，flow-kit 仍由宿主按钮推进 `visibleCount`。
 
 <a id="D09"></a>
 
@@ -257,7 +260,7 @@ runner.getState();              // {progress, start, end, copies:[{id,ratio,x,y,
 | `flow-segment` | SegmentBar（D09） | `{segments,ranges,scaleMax,minWidth,label}`；读回含真实值/显示宽度/zero/clamped | `segment:<id>`、`range:<id>` |
 | `flow-device` | DeviceLinks（D10） | `{devices,links,label}`；读回连接含端点身份与 `valid` | `link:<id>`、`device:<id>` |
 
-- 视图只接受可序列化数据；DOM、函数和事件留在 Binding.options。`table` 的 `rowKey/rowState/cellState/onSort` 只能在 options 中提供。
+- 视图只接受可序列化数据；DOM、函数和事件留在 Binding.options。`table` 的 `rowKey/rowState/cellState/onSort/stableStateLabels` 只能在 options 中提供；`table` Adapter 默认 `stableStateLabels:true`，每行常驻隐藏状态标签槽，5 行表约 261→361px 的高度代价与无固定 min-height/不裁切正文的边界见[内容组件](ui-content.md#C06)。
 - `table` 的 update 不支持列结构（键/顺序/对齐/sortable）变化和重复行键；需要时改用 cut/reveal 或修正视图。值变化用 cell 来源覆盖局部淡出，新行/行状态用行级提示，不对整表做整体淡入。
 - 四个 flow Adapter 按变化对象生成稳定组；减少动效时 commit 直接落目标终态、不创建效果。target query 直接返回组件 `getTarget` 结果，`{part:'root'|'el'|'component'}` 返回根；flow-packet 另有 `{part:'viewport'}`。
 - Adapter 不自动推断观察顺序；author 在 `scene.attention.targets[].groups` 中引用上述组名即可局部放行。

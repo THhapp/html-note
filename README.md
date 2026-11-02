@@ -84,7 +84,7 @@ node scripts/query.mjs read D01 source --limit 80
 | 文档 | 回答什么 |
 | --- | --- |
 | [取用与组合](docs/取用与组合.md) | 怎么选入口、加载、调用和组合；模块依赖与宿主责任 |
-| [查询 CLI](docs/查询CLI.md) | 实际命令、JSON、上下文、分页、资料覆盖与维护方式 |
+| [查询 CLI](docs/查询CLI.md) | 实际命令、JSON、上下文、结构化依赖闭包、分页、资料覆盖与维护方式 |
 | [查询语料](docs/查询语料.md) | 作者别名、用途、适用边界与引用；CLI 的检索元数据 |
 | [提示词撰写](docs/提示词撰写.md) | 将 MD 预留组织为制作任务，提供通用底稿和按需条款 |
 | [公共编排层 API](docs/公共编排层.md) | NoteDemo 的 Definition、scene、Adapter、会话 API、生命周期与已知限制 |
@@ -120,6 +120,8 @@ pwsh -NoProfile -File scripts/package.ps1
 ```
 
 `dist/` 与根 `registry.json` 都是构建产物，不手改。开发模式可先跑 `node scripts/build.mjs`，缺失项只警告；`--final` 与 `check.mjs` 严格失败。浏览器检查复用本机 Edge 与 `tests/tools` 中已有的 playwright-core，不下载另一套浏览器，也不需要新增 `npm test` 工具链。
+
+依赖闭包与稳定布局的定向入口：`node tests/checks/query-cli-check.mjs`、`node tests/checks/query-closure-host-check.mjs`（按语料 `模块依赖` 生成最小宿主）、`node tests/checks/flow-kit-check.mjs`、`node tests/checks/flow-scene-check.mjs`、`node tests/checks/flow-geometry-check.mjs`（StageTrack/PacketFlow 几何）、`node tests/checks/stable-layout-check.mjs`（流程组合多宽度/多停点）、`node tests/checks/attention-composition-check.mjs`（当前报文 attention）。Table 的 `stableStateLabels` 在独立 Table 默认 `false`、`table` Adapter 默认 `true`（每行常驻隐藏槽，5 行表约 261→361px）；PacketFlow `layoutCount` 与 StageTrack 同源几何在 `examples/flow-kit/index.html`、`examples/flow-composition/index.html` 中直接观察。
 
 ## 目录
 

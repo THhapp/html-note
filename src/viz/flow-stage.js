@@ -16,7 +16,7 @@
     uniqueId = shared.uniqueId, validateHost = shared.validateHost, defaultId = shared.defaultId,
     component = shared.component, makeSvgAccessible = shared.makeSvgAccessible,
     setViewportMessage = shared.setViewportMessage, normalizeStatus = shared.normalizeStatus,
-    statusList = shared.statusList;
+    statusList = shared.statusList, setAttributeIf = shared.setAttributeIf, setTextIf = shared.setTextIf;
 
   /* ---------------- StageTrack ---------------- */
 
@@ -108,7 +108,7 @@
     }
 
     function render() {
-      root.setAttribute('aria-label', textOrEmpty(model.label) || '阶段轨');
+      setAttributeIf(root, 'aria-label', textOrEmpty(model.label) || '阶段轨');
       var labels = statusLabels();
       var stages = normalizeStages();
       var stageIndexById = Object.create(null);
@@ -118,7 +118,10 @@
       var targetId = textOrEmpty(model.target);
       var skippedSet = statusList(model.skipped);
       var failedSet = statusList(model.failed);
-      list.style.setProperty('--nviz-flow-stagetrack-count', String(Math.max(1, stages.length)));
+      var countText = String(Math.max(1, stages.length));
+      if (list.style.getPropertyValue('--nviz-flow-stagetrack-count') !== countText) {
+        list.style.setProperty('--nviz-flow-stagetrack-count', countText);
+      }
 
       var seen = Object.create(null);
       stages.forEach(function (stage, index) {
@@ -130,23 +133,31 @@
           node.appendChild(el('span', 'nviz-flow-stagetrack__label'));
           node.appendChild(el('span', 'nviz-flow-stagetrack__status'));
           node.appendChild(el('span', 'nviz-flow-stagetrack__badge'));
+          node.__nvizFlowCache = Object.create(null);
           stageNodes.set(stage.id, node);
         }
         seen[stage.id] = true;
+        var cache = node.__nvizFlowCache || (node.__nvizFlowCache = Object.create(null));
         var status = deriveStatus(stage, index, currentIndex, skippedSet, failedSet);
-        node.setAttribute('data-status', status);
-        node.setAttribute('data-index', String(index));
-        if (status === 'current') node.setAttribute('aria-current', 'step');
-        else node.removeAttribute('aria-current');
-        if (targetId && stage.id === targetId) node.setAttribute('data-target', 'true');
-        else node.removeAttribute('data-target');
-        setText(node.querySelector('.nviz-flow-stagetrack__label'), stage.label || stage.id);
-        setText(node.querySelector('.nviz-flow-stagetrack__status'), labels[status] || status);
+        setAttributeIf(node, 'data-status', status);
+        setAttributeIf(node, 'data-index', String(index));
+        setAttributeIf(node, 'aria-current', status === 'current' ? 'step' : null);
+        var isTarget = !!targetId && stage.id === targetId;
+        setAttributeIf(node, 'data-target', isTarget ? 'true' : null);
+        var labelText = stage.label || stage.id;
+        var statusText = labels[status] || status;
+        var labelNode = node.querySelector('.nviz-flow-stagetrack__label');
+        var statusNode = node.querySelector('.nviz-flow-stagetrack__status');
+        if (cache.labelText !== labelText) { setTextIf(labelNode, labelText); cache.labelText = labelText; }
+        if (cache.statusText !== statusText) { setTextIf(statusNode, statusText); cache.statusText = statusText; }
         var badge = node.querySelector('.nviz-flow-stagetrack__badge');
-        var isTarget = targetId && stage.id === targetId;
-        badge.textContent = isTarget ? '目标' : '';
-        badge.hidden = !isTarget;
-        if (node.parentNode !== list) list.appendChild(node);
+        var badgeText = isTarget ? '目标' : '';
+        if (cache.badgeText !== badgeText) {
+          badge.textContent = badgeText;
+          cache.badgeText = badgeText;
+        }
+        if (badge.hidden) badge.hidden = false;
+        setAttributeIf(badge, 'data-empty', isTarget ? 'false' : 'true');
       });
       Array.from(stageNodes.keys()).forEach(function (id) {
         if (seen[id]) return;
@@ -154,16 +165,19 @@
         if (node && node.parentNode) node.parentNode.removeChild(node);
         stageNodes.delete(id);
       });
-      /* Keep visual order equal to the host array while reusing the same nodes. */
-      stages.forEach(function (stage) {
-        var node = stageNodes.get(stage.id);
-        if (node) list.appendChild(node);
-      });
+      var desiredStages = stages.map(function (stage) { return stageNodes.get(stage.id); });
+      var currentStages = Array.prototype.slice.call(list.children);
+      var sameStageOrder = desiredStages.length === currentStages.length &&
+        desiredStages.every(function (node, index) { return node === currentStages[index]; });
+      if (!sameStageOrder) {
+        desiredStages.forEach(function (node) { if (node) list.appendChild(node); });
+      }
 
       var normalizedBypass = normalizeBypasses(stageIndexById);
       var bypassSeen = Object.create(null);
       var labelsById = Object.create(null);
       stages.forEach(function (stage) { labelsById[stage.id] = stage.label || stage.id; });
+      var desiredBypasses = [];
       normalizedBypass.valid.forEach(function (item) {
         var row = bypassNodes.get(item.key);
         if (!row) {
@@ -183,8 +197,9 @@
           bypassNodes.set(item.key, row);
         }
         bypassSeen[item.key] = true;
-        row.setAttribute('data-from', item.from);
-        row.setAttribute('data-to', item.to);
+        desiredBypasses.push(row);
+        setAttributeIf(row, 'data-from', item.from);
+        setAttributeIf(row, 'data-to', item.to);
         var fromIndex = stageIndexById[item.from];
         var toIndex = stageIndexById[item.to];
         var total = Math.max(1, stages.length);
@@ -192,16 +207,18 @@
         var tx = ((toIndex + 0.5) / total) * 1000;
         var lift = clamp(Math.abs(tx - fx) / 8, 8, 44);
         var path = row.querySelector('.nviz-flow-stagetrack__bypass-path');
-        path.setAttribute('d', 'M ' + fx.toFixed(1) + ' 3 C ' + fx.toFixed(1) + ' ' + (3 + lift).toFixed(1) +
+        setAttributeIf(path, 'd', 'M ' + fx.toFixed(1) + ' 3 C ' + fx.toFixed(1) + ' ' + (3 + lift).toFixed(1) +
           ', ' + tx.toFixed(1) + ' ' + (17 - lift).toFixed(1) + ', ' + tx.toFixed(1) + ' 17');
         var arrowX = tx;
-        row.querySelector('.nviz-flow-stagetrack__bypass-arrow').setAttribute('d',
+        setAttributeIf(row.querySelector('.nviz-flow-stagetrack__bypass-arrow'), 'd',
           'M ' + (arrowX - 4).toFixed(1) + ' 13 L ' + (arrowX + 4).toFixed(1) + ' 13 L ' + arrowX.toFixed(1) + ' 19 Z');
-        setAttrs(row.querySelector('.nviz-flow-stagetrack__bypass-endpoint.is-from'), { cx: fx.toFixed(1), cy: '3' });
-        setAttrs(row.querySelector('.nviz-flow-stagetrack__bypass-endpoint.is-to'), { cx: tx.toFixed(1), cy: '17' });
+        setAttributeIf(row.querySelector('.nviz-flow-stagetrack__bypass-endpoint.is-from'), 'cx', fx.toFixed(1));
+        setAttributeIf(row.querySelector('.nviz-flow-stagetrack__bypass-endpoint.is-from'), 'cy', '3');
+        setAttributeIf(row.querySelector('.nviz-flow-stagetrack__bypass-endpoint.is-to'), 'cx', tx.toFixed(1));
+        setAttributeIf(row.querySelector('.nviz-flow-stagetrack__bypass-endpoint.is-to'), 'cy', '17');
         var bypassLabel = item.label || ('旁路：' + (labelsById[item.from] || item.from) + ' → ' + (labelsById[item.to] || item.to));
-        setText(row.querySelector('.nviz-flow-stagetrack__bypass-label'), bypassLabel);
-        row.setAttribute('aria-label', bypassLabel);
+        setTextIf(row.querySelector('.nviz-flow-stagetrack__bypass-label'), bypassLabel);
+        setAttributeIf(row, 'aria-label', bypassLabel);
       });
       Array.from(bypassNodes.keys()).forEach(function (key) {
         if (bypassSeen[key]) return;
@@ -209,6 +226,12 @@
         if (row && row.parentNode) row.parentNode.removeChild(row);
         bypassNodes.delete(key);
       });
+      var currentBypasses = Array.prototype.slice.call(bypasses.children);
+      var sameBypassOrder = desiredBypasses.length === currentBypasses.length &&
+        desiredBypasses.every(function (row, index) { return row === currentBypasses[index]; });
+      if (!sameBypassOrder) {
+        desiredBypasses.forEach(function (row) { bypasses.appendChild(row); });
+      }
       setViewportMessage(note, normalizedBypass.invalid
         ? '已跳过 ' + normalizedBypass.invalid + ' 条引用未知阶段的显式旁路。'
         : '');

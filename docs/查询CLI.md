@@ -29,6 +29,7 @@ node scripts/query.mjs show public:timing-facts
 node scripts/query.mjs show public:table-adapter
 node scripts/query.mjs show public:flow-packet-adapter
 node scripts/query.mjs show public:propagation
+node scripts/query.mjs show public:propagation --context independent
 node scripts/query.mjs show example:flow-composition
 node scripts/query.mjs show recipe:composition
 node scripts/query.mjs show tool:inspect-note
@@ -113,6 +114,30 @@ show 是减少反复查询的重点。默认围绕已选资产返回一个紧凑
 - 不带上下文的 show 返回条目实际可用的上下文；请求不支持的上下文时，缺失项返回 `availableContexts` 和可执行的 `show ... --context ...` 提示，不套用其他入口。
 - 已知 Adapter 的用法直接写出其真实模式（matrix 只 `cut/update`，expression 只 `layout/cut`）；资料未确认的 Adapter 明确说“支持范围未确认”，不拿包含全部模式的通用骨架冒充具体用法。
 
+### 依赖闭包与结构化语料
+
+主题条目的依赖不再由代码按类型硬套，也不解析 `依赖` 自由文本。语料提供三个可解析字段，CLI 只按它们计算：
+
+| 字段 | 作用 |
+| --- | --- |
+| `模块依赖` | 浏览器组件模块名（逗号分隔）；`none` 表示无浏览器模块。CLI 沿 `src/manifests` 递归合并多模块依赖闭包，按 `MODULE_ORDER`（发布/加载顺序）输出。 |
+| `运行入口` | `independent` / `scene` / `public` / `recipe` / `authoring` / `example` / `tool`；决定 `show` 的 context key。`example` 当前映射到 `authoring`（完整示例没有独立 example context；查询时用 `--context authoring`，`--context example` 不是有效参数）。 |
+| `区域组件依赖` | 仅配方：`caller` 表示区域组件由调用方 bindings 决定；或 `region=module` 列表。配方骨架只使用 `模块依赖`，区域模块不并入骨架闭包，而在 `dependencySummary` / `notes` / `regionDependencies` 中分开说明。 |
+
+当前代表性闭包：
+
+- `public:propagation`：`core + viz-flow`；`show public:propagation --context independent` 成功，不加载 demo-runtime/demo-ui。
+- `public:table-adapter`：`core + ui-content + demo-runtime`。
+- `public:flow-stage-adapter` / `flow-packet` / `flow-segment` / `flow-device`：`core + viz-flow + demo-runtime`。
+- `example:flow-kit`：`core + viz-flow`，不套 demo-ui。
+- `example:flow-composition`：`core + legacy + ui-layout + ui-content + viz-flow + blocks-base + demo-stage + demo-runtime + demo-ui`。
+- `recipe:composition`：骨架为 `demo-ui` 闭包（`core + legacy + ui-layout + blocks-base + demo-stage + demo-runtime + demo-ui`）；区域表格 `ui-content`、flow 图形 `viz-flow` 由调用方 bindings 另加。
+- `recipe:focusWorkbench`：骨架同为 `demo-ui` 闭包；区域组件标记为 caller（由调用方 bindings 决定）。
+
+`wholeLibrary` 只表示“整库入口可作为补充”，不参与闭包计算；工具条目 `wholeLibrary` 为 `null`，`模块依赖` 为 `none`，不混入 demo-runtime 或整库。
+
+`public:table-adapter` 的 `stableStateLabels` 默认 `true`（独立 Table 默认 `false`）：每行常驻隐藏状态标签槽，label 显隐不改变行高，无固定 min-height/不裁切正文，5 行表约 261→361px；canonical/getState/readModel 不变。真实验证入口：`node tests/checks/stable-layout-check.mjs`（流程组合预览稳定布局）、`node tests/checks/attention-composition-check.mjs`（当前报文 attention）、`node tests/checks/flow-geometry-check.mjs`（StageTrack/PacketFlow 几何）。
+
 `read` 的文档章节以显式锚点所属标题为起点，兼容锚点在标题前或标题后；读到下一条同级或更高级标题为止，不把后续无关章节混入。`public:progress` / `public:attention` 已指向各自的作者小节锚点（`author-progress` / `author-attention`），`control` 资源指向 `author-scene-control` 的受控视觉接管生命周期；不会从整个 Adapter 大章开头开始，分页与继续读取仍保留。
 
 语料把完整示例（`example`）、局部接入片段（`fragment`）和实现源码（`source`）分开命名；查询 Q18/Q19 会同时给出连续画面最小示例和对应片段，避免把示例片段当完整作品或把源码当可直接运行的示例。
@@ -184,7 +209,7 @@ Skill 主体及参考正文继续承接[既有提示词与共识](提示词撰�
 
 - 查询语料以 Markdown 为唯一检索元数据，组件身份来自 `src/manifests`；配方、公共接法、作者辅助、构建/验证工具与完整示例有独立条目 ID，不增加组件计数。
 - `show` 的 api/source/demo/example/fragment/control 资源来自 manifest 和语料引用；`read` 从维护文档、源码、examples 读取，不执行代码、不启动浏览器。
-- 用 `tests/checks/query-cli-check.mjs` 检查真实查询、JSON、工程外调用和失败路径。
+- 用 `tests/checks/query-cli-check.mjs` 检查真实查询、JSON、依赖闭包、context key、工程外调用和失败路径；用 `tests/checks/query-closure-host-check.mjs` 按 JSON 声明的闭包生成最小宿主，实际只加载对应 `dist/modules` 并验证 Propagation / flow-kit / table Adapter / flow-packet Adapter 能运行。
 
 ## 已知限制
 

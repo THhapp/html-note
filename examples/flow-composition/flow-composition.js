@@ -109,11 +109,12 @@
     if (withTable) {
       replace.table = tableView(snapshot);
       bindings.push({ binding: 'table' });
-      /* 主要变化落在表格当前消息行：公共 Focus 在每次显现后指向该行 note 单元；
-       * 只观察，不把整表放进一个组门控。 */
+      /* 主要变化是当前报文的显现：先建立观察，再放行该消息的 flow-packet 组；
+       * 表格/读数只是同一快照的辅助状态，不单独框选。 */
       var visible = Math.min(snapshot.visible, MESSAGES.length);
       if (visible > 0) {
-        scene.attention = { targets: [{ binding: 'table', query: { row: MESSAGES[visible - 1].id, column: 'note' }, groups: [] }] };
+        var focusId = 'message:' + MESSAGES[visible - 1].id;
+        scene.attention = { targets: [{ binding: 'packet', query: { id: focusId }, groups: [focusId] }] };
       }
     }
     return { id: snapshot.id, caption: snapshot.caption, replace: replace, scene: scene };

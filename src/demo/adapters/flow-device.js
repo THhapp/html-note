@@ -128,23 +128,105 @@
         var target = normalizeView(ctx && ctx.targetView).model;
         var reduced = !!(ctx && ctx.motion === 'never');
         var groups = diffGroups(source, target);
+        var records = [];
+        var sourceLinks = Object.create(null);
+        source.links.forEach(function (link) { sourceLinks[link.id] = link; });
+        var sourceDevices = Object.create(null);
+        source.devices.forEach(function (device) { sourceDevices[device.id] = device; });
+        function styleValue(node, property) {
+          return node && global.getComputedStyle ? global.getComputedStyle(node).getPropertyValue(property) : '';
+        }
+        target.links.forEach(function (link) {
+          var before = sourceLinks[link.id];
+          if (!before) {
+            records.push({ kind: 'new', group: 'link:' + link.id, targetKey: 'link:' + link.id });
+            return;
+          }
+          if (before.label !== link.label || before.status !== link.status ||
+              JSON.stringify(before.from) !== JSON.stringify(link.from) || JSON.stringify(before.to) !== JSON.stringify(link.to)) {
+            var path = component.getLinkPath(link.id);
+            if (path) records.push({ kind: 'link-style', group: 'link:' + link.id, targetKey: 'link:' + link.id, id: link.id, sourceStroke: styleValue(path, 'stroke') });
+          }
+        });
+        target.devices.forEach(function (device) {
+          var before = sourceDevices[device.id];
+          if (!before) {
+            records.push({ kind: 'new', group: 'device:' + device.id, targetKey: 'device:' + device.id });
+            return;
+          }
+          if (before.label !== device.label || before.status !== device.status || JSON.stringify(before.ports) !== JSON.stringify(device.ports)) {
+            var node = component.getTarget('device:' + device.id);
+            var box = node && node.querySelector('.nviz-flow-devicelinks__device-box');
+            if (box) records.push({ kind: 'device-style', group: 'device:' + device.id, targetKey: 'device:' + device.id, sourceStroke: styleValue(box, 'stroke'), sourceFill: styleValue(box, 'fill') });
+          }
+        });
+        function resolveElement(record) {
+          if (record.prehideEl) return record.prehideEl;
+          return component.getTarget(record.targetKey);
+        }
         return {
           groups: function () { return groups.slice(); },
-          commit: function () { apply(target); },
+          commit: function () {
+            apply(target);
+            if (reduced) return;
+            records.forEach(function (record) {
+              if (record.kind !== 'new') return;
+              var node = component.getTarget(record.targetKey);
+              if (!node) return;
+              record.prehideEl = node;
+              record.savedOpacity = node.style.opacity;
+              node.style.opacity = '0';
+            });
+          },
           targets: function () { return []; },
           effects: function (effectCtx) {
             if (reduced) return [];
             var timing = effectCtx && isObject(effectCtx.timing) ? effectCtx.timing : {};
             var duration = typeof timing.enterDuration === 'number' ? Math.max(0, timing.enterDuration) : 420;
-            var specs = [];
-            groups.forEach(function (group) {
-              var node = component.getTarget(group);
-              if (!node) return;
-              specs.push({ el: node, keyframes: [{ opacity: '0.3' }, { opacity: '1' }], options: { duration: duration, easing: timing.easing }, group: group, gate: 'ready' });
-            });
-            return specs;
+            var easing = typeof timing.easing === 'string' ? timing.easing : undefined;
+            return records.map(function (record) {
+              var node = resolveElement(record);
+              if (!node) return null;
+              var options = { duration: duration, fill: 'both' };
+              if (easing) options.easing = easing;
+              if (record.kind === 'new') {
+                return { el: node, keyframes: [{ opacity: '0' }, { opacity: '1' }], options: options, group: record.group, gate: 'ready' };
+              }
+              if (record.kind === 'link-style') {
+                var path = component.getLinkPath(record.id);
+                if (!path) return null;
+                return {
+                  el: path,
+                  keyframes: [{ stroke: record.sourceStroke }, { stroke: styleValue(path, 'stroke') }],
+                  options: options,
+                  group: record.group,
+                  gate: 'ready'
+                };
+              }
+              if (record.kind === 'device-style') {
+                var box = node.querySelector('.nviz-flow-devicelinks__device-box');
+                if (!box) return null;
+                return {
+                  el: box,
+                  keyframes: [
+                    { stroke: record.sourceStroke, fill: record.sourceFill },
+                    { stroke: styleValue(box, 'stroke'), fill: styleValue(box, 'fill') }
+                  ],
+                  options: options,
+                  group: record.group,
+                  gate: 'ready'
+                };
+              }
+              return null;
+            }).filter(Boolean);
           },
-          cleanup: function () {}
+          cleanup: function () {
+            records.forEach(function (record) {
+              if (!record.prehideEl) return;
+              record.prehideEl.style.opacity = record.savedOpacity == null ? '' : record.savedOpacity;
+              record.prehideEl = null;
+            });
+          }
         };
       },
       destroy: function () { if (destroyed) return; destroyed = true; component.destroy(); }

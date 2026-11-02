@@ -241,6 +241,7 @@ table.update({ rows: [] });
 | `dense` | boolean | `false` | 紧凑单元格间距。 |
 | `rowState` | function | `null` | 可选 `(row,index,rowKey) -> 状态`；声明后优先于 `row.state`。 |
 | `cellState` | function | `null` | 可选 `(row,column,rowKey,index) -> 状态`；声明后优先于 `row.cellStates`。 |
+| `stableStateLabels` | boolean | `false` | 稳定状态标签槽；`true` 时每行/带状态的单元保留固定状态行占位，label 显隐不改变行高。独立使用时默认关闭，`table` scene Adapter 默认开启。 |
 
 排序与空态：
 
@@ -258,6 +259,15 @@ table.update({ rows: [] });
 - 单元状态：`row.cellStates` 是 `{ [columnKey]: 同状态值 }`，按列替换；整行替换后旧状态自然消失。
 - 计算状态：`options.rowState(row,index,rowKey)` / `options.cellState(row,column,rowKey,index)` 优先于行字段；声明函数后不再读取 `row.state`/`row.cellStates`。
 - 状态输出：`data-row-state` / `data-cell-state` 写空格分隔的 type，类名为 `nui-table__row--state-<type>` / `nui-table__cell--state-<type>`；只有状态带 `label` 时才渲染可见的 `.nui-table__state` 标签，不自动补“关注/变化”等文字。type 建议使用不含空白的单 token；含空白时 data 属性按空格拆分，类名换成连字符。
+
+### 稳定状态标签 `stableStateLabels`
+
+- 默认 `false`，独立 Table 的旧行为不变：没有 label 时不保留状态标签节点，行高随内容自然变化。
+- 设为 `true` 后，行状态 label 作为独立块行；每行常驻一个与可见状态同盒模型的隐藏占位槽（真实 `.nui-table__state` 盒、真实文本行高，`aria-hidden` 且 `visibility:hidden`）。label 出现/消失/换行时保留占位，不改变行高。
+- 不使用固定 `min-height`，不裁切、不覆盖正文；占位槽是真实文本节点，长 label 会正常换行。
+- 代价：5 行示例表高度约从 261px 增至 361px（每行预留约 20px 的状态行）。适合状态 label 会随停点变化、且需要避免行高跳动的组合/场景；不需要稳定槽的独立表格保持默认即可。
+- 单元级 label 也使用槽位，但首次出现更宽的 cell label 仍可能改变列宽；需要列宽完全稳定时，作者应预先给列宽或使用行级 label。
+- `table` scene Adapter 默认 `stableStateLabels:true`；可在 binding `options` 中显式设为 `false`。canonical model、`getState()`/`readModel()` 不因该选项改变，stable 只影响组件 mount 选项与渲染。
 - `getTarget(query)` 扩展：`getTarget(rowKey)` / `getTarget({row|rowKey|key})` 返回 `<tr>`；`getTarget({row, column|col})` 返回 `<td>`；`part:'row'` 强制行，`part:'cell'` 需要列键；找不到返回 null。
 - `getState()` 返回 `{columns, rows:[{key,keyString,index,row,states,cells:[{key,column,value,states}]}], sort:{enabled,key,direction}, emphasis, caption, empty, dense, maxHeight}`；销毁后返回 null。
 - 空行会清除行节点缓存，恢复数据时按新行创建；重复行键仍按旧兼容语义渲染两行，`getTarget` 返回最后一个映射。

@@ -143,24 +143,104 @@
         var target = normalizeView(ctx && ctx.targetView).model;
         var reduced = !!(ctx && ctx.motion === 'never');
         var groups = diffGroups(source, target);
+        var records = [];
+        var sourceSegments = Object.create(null);
+        source.segments.forEach(function (segment) { sourceSegments[segment.id] = segment; });
+        var sourceRanges = Object.create(null);
+        source.ranges.forEach(function (range) { sourceRanges[range.id] = range; });
+        target.segments.forEach(function (segment) {
+          var before = sourceSegments[segment.id];
+          if (!before) {
+            records.push({ kind: 'new', group: 'segment:' + segment.id, targetKey: segment.id });
+            return;
+          }
+          if (before.value !== segment.value || before.displayWidth !== segment.displayWidth || before.zero !== segment.zero) {
+            var groupNode = component.getTarget(segment.id);
+            var rect = groupNode && groupNode.querySelector('.nviz-flow-segmentbar__segment-rect');
+            var sourceWidth = rect ? Number(rect.getAttribute('width')) : NaN;
+            if (rect && isFinite(sourceWidth)) {
+              records.push({ kind: 'width', group: 'segment:' + segment.id, targetKey: segment.id, sourceWidth: sourceWidth });
+            }
+          }
+        });
+        target.ranges.forEach(function (range) {
+          if (!sourceRanges[range.id]) records.push({ kind: 'new', group: 'range:' + range.id, targetKey: 'range:' + range.id });
+        });
+        function resolveElement(record) {
+          if (record.rect) return record.rect;
+          if (record.prehideEl) return record.prehideEl;
+          return component.getTarget(record.targetKey);
+        }
         return {
           groups: function () { return groups.slice(); },
-          commit: function () { apply(target); },
+          commit: function () {
+            apply(target);
+            if (reduced) return;
+            records.forEach(function (record) {
+              if (record.kind === 'new') {
+                var node = component.getTarget(record.targetKey);
+                if (!node) return;
+                record.prehideEl = node;
+                record.savedOpacity = node.style.opacity;
+                node.style.opacity = '0';
+                return;
+              }
+              if (record.kind === 'width') {
+                var groupNode = component.getTarget(record.targetKey);
+                var rect = groupNode && groupNode.querySelector('.nviz-flow-segmentbar__segment-rect');
+                var targetWidth = rect ? Number(rect.getAttribute('width')) : NaN;
+                if (!rect || !isFinite(targetWidth) || !(targetWidth > 0)) return;
+                record.rect = rect;
+                record.ratio = record.sourceWidth / targetWidth;
+                record.savedTransform = rect.style.transform;
+                record.savedTransformBox = rect.style.transformBox;
+                record.savedTransformOrigin = rect.style.transformOrigin;
+                rect.style.transformBox = 'fill-box';
+                rect.style.transformOrigin = 'left center';
+                rect.style.transform = 'scaleX(' + record.ratio + ')';
+              }
+            });
+          },
           targets: function () { return []; },
           effects: function (effectCtx) {
             if (reduced) return [];
             var timing = effectCtx && isObject(effectCtx.timing) ? effectCtx.timing : {};
             var duration = typeof timing.enterDuration === 'number' ? Math.max(0, timing.enterDuration) : 420;
-            var specs = [];
-            groups.forEach(function (group) {
-              var key = group.indexOf('segment:') === 0 ? group.slice(8) : (group.indexOf('range:') === 0 ? group.slice(6) : group);
-              var node = component.getTarget(key);
-              if (!node) return;
-              specs.push({ el: node, keyframes: [{ opacity: '0.4' }, { opacity: '1' }], options: { duration: duration, easing: timing.easing }, group: group, gate: 'ready' });
-            });
-            return specs;
+            var easing = typeof timing.easing === 'string' ? timing.easing : undefined;
+            return records.map(function (record) {
+              var node = resolveElement(record);
+              if (!node) return null;
+              var options = { duration: duration, fill: 'both' };
+              if (easing) options.easing = easing;
+              if (record.kind === 'new') {
+                return { el: node, keyframes: [{ opacity: '0' }, { opacity: '1' }], options: options, group: record.group, gate: 'ready' };
+              }
+              if (record.kind === 'width') {
+                return {
+                  el: node,
+                  keyframes: [{ transform: 'scaleX(' + record.ratio + ')' }, { transform: 'scaleX(1)' }],
+                  options: options,
+                  group: record.group,
+                  gate: 'ready'
+                };
+              }
+              return null;
+            }).filter(Boolean);
           },
-          cleanup: function () {}
+          cleanup: function () {
+            records.forEach(function (record) {
+              if (record.prehideEl) {
+                record.prehideEl.style.opacity = record.savedOpacity == null ? '' : record.savedOpacity;
+                record.prehideEl = null;
+              }
+              if (record.rect) {
+                record.rect.style.transform = record.savedTransform == null ? '' : record.savedTransform;
+                record.rect.style.transformBox = record.savedTransformBox == null ? '' : record.savedTransformBox;
+                record.rect.style.transformOrigin = record.savedTransformOrigin == null ? '' : record.savedTransformOrigin;
+                record.rect = null;
+              }
+            });
+          }
         };
       },
       destroy: function () { if (destroyed) return; destroyed = true; component.destroy(); }

@@ -165,30 +165,53 @@
         var target = normalizeView(ctx && ctx.targetView).model;
         var reduced = !!(ctx && ctx.motion === 'never');
         var groups = diffGroups(source, target);
+        var records = [];
+        var sourceMessages = Object.create(null);
+        source.messages.forEach(function (message) { sourceMessages[message.id] = message; });
+        target.messages.forEach(function (message) {
+          var before = sourceMessages[message.id];
+          if (message.revealed && (!before || !before.revealed)) {
+            records.push({ kind: 'reveal', group: 'message:' + message.id, targetKey: 'message:' + message.id });
+          }
+        });
+        function resolveElement(record) {
+          if (record.prehideEl) return record.prehideEl;
+          return component.getTarget(record.targetKey);
+        }
         return {
           groups: function () { return groups.slice(); },
-          commit: function () { apply(target); },
+          commit: function () {
+            apply(target);
+            if (reduced) return;
+            records.forEach(function (record) {
+              var node = resolveElement(record);
+              if (!node) return;
+              record.prehideEl = node;
+              record.savedOpacity = node.style.opacity;
+              node.style.opacity = '0';
+            });
+          },
           targets: function () { return []; },
           effects: function (effectCtx) {
             if (reduced) return [];
             var timing = effectCtx && isObject(effectCtx.timing) ? effectCtx.timing : {};
             var duration = typeof timing.enterDuration === 'number' ? Math.max(0, timing.enterDuration) : 420;
-            var specs = [];
-            groups.forEach(function (group) {
-              var key = targetFor(group);
-              var node = key == null ? null : component.getTarget(key);
-              if (!node) return;
-              specs.push({
-                el: node,
-                keyframes: [{ opacity: '0.25' }, { opacity: '1' }],
-                options: { duration: duration, easing: timing.easing },
-                group: group,
-                gate: 'ready'
-              });
-            });
-            return specs;
+            var easing = typeof timing.easing === 'string' ? timing.easing : undefined;
+            return records.map(function (record) {
+              var node = resolveElement(record);
+              if (!node) return null;
+              var options = { duration: duration, fill: 'both' };
+              if (easing) options.easing = easing;
+              return { el: node, keyframes: [{ opacity: '0' }, { opacity: '1' }], options: options, group: record.group, gate: 'ready' };
+            }).filter(Boolean);
           },
-          cleanup: function () {}
+          cleanup: function () {
+            records.forEach(function (record) {
+              if (!record.prehideEl) return;
+              record.prehideEl.style.opacity = record.savedOpacity == null ? '' : record.savedOpacity;
+              record.prehideEl = null;
+            });
+          }
         };
       },
       destroy: function () { if (destroyed) return; destroyed = true; component.destroy(); }

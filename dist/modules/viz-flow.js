@@ -66,7 +66,27 @@
   }
 
   function setText(node, value) {
-    if (node) node.textContent = text(value);
+    if (node) {
+      var next = text(value);
+      if (node.textContent !== next) node.textContent = next;
+    }
+  }
+
+  /* 只在值真正变化时写属性/文字，避免同模型 update 产生无意义 DOM 变更。 */
+  function setAttributeIf(node, name, value) {
+    if (!node) return;
+    if (value == null) {
+      if (node.hasAttribute(name)) node.removeAttribute(name);
+      return;
+    }
+    var next = String(value);
+    if (node.getAttribute(name) !== next) node.setAttribute(name, next);
+  }
+
+  function setTextIf(node, value) {
+    if (!node) return;
+    var next = text(value);
+    if (node.textContent !== next) node.textContent = next;
   }
 
   function clear(node) {
@@ -156,12 +176,13 @@
 
   function setViewportMessage(node, message) {
     if (!node) return;
-    if (textOrEmpty(message)) {
-      node.textContent = text(message);
-      node.hidden = false;
+    var next = textOrEmpty(message);
+    if (next) {
+      if (node.textContent !== text(next)) node.textContent = text(next);
+      if (node.hidden) node.hidden = false;
     } else {
-      node.textContent = '';
-      node.hidden = true;
+      if (node.textContent !== '') node.textContent = '';
+      if (!node.hidden) node.hidden = true;
     }
   }
 
@@ -386,7 +407,8 @@
     version: VERSION,
     SVG_NS: SVG_NS,
     text: text, own: own, array: array, isNode: isNode, el: el, svgEl: svgEl,
-    setAttrs: setAttrs, setText: setText, clear: clear, numberOr: numberOr,
+    setAttrs: setAttrs, setText: setText, setAttributeIf: setAttributeIf, setTextIf: setTextIf,
+    clear: clear, numberOr: numberOr,
     clamp: clamp, textOrEmpty: textOrEmpty, uniqueId: uniqueId,
     validateHost: validateHost, defaultId: defaultId, component: component,
     makeSvgAccessible: makeSvgAccessible, setViewportMessage: setViewportMessage,
@@ -413,7 +435,7 @@
     uniqueId = shared.uniqueId, validateHost = shared.validateHost, defaultId = shared.defaultId,
     component = shared.component, makeSvgAccessible = shared.makeSvgAccessible,
     setViewportMessage = shared.setViewportMessage, normalizeStatus = shared.normalizeStatus,
-    statusList = shared.statusList;
+    statusList = shared.statusList, setAttributeIf = shared.setAttributeIf, setTextIf = shared.setTextIf;
 
   /* ---------------- StageTrack ---------------- */
 
@@ -505,7 +527,7 @@
     }
 
     function render() {
-      root.setAttribute('aria-label', textOrEmpty(model.label) || '阶段轨');
+      setAttributeIf(root, 'aria-label', textOrEmpty(model.label) || '阶段轨');
       var labels = statusLabels();
       var stages = normalizeStages();
       var stageIndexById = Object.create(null);
@@ -515,7 +537,10 @@
       var targetId = textOrEmpty(model.target);
       var skippedSet = statusList(model.skipped);
       var failedSet = statusList(model.failed);
-      list.style.setProperty('--nviz-flow-stagetrack-count', String(Math.max(1, stages.length)));
+      var countText = String(Math.max(1, stages.length));
+      if (list.style.getPropertyValue('--nviz-flow-stagetrack-count') !== countText) {
+        list.style.setProperty('--nviz-flow-stagetrack-count', countText);
+      }
 
       var seen = Object.create(null);
       stages.forEach(function (stage, index) {
@@ -527,23 +552,31 @@
           node.appendChild(el('span', 'nviz-flow-stagetrack__label'));
           node.appendChild(el('span', 'nviz-flow-stagetrack__status'));
           node.appendChild(el('span', 'nviz-flow-stagetrack__badge'));
+          node.__nvizFlowCache = Object.create(null);
           stageNodes.set(stage.id, node);
         }
         seen[stage.id] = true;
+        var cache = node.__nvizFlowCache || (node.__nvizFlowCache = Object.create(null));
         var status = deriveStatus(stage, index, currentIndex, skippedSet, failedSet);
-        node.setAttribute('data-status', status);
-        node.setAttribute('data-index', String(index));
-        if (status === 'current') node.setAttribute('aria-current', 'step');
-        else node.removeAttribute('aria-current');
-        if (targetId && stage.id === targetId) node.setAttribute('data-target', 'true');
-        else node.removeAttribute('data-target');
-        setText(node.querySelector('.nviz-flow-stagetrack__label'), stage.label || stage.id);
-        setText(node.querySelector('.nviz-flow-stagetrack__status'), labels[status] || status);
+        setAttributeIf(node, 'data-status', status);
+        setAttributeIf(node, 'data-index', String(index));
+        setAttributeIf(node, 'aria-current', status === 'current' ? 'step' : null);
+        var isTarget = !!targetId && stage.id === targetId;
+        setAttributeIf(node, 'data-target', isTarget ? 'true' : null);
+        var labelText = stage.label || stage.id;
+        var statusText = labels[status] || status;
+        var labelNode = node.querySelector('.nviz-flow-stagetrack__label');
+        var statusNode = node.querySelector('.nviz-flow-stagetrack__status');
+        if (cache.labelText !== labelText) { setTextIf(labelNode, labelText); cache.labelText = labelText; }
+        if (cache.statusText !== statusText) { setTextIf(statusNode, statusText); cache.statusText = statusText; }
         var badge = node.querySelector('.nviz-flow-stagetrack__badge');
-        var isTarget = targetId && stage.id === targetId;
-        badge.textContent = isTarget ? '目标' : '';
-        badge.hidden = !isTarget;
-        if (node.parentNode !== list) list.appendChild(node);
+        var badgeText = isTarget ? '目标' : '';
+        if (cache.badgeText !== badgeText) {
+          badge.textContent = badgeText;
+          cache.badgeText = badgeText;
+        }
+        if (badge.hidden) badge.hidden = false;
+        setAttributeIf(badge, 'data-empty', isTarget ? 'false' : 'true');
       });
       Array.from(stageNodes.keys()).forEach(function (id) {
         if (seen[id]) return;
@@ -551,16 +584,19 @@
         if (node && node.parentNode) node.parentNode.removeChild(node);
         stageNodes.delete(id);
       });
-      /* Keep visual order equal to the host array while reusing the same nodes. */
-      stages.forEach(function (stage) {
-        var node = stageNodes.get(stage.id);
-        if (node) list.appendChild(node);
-      });
+      var desiredStages = stages.map(function (stage) { return stageNodes.get(stage.id); });
+      var currentStages = Array.prototype.slice.call(list.children);
+      var sameStageOrder = desiredStages.length === currentStages.length &&
+        desiredStages.every(function (node, index) { return node === currentStages[index]; });
+      if (!sameStageOrder) {
+        desiredStages.forEach(function (node) { if (node) list.appendChild(node); });
+      }
 
       var normalizedBypass = normalizeBypasses(stageIndexById);
       var bypassSeen = Object.create(null);
       var labelsById = Object.create(null);
       stages.forEach(function (stage) { labelsById[stage.id] = stage.label || stage.id; });
+      var desiredBypasses = [];
       normalizedBypass.valid.forEach(function (item) {
         var row = bypassNodes.get(item.key);
         if (!row) {
@@ -580,8 +616,9 @@
           bypassNodes.set(item.key, row);
         }
         bypassSeen[item.key] = true;
-        row.setAttribute('data-from', item.from);
-        row.setAttribute('data-to', item.to);
+        desiredBypasses.push(row);
+        setAttributeIf(row, 'data-from', item.from);
+        setAttributeIf(row, 'data-to', item.to);
         var fromIndex = stageIndexById[item.from];
         var toIndex = stageIndexById[item.to];
         var total = Math.max(1, stages.length);
@@ -589,16 +626,18 @@
         var tx = ((toIndex + 0.5) / total) * 1000;
         var lift = clamp(Math.abs(tx - fx) / 8, 8, 44);
         var path = row.querySelector('.nviz-flow-stagetrack__bypass-path');
-        path.setAttribute('d', 'M ' + fx.toFixed(1) + ' 3 C ' + fx.toFixed(1) + ' ' + (3 + lift).toFixed(1) +
+        setAttributeIf(path, 'd', 'M ' + fx.toFixed(1) + ' 3 C ' + fx.toFixed(1) + ' ' + (3 + lift).toFixed(1) +
           ', ' + tx.toFixed(1) + ' ' + (17 - lift).toFixed(1) + ', ' + tx.toFixed(1) + ' 17');
         var arrowX = tx;
-        row.querySelector('.nviz-flow-stagetrack__bypass-arrow').setAttribute('d',
+        setAttributeIf(row.querySelector('.nviz-flow-stagetrack__bypass-arrow'), 'd',
           'M ' + (arrowX - 4).toFixed(1) + ' 13 L ' + (arrowX + 4).toFixed(1) + ' 13 L ' + arrowX.toFixed(1) + ' 19 Z');
-        setAttrs(row.querySelector('.nviz-flow-stagetrack__bypass-endpoint.is-from'), { cx: fx.toFixed(1), cy: '3' });
-        setAttrs(row.querySelector('.nviz-flow-stagetrack__bypass-endpoint.is-to'), { cx: tx.toFixed(1), cy: '17' });
+        setAttributeIf(row.querySelector('.nviz-flow-stagetrack__bypass-endpoint.is-from'), 'cx', fx.toFixed(1));
+        setAttributeIf(row.querySelector('.nviz-flow-stagetrack__bypass-endpoint.is-from'), 'cy', '3');
+        setAttributeIf(row.querySelector('.nviz-flow-stagetrack__bypass-endpoint.is-to'), 'cx', tx.toFixed(1));
+        setAttributeIf(row.querySelector('.nviz-flow-stagetrack__bypass-endpoint.is-to'), 'cy', '17');
         var bypassLabel = item.label || ('旁路：' + (labelsById[item.from] || item.from) + ' → ' + (labelsById[item.to] || item.to));
-        setText(row.querySelector('.nviz-flow-stagetrack__bypass-label'), bypassLabel);
-        row.setAttribute('aria-label', bypassLabel);
+        setTextIf(row.querySelector('.nviz-flow-stagetrack__bypass-label'), bypassLabel);
+        setAttributeIf(row, 'aria-label', bypassLabel);
       });
       Array.from(bypassNodes.keys()).forEach(function (key) {
         if (bypassSeen[key]) return;
@@ -606,6 +645,12 @@
         if (row && row.parentNode) row.parentNode.removeChild(row);
         bypassNodes.delete(key);
       });
+      var currentBypasses = Array.prototype.slice.call(bypasses.children);
+      var sameBypassOrder = desiredBypasses.length === currentBypasses.length &&
+        desiredBypasses.every(function (row, index) { return row === currentBypasses[index]; });
+      if (!sameBypassOrder) {
+        desiredBypasses.forEach(function (row) { bypasses.appendChild(row); });
+      }
       setViewportMessage(note, normalizedBypass.invalid
         ? '已跳过 ' + normalizedBypass.invalid + ' 条引用未知阶段的显式旁路。'
         : '');
@@ -677,7 +722,8 @@
     numberOr = shared.numberOr, textOrEmpty = shared.textOrEmpty, validateHost = shared.validateHost,
     component = shared.component, makeSvgAccessible = shared.makeSvgAccessible,
     setViewportMessage = shared.setViewportMessage, normalizeStatus = shared.normalizeStatus,
-    statusList = shared.statusList, defaultId = shared.defaultId;
+    statusList = shared.statusList, defaultId = shared.defaultId,
+    setAttributeIf = shared.setAttributeIf, setTextIf = shared.setTextIf;
 
   var TYPES = { sync: 'sync', async: 'async', return: 'return' };
 
@@ -712,6 +758,18 @@
     });
   }
 
+  function setLinesIf(node, key, lines) {
+    if (node.__nvizFlowLinesKey === key) return;
+    node.__nvizFlowLinesKey = key;
+    setLines(node, lines);
+  }
+
+  function ensureOrder(parent, desired) {
+    var current = Array.prototype.slice.call(parent.children);
+    if (desired.length === current.length && desired.every(function (node, index) { return node === current[index]; })) return;
+    desired.forEach(function (node) { if (node) parent.appendChild(node); });
+  }
+
   var PacketFlow = {};
   PacketFlow.version = '1.0.0';
   PacketFlow.mount = function (host, options) {
@@ -741,6 +799,7 @@
       visibleCount: null,
       focus: null,
       showIndexes: false,
+      layoutCount: null,
       label: '消息流'
     }, options || {});
 
@@ -822,8 +881,8 @@
     }
 
     function render() {
-      root.setAttribute('aria-label', textOrEmpty(model.label) || '消息流');
-      setText(accessible.title, textOrEmpty(model.label) || '消息流');
+      setAttributeIf(root, 'aria-label', textOrEmpty(model.label) || '消息流');
+      setTextIf(accessible.title, textOrEmpty(model.label) || '消息流');
       var participants = normalizeParticipants();
       var participantIndexById = Object.create(null);
       participants.forEach(function (participant, index) { participantIndexById[participant.id] = index; });
@@ -843,8 +902,12 @@
       });
       var messageTop = 116;
       var step = 56;
+      /* 布局按完整已知消息分配；revealed/visibleCount 只控制 data-hidden，不改变坐标/高度。 */
+      var layoutCount = Math.max(1, validMessages.length, Math.floor(numberOr(model.layoutCount, validMessages.length)));
+      var lifelineEnd = messageTop + layoutCount * step - 30;
 
       var seenParticipants = Object.create(null);
+      var desiredParticipants = [];
       participants.forEach(function (participant, index) {
         var node = participantNodes.get(participant.id);
         if (!node) {
@@ -853,32 +916,46 @@
           node.appendChild(svgEl('text', { class: 'nviz-flow-packetflow__participant-label', 'text-anchor': 'middle', x: 0, y: 34 }));
           node.appendChild(svgEl('text', { class: 'nviz-flow-packetflow__participant-note', 'text-anchor': 'middle', x: 0, y: 52 }));
           node.appendChild(svgEl('title'));
+          node.__nvizFlowCache = Object.create(null);
           participantLayer.appendChild(node);
           participantNodes.set(participant.id, node);
         }
         seenParticipants[participant.id] = true;
+        desiredParticipants.push(node);
+        var cache = node.__nvizFlowCache || (node.__nvizFlowCache = Object.create(null));
+        setAttributeIf(node, 'data-status', participant.status || '');
         var x = xs[index];
-        node.setAttribute('data-status', participant.status || '');
-        node.setAttribute('transform', 'translate(' + (x - boxWidth / 2).toFixed(1) + ',0)');
-        var labelLines = wrapText(participant.label || participant.id, 16, 2);
+        var transform = 'translate(' + (x - boxWidth / 2).toFixed(1) + ',0)';
+        if (cache.transform !== transform) {
+          node.setAttribute('transform', transform);
+          cache.transform = transform;
+        }
         var labelNode = node.querySelector('.nviz-flow-packetflow__participant-label');
-        labelNode.setAttribute('x', String(boxWidth / 2));
-        setLines(labelNode, labelLines.lines);
+        setAttributeIf(labelNode, 'x', String(boxWidth / 2));
+        var labelLines = wrapText(participant.label || participant.id, 16, 2);
+        setLinesIf(labelNode, labelLines.lines.join('\u0001'), labelLines.lines);
         var noteNode = node.querySelector('.nviz-flow-packetflow__participant-note');
         var noteLines = wrapText(participant.note, 18, 1);
-        noteNode.setAttribute('x', String(boxWidth / 2));
-        noteNode.textContent = noteLines.lines[0] || '';
-        if (!participant.note) noteNode.setAttribute('display', 'none');
-        else noteNode.removeAttribute('display');
-        node.querySelector('title').textContent = [participant.label, participant.note].filter(Boolean).join(' · ') || participant.id;
-        node.setAttribute('aria-label', [participant.label, participant.note].filter(Boolean).join('，') || participant.id);
+        setAttributeIf(noteNode, 'x', String(boxWidth / 2));
+        setTextIf(noteNode, noteLines.lines[0] || '');
+        setAttributeIf(noteNode, 'display', participant.note ? null : 'none');
+        var titleText = [participant.label, participant.note].filter(Boolean).join(' · ') || participant.id;
+        var ariaText = [participant.label, participant.note].filter(Boolean).join('，') || participant.id;
+        var titleNode = node.querySelector('title');
+        if (cache.titleText !== titleText) { setTextIf(titleNode, titleText); cache.titleText = titleText; }
+        if (cache.ariaText !== ariaText) { setAttributeIf(node, 'aria-label', ariaText); cache.ariaText = ariaText; }
         var line = lifelineNodes.get(participant.id);
         if (!line) {
           line = svgEl('line', { class: 'nviz-flow-packetflow__lifeline' });
           lifelineLayer.appendChild(line);
           lifelineNodes.set(participant.id, line);
         }
-        setAttrs(line, { x1: x.toFixed(1), y1: 82, x2: x.toFixed(1), y2: messageTop + Math.max(1, shownMessages.length) * step - 30 });
+        var xText = x.toFixed(1);
+        var endText = lifelineEnd.toFixed(1);
+        setAttributeIf(line, 'x1', xText);
+        setAttributeIf(line, 'y1', '82');
+        setAttributeIf(line, 'x2', xText);
+        setAttributeIf(line, 'y2', endText);
       });
       Array.from(participantNodes.keys()).forEach(function (id) {
         if (seenParticipants[id]) return;
@@ -889,11 +966,13 @@
         if (line && line.parentNode) line.parentNode.removeChild(line);
         lifelineNodes.delete(id);
       });
+      ensureOrder(participantLayer, desiredParticipants);
 
       var focusId = textOrEmpty(model.focus);
       var focusNode = null;
       var seenMessages = Object.create(null);
-      validMessages.forEach(function (message) {
+      var desiredMessages = [];
+      validMessages.forEach(function (message, messageIndex) {
         var node = messageNodes.get(message.id);
         if (!node) {
           node = svgEl('g', { class: 'nviz-flow-packetflow__message', 'data-id': message.id });
@@ -902,82 +981,85 @@
           node.appendChild(svgEl('text', { class: 'nviz-flow-packetflow__message-index', 'text-anchor': 'end' }));
           node.appendChild(svgEl('text', { class: 'nviz-flow-packetflow__message-label', 'text-anchor': 'middle' }));
           node.appendChild(svgEl('title'));
+          node.__nvizFlowCache = Object.create(null);
           messageLayer.appendChild(node);
           messageNodes.set(message.id, node);
         }
         seenMessages[message.id] = true;
+        desiredMessages.push(node);
         var fromIndex = participantIndexById[message.from];
         var toIndex = participantIndexById[message.to];
         var x1 = xs[fromIndex];
         var x2 = xs[toIndex];
-        var shownIndex = shownMessages.indexOf(message);
-        var hidden = shownIndex < 0;
-        var y = messageTop + Math.max(0, shownIndex) * step;
+        var hidden = !shown[message.id];
+        var y = messageTop + messageIndex * step;
         var self = message.from === message.to;
         var direction = self ? 1 : (x2 >= x1 ? 1 : -1);
-        var linePath = node.querySelector('.nviz-flow-packetflow__message-line');
-        var arrowNode = node.querySelector('.nviz-flow-packetflow__message-arrow');
-        var labelNode = node.querySelector('.nviz-flow-packetflow__message-label');
-        var indexNode = node.querySelector('.nviz-flow-packetflow__message-index');
-        var dash = lineDash(message);
-        if (dash) linePath.setAttribute('stroke-dasharray', dash);
-        else linePath.removeAttribute('stroke-dasharray');
         var openArrow = message.type === 'return';
-        if (self) {
-          linePath.setAttribute('d', 'M ' + x1.toFixed(1) + ' ' + y + ' C ' + (x1 + 36).toFixed(1) + ' ' + y +
-            ', ' + (x1 + 36).toFixed(1) + ' ' + (y + 34) + ', ' + x1.toFixed(1) + ' ' + (y + 34));
-          arrowNode.setAttribute('d', arrowPath(x1, y + 34, direction, openArrow));
-          labelNode.setAttribute('x', (x1 + 48).toFixed(1));
-          labelNode.setAttribute('y', String(y + 10));
-          var selfLines = wrapText(message.label || (message.from + ' → ' + message.to), 16, 2);
-          labelNode.setAttribute('text-anchor', 'start');
-          setLines(labelNode, selfLines.lines);
-        } else {
-          linePath.setAttribute('d', 'M ' + x1.toFixed(1) + ' ' + y + ' L ' + x2.toFixed(1) + ' ' + y);
-          arrowNode.setAttribute('d', arrowPath(x2, y, direction, openArrow));
-          labelNode.setAttribute('x', ((x1 + x2) / 2).toFixed(1));
-          labelNode.setAttribute('text-anchor', 'middle');
-          labelNode.setAttribute('y', String(y - 22));
-          var lines = wrapText(message.label || (message.from + ' → ' + message.to), 24, 2);
-          setLines(labelNode, lines.lines);
-        }
-        if (openArrow) {
-          arrowNode.setAttribute('fill', 'none');
-          arrowNode.setAttribute('class', 'nviz-flow-packetflow__message-arrow is-open');
-        } else {
-          arrowNode.removeAttribute('fill');
-          arrowNode.setAttribute('class', 'nviz-flow-packetflow__message-arrow');
-        }
-        indexNode.setAttribute('x', (x1 - 10).toFixed(1));
-        indexNode.setAttribute('y', String(y - 4));
-        indexNode.textContent = model.showIndexes === true ? String(validMessages.indexOf(message) + 1) : '';
-        if (model.showIndexes === true) indexNode.removeAttribute('display');
-        else indexNode.setAttribute('display', 'none');
         var typeText = message.type === 'return' ? '返回' : (message.type === 'async' ? '异步' : '同步');
         var fullLabel = message.label || (message.from + ' → ' + message.to);
         var fromLabel = participants[fromIndex] ? participants[fromIndex].label : message.from;
         var toLabel = participants[toIndex] ? participants[toIndex].label : message.to;
-        node.querySelector('title').textContent = typeText + '：' + fromLabel + ' → ' + toLabel + '：' + fullLabel +
+        var labelLines = self
+          ? wrapText(fullLabel, 16, 2)
+          : wrapText(fullLabel, 24, 2);
+        var titleText = typeText + '：' + fromLabel + ' → ' + toLabel + '：' + fullLabel +
           (message.note ? '（' + message.note + '）' : '');
-        node.setAttribute('aria-label', typeText + '消息：' + fromLabel + ' 到 ' + toLabel + '，' + fullLabel);
-        node.setAttribute('data-type', message.type);
-        node.setAttribute('data-dashed', effectiveDashed(message) ? 'true' : 'false');
-        node.setAttribute('data-status', message.status || '');
-        node.setAttribute('data-from', message.from);
-        node.setAttribute('data-to', message.to);
-        node.setAttribute('data-target', message.to);
-        node.setAttribute('data-index', String(validMessages.indexOf(message)));
-        node.setAttribute('data-direction', self ? 'self' : (direction > 0 ? 'right' : 'left'));
-        if (hidden) node.setAttribute('data-hidden', 'true');
-        else node.removeAttribute('data-hidden');
-        if (focusId === message.id) {
-          node.setAttribute('data-focus', 'true');
-          node.setAttribute('aria-current', 'step');
-          focusNode = { node: node, y: y, x1: x1, x2: x2, self: self };
-        } else {
-          node.removeAttribute('data-focus');
-          node.removeAttribute('aria-current');
+        var ariaText = typeText + '消息：' + fromLabel + ' 到 ' + toLabel + '，' + fullLabel;
+        var isFocus = focusId === message.id;
+        var cache = node.__nvizFlowCache || (node.__nvizFlowCache = Object.create(null));
+        var sig = JSON.stringify([
+          message.id, message.from, message.to, message.type, message.dashed, message.status, message.note,
+          message.label, fullLabel, titleText, ariaText, hidden, messageIndex, isFocus, model.showIndexes === true,
+          fromIndex, toIndex, x1, x2, y, labelLines.lines.join('\u0001')
+        ]);
+        if (cache.sig !== sig) {
+          cache.sig = sig;
+          var linePath = node.querySelector('.nviz-flow-packetflow__message-line');
+          var arrowNode = node.querySelector('.nviz-flow-packetflow__message-arrow');
+          var labelNode = node.querySelector('.nviz-flow-packetflow__message-label');
+          var indexNode = node.querySelector('.nviz-flow-packetflow__message-index');
+          var dash = lineDash(message);
+          setAttributeIf(linePath, 'stroke-dasharray', dash);
+          if (self) {
+            setAttributeIf(linePath, 'd', 'M ' + x1.toFixed(1) + ' ' + y + ' C ' + (x1 + 36).toFixed(1) + ' ' + y +
+              ', ' + (x1 + 36).toFixed(1) + ' ' + (y + 34) + ', ' + x1.toFixed(1) + ' ' + (y + 34));
+            setAttributeIf(arrowNode, 'd', arrowPath(x1, y + 34, direction, openArrow));
+            setAttributeIf(labelNode, 'x', (x1 + 48).toFixed(1));
+            setAttributeIf(labelNode, 'y', String(y + 10));
+            setAttributeIf(labelNode, 'text-anchor', 'start');
+          } else {
+            setAttributeIf(linePath, 'd', 'M ' + x1.toFixed(1) + ' ' + y + ' L ' + x2.toFixed(1) + ' ' + y);
+            setAttributeIf(arrowNode, 'd', arrowPath(x2, y, direction, openArrow));
+            setAttributeIf(labelNode, 'x', ((x1 + x2) / 2).toFixed(1));
+            setAttributeIf(labelNode, 'text-anchor', 'middle');
+            setAttributeIf(labelNode, 'y', String(y - 22));
+          }
+          setLinesIf(labelNode, labelLines.lines.join('\u0001'), labelLines.lines);
+          setAttributeIf(arrowNode, 'fill', openArrow ? 'none' : null);
+          setAttributeIf(arrowNode, 'class', openArrow
+            ? 'nviz-flow-packetflow__message-arrow is-open'
+            : 'nviz-flow-packetflow__message-arrow');
+          setAttributeIf(indexNode, 'x', (x1 - 10).toFixed(1));
+          setAttributeIf(indexNode, 'y', String(y - 4));
+          setTextIf(indexNode, model.showIndexes === true ? String(messageIndex + 1) : '');
+          setAttributeIf(indexNode, 'display', model.showIndexes === true ? null : 'none');
+          var titleNode = node.querySelector('title');
+          if (cache.titleText !== titleText) { setTextIf(titleNode, titleText); cache.titleText = titleText; }
+          if (cache.ariaText !== ariaText) { setAttributeIf(node, 'aria-label', ariaText); cache.ariaText = ariaText; }
+          setAttributeIf(node, 'data-type', message.type);
+          setAttributeIf(node, 'data-dashed', effectiveDashed(message) ? 'true' : 'false');
+          setAttributeIf(node, 'data-status', message.status || '');
+          setAttributeIf(node, 'data-from', message.from);
+          setAttributeIf(node, 'data-to', message.to);
+          setAttributeIf(node, 'data-target', message.to);
+          setAttributeIf(node, 'data-index', String(messageIndex));
+          setAttributeIf(node, 'data-direction', self ? 'self' : (direction > 0 ? 'right' : 'left'));
+          setAttributeIf(node, 'data-hidden', hidden ? 'true' : null);
+          setAttributeIf(node, 'data-focus', isFocus ? 'true' : null);
+          setAttributeIf(node, 'aria-current', isFocus ? 'step' : null);
         }
+        if (isFocus) focusNode = { node: node, y: y, x1: x1, x2: x2, self: self };
       });
       Array.from(messageNodes.keys()).forEach(function (id) {
         if (seenMessages[id]) return;
@@ -985,6 +1067,7 @@
         if (node && node.parentNode) node.parentNode.removeChild(node);
         messageNodes.delete(id);
       });
+      ensureOrder(messageLayer, desiredMessages);
 
       var focusBand = focusLayer.querySelector('.nviz-flow-packetflow__focus-band');
       if (!focusBand) {
@@ -992,14 +1075,18 @@
         focusLayer.appendChild(focusBand);
       }
       if (focusNode) {
-        focusBand.removeAttribute('display');
-        setAttrs(focusBand, { x: 42, y: focusNode.y - 18, width: width - 84, height: 36 });
+        setAttributeIf(focusBand, 'display', null);
+        setAttributeIf(focusBand, 'x', '42');
+        setAttributeIf(focusBand, 'y', String(focusNode.y - 18));
+        setAttributeIf(focusBand, 'width', String(width - 84));
+        setAttributeIf(focusBand, 'height', '36');
       } else {
-        focusBand.setAttribute('display', 'none');
+        setAttributeIf(focusBand, 'display', 'none');
       }
 
-      var height = 116 + Math.max(1, shownMessages.length) * step + 20;
-      setAttrs(svg, { viewBox: '0 0 ' + width + ' ' + height, height: null });
+      var height = messageTop + layoutCount * step + 20;
+      setAttributeIf(svg, 'viewBox', '0 0 ' + width + ' ' + height);
+      if (svg.hasAttribute('height')) svg.removeAttribute('height');
       setViewportMessage(note, invalid ? '已跳过 ' + invalid + ' 条引用未知参与者的消息。' : '');
     }
 
@@ -1081,7 +1168,7 @@
     uniqueId = shared.uniqueId, validateHost = shared.validateHost, defaultId = shared.defaultId,
     component = shared.component, makeSvgAccessible = shared.makeSvgAccessible,
     setViewportMessage = shared.setViewportMessage, normalizeStatus = shared.normalizeStatus,
-    statusList = shared.statusList;
+    statusList = shared.statusList, setAttributeIf = shared.setAttributeIf, setTextIf = shared.setTextIf;
 
   /* ---------------- SegmentBar ---------------- */
 
@@ -1162,8 +1249,8 @@
     }
 
     function render() {
-      root.setAttribute('aria-label', textOrEmpty(model.label) || '段条');
-      setText(accessible.title, textOrEmpty(model.label) || '段条');
+      setAttributeIf(root, 'aria-label', textOrEmpty(model.label) || '段条');
+      setTextIf(accessible.title, textOrEmpty(model.label) || '段条');
       var segments = normalizeSegments();
       var values = segments.map(function (segment) { return segment.value; });
       var sum = values.reduce(function (total, value) { return total + value; }, 0);
@@ -1184,15 +1271,17 @@
         x += width;
       });
       var totalWidth = Math.max(trackBase, x);
-      setAttrs(svg, { viewBox: '0 0 ' + totalWidth.toFixed(1) + ' 100' });
-      setAttrs(trackLayer.querySelector('.nviz-flow-segmentbar__track-bg'), { width: totalWidth.toFixed(1) });
-      setAttrs(scaleText, { x: trackBase.toFixed(1) });
-      setText(scaleText, String(scaleMax));
+      setAttributeIf(svg, 'viewBox', '0 0 ' + totalWidth.toFixed(1) + ' 100');
+      setAttributeIf(trackLayer.querySelector('.nviz-flow-segmentbar__track-bg'), 'width', totalWidth.toFixed(1));
+      setAttributeIf(scaleText, 'x', trackBase.toFixed(1));
+      setTextIf(scaleText, String(scaleMax));
 
-      empty.hidden = segments.length > 0;
-      svg.style.display = segments.length ? '' : 'none';
+      if (empty.hidden !== (segments.length > 0)) empty.hidden = segments.length > 0;
+      var displayValue = segments.length ? '' : 'none';
+      if (svg.style.display !== displayValue) svg.style.display = displayValue;
 
       var seenSegments = Object.create(null);
+      var desiredSegments = [];
       segments.forEach(function (segment, index) {
         var info = layout[index];
         var node = segmentNodes.get(segment.id);
@@ -1205,21 +1294,26 @@
           segmentNodes.set(segment.id, node);
         }
         seenSegments[segment.id] = true;
+        desiredSegments.push(node);
         var rect = node.querySelector('.nviz-flow-segmentbar__segment-rect');
-        setAttrs(rect, { x: info.x.toFixed(1), width: info.width.toFixed(1) });
-        if (segment.color) rect.style.setProperty('--nviz-flow-segmentbar-segment-color', segment.color);
-        else rect.style.removeProperty('--nviz-flow-segmentbar-segment-color');
+        setAttributeIf(rect, 'x', info.x.toFixed(1));
+        setAttributeIf(rect, 'width', info.width.toFixed(1));
+        var colorValue = segment.color ? text(segment.color) : '';
+        if (rect.style.getPropertyValue('--nviz-flow-segmentbar-segment-color') !== colorValue) {
+          if (colorValue) rect.style.setProperty('--nviz-flow-segmentbar-segment-color', colorValue);
+          else rect.style.removeProperty('--nviz-flow-segmentbar-segment-color');
+        }
         var label = node.querySelector('.nviz-flow-segmentbar__label');
-        label.setAttribute('x', (info.x + info.width / 2).toFixed(1));
-        setText(label, segment.label || segment.id);
+        setAttributeIf(label, 'x', (info.x + info.width / 2).toFixed(1));
+        setTextIf(label, segment.label || segment.id);
         var valueNode = node.querySelector('.nviz-flow-segmentbar__value');
-        valueNode.setAttribute('x', (info.x + info.width / 2).toFixed(1));
-        setText(valueNode, String(segment.value));
-        node.setAttribute('data-real-value', String(segment.value));
-        node.setAttribute('data-ratio', String(Math.round(info.ratio * 10000) / 10000));
-        node.setAttribute('data-zero', info.zero ? 'true' : 'false');
-        node.setAttribute('data-clamped', info.clamped ? 'true' : 'false');
-        node.setAttribute('data-index', String(index));
+        setAttributeIf(valueNode, 'x', (info.x + info.width / 2).toFixed(1));
+        setTextIf(valueNode, String(segment.value));
+        setAttributeIf(node, 'data-real-value', String(segment.value));
+        setAttributeIf(node, 'data-ratio', String(Math.round(info.ratio * 10000) / 10000));
+        setAttributeIf(node, 'data-zero', info.zero ? 'true' : 'false');
+        setAttributeIf(node, 'data-clamped', info.clamped ? 'true' : 'false');
+        setAttributeIf(node, 'data-index', String(index));
       });
       Array.from(segmentNodes.keys()).forEach(function (id) {
         if (seenSegments[id]) return;
@@ -1227,9 +1321,15 @@
         if (node && node.parentNode) node.parentNode.removeChild(node);
         segmentNodes.delete(id);
       });
+      var currentSegments = Array.prototype.slice.call(segmentLayer.children);
+      if (desiredSegments.length !== currentSegments.length ||
+          !desiredSegments.every(function (node, index) { return node === currentSegments[index]; })) {
+        desiredSegments.forEach(function (node) { segmentLayer.appendChild(node); });
+      }
 
       var ranges = normalizeRanges(segments);
       var seenRanges = Object.create(null);
+      var desiredRanges = [];
       ranges.valid.forEach(function (range) {
         var node = rangeNodes.get(range.key);
         if (!node) {
@@ -1240,17 +1340,18 @@
           rangeNodes.set(range.key, node);
         }
         seenRanges[range.key] = true;
+        desiredRanges.push(node);
         var x0 = layout[range.start].x;
         var x1 = layout[range.end].x + layout[range.end].width;
-        node.querySelector('.nviz-flow-segmentbar__range-bracket').setAttribute('d',
+        setAttributeIf(node.querySelector('.nviz-flow-segmentbar__range-bracket'), 'd',
           'M ' + x0.toFixed(1) + ' 66 L ' + x0.toFixed(1) + ' 74 L ' + x1.toFixed(1) + ' 74 L ' + x1.toFixed(1) + ' 66');
         var labelNode = node.querySelector('.nviz-flow-segmentbar__range-label');
-        labelNode.setAttribute('x', ((x0 + x1) / 2).toFixed(1));
-        setText(labelNode, range.label || (segments[range.start].label + '–' + segments[range.end].label));
-        node.setAttribute('data-start', String(range.start));
-        node.setAttribute('data-end', String(range.end));
-        node.setAttribute('data-start-id', segments[range.start].id);
-        node.setAttribute('data-end-id', segments[range.end].id);
+        setAttributeIf(labelNode, 'x', ((x0 + x1) / 2).toFixed(1));
+        setTextIf(labelNode, range.label || (segments[range.start].label + '–' + segments[range.end].label));
+        setAttributeIf(node, 'data-start', String(range.start));
+        setAttributeIf(node, 'data-end', String(range.end));
+        setAttributeIf(node, 'data-start-id', segments[range.start].id);
+        setAttributeIf(node, 'data-end-id', segments[range.end].id);
       });
       Array.from(rangeNodes.keys()).forEach(function (key) {
         if (seenRanges[key]) return;
@@ -1258,6 +1359,11 @@
         if (node && node.parentNode) node.parentNode.removeChild(node);
         rangeNodes.delete(key);
       });
+      var currentRanges = Array.prototype.slice.call(rangeLayer.children);
+      if (desiredRanges.length !== currentRanges.length ||
+          !desiredRanges.every(function (node, index) { return node === currentRanges[index]; })) {
+        desiredRanges.forEach(function (node) { rangeLayer.appendChild(node); });
+      }
       setViewportMessage(note, ranges.invalid ? '已跳过 ' + ranges.invalid + ' 个引用未知段的范围。' : '');
     }
 
@@ -1356,7 +1462,7 @@
     uniqueId = shared.uniqueId, validateHost = shared.validateHost, defaultId = shared.defaultId,
     component = shared.component, makeSvgAccessible = shared.makeSvgAccessible,
     setViewportMessage = shared.setViewportMessage, normalizeStatus = shared.normalizeStatus,
-    statusList = shared.statusList;
+    statusList = shared.statusList, setAttributeIf = shared.setAttributeIf, setTextIf = shared.setTextIf;
 
   /* ---------------- DeviceLinks ---------------- */
 
@@ -1405,8 +1511,8 @@
     }
 
     function render() {
-      root.setAttribute('aria-label', textOrEmpty(model.label) || '设备连接');
-      setText(accessible.title, textOrEmpty(model.label) || '设备连接');
+      setAttributeIf(root, 'aria-label', textOrEmpty(model.label) || '设备连接');
+      setTextIf(accessible.title, textOrEmpty(model.label) || '设备连接');
       var devices = normalizeDevices();
       var deviceIndexById = Object.create(null);
       devices.forEach(function (device, index) { deviceIndexById[device.id] = index; });
@@ -1460,6 +1566,7 @@
       var height = Math.max(240, maxLane + 46);
 
       var seenDevices = Object.create(null);
+      var desiredDeviceLayer = [];
       devices.forEach(function (device, index) {
         var node = deviceNodes.get(device.id);
         if (!node) {
@@ -1471,15 +1578,17 @@
           deviceNodes.set(device.id, node);
         }
         seenDevices[device.id] = true;
+        desiredDeviceLayer.push(node);
         var pos = positions[index];
-        node.setAttribute('data-status', device.status || '');
-        setAttrs(node.querySelector('.nviz-flow-devicelinks__device-box'), { x: pos.x.toFixed(1), width: boxWidth });
+        setAttributeIf(node, 'data-status', device.status || '');
+        setAttributeIf(node.querySelector('.nviz-flow-devicelinks__device-box'), 'x', pos.x.toFixed(1));
+        setAttributeIf(node.querySelector('.nviz-flow-devicelinks__device-box'), 'width', boxWidth);
         var labelNode = node.querySelector('.nviz-flow-devicelinks__device-label');
-        labelNode.setAttribute('x', (pos.x + boxWidth / 2).toFixed(1));
-        setText(labelNode, device.label || device.id);
+        setAttributeIf(labelNode, 'x', (pos.x + boxWidth / 2).toFixed(1));
+        setTextIf(labelNode, device.label || device.id);
         var statusNode = node.querySelector('.nviz-flow-devicelinks__device-status');
-        statusNode.setAttribute('x', (pos.x + boxWidth / 2).toFixed(1));
-        setText(statusNode, device.status || '');
+        setAttributeIf(statusNode, 'x', (pos.x + boxWidth / 2).toFixed(1));
+        setTextIf(statusNode, device.status || '');
         var seenPorts = Object.create(null);
         device.ports.forEach(function (port) {
           var key = device.id + ':' + port.id;
@@ -1493,11 +1602,14 @@
             portNodes.set(key, portNode);
           }
           seenPorts[key] = true;
-          portNode.setAttribute('data-id', key);
-          setAttrs(portNode.querySelector('.nviz-flow-devicelinks__port-dot'), { cx: portPos.x.toFixed(1), cy: portPos.y.toFixed(1) });
+          desiredDeviceLayer.push(portNode);
+          setAttributeIf(portNode, 'data-id', key);
+          setAttributeIf(portNode.querySelector('.nviz-flow-devicelinks__port-dot'), 'cx', portPos.x.toFixed(1));
+          setAttributeIf(portNode.querySelector('.nviz-flow-devicelinks__port-dot'), 'cy', portPos.y.toFixed(1));
           var portLabel = portNode.querySelector('.nviz-flow-devicelinks__port-label');
-          setAttrs(portLabel, { x: portPos.x.toFixed(1), y: (portPos.y - 9).toFixed(1) });
-          setText(portLabel, port.label || port.id);
+          setAttributeIf(portLabel, 'x', portPos.x.toFixed(1));
+          setAttributeIf(portLabel, 'y', (portPos.y - 9).toFixed(1));
+          setTextIf(portLabel, port.label || port.id);
         });
         Array.from(portNodes.keys()).forEach(function (key) {
           if (seenPorts[key] || key.indexOf(device.id + ':') !== 0) return;
@@ -1518,8 +1630,13 @@
           portNodes.delete(key);
         });
       });
-
+      var currentDeviceLayer = Array.prototype.slice.call(deviceLayer.children);
+      if (desiredDeviceLayer.length !== currentDeviceLayer.length ||
+          !desiredDeviceLayer.every(function (node, index) { return node === currentDeviceLayer[index]; })) {
+        desiredDeviceLayer.forEach(function (node) { deviceLayer.appendChild(node); });
+      }
       var seenLinks = Object.create(null);
+      var desiredLinks = [];
       normalizedLinks.forEach(function (link, index) {
         var node = linkNodes.get(link.id);
         if (!node) {
@@ -1532,6 +1649,7 @@
           linkPaths.set(link.id, node.querySelector('.nviz-flow-devicelinks__link-path'));
         }
         seenLinks[link.id] = true;
+        desiredLinks.push(node);
         var fx = link.fromPos.x;
         var fy = link.fromPos.y;
         var tx = link.toPos.x;
@@ -1548,18 +1666,18 @@
             ', ' + tx.toFixed(1) + ' ' + (laneY - 6) + ' V ' + ty;
         }
         var path = linkPaths.get(link.id);
-        path.setAttribute('d', d);
-        node.querySelector('.nviz-flow-devicelinks__link-arrow').setAttribute('d',
+        setAttributeIf(path, 'd', d);
+        setAttributeIf(node.querySelector('.nviz-flow-devicelinks__link-arrow'), 'd',
           'M ' + (tx - 4).toFixed(1) + ' ' + (ty - 12) + ' L ' + (tx + 4).toFixed(1) + ' ' + (ty - 12) + ' L ' + tx.toFixed(1) + ' ' + (ty - 4) + ' Z');
         var labelNode = node.querySelector('.nviz-flow-devicelinks__link-label');
-        labelNode.setAttribute('x', ((fx + tx) / 2).toFixed(1));
-        labelNode.setAttribute('y', String(laneY - 6));
-        setText(labelNode, link.label || (link.fromDevice + ' → ' + link.toDevice));
-        node.setAttribute('data-status', link.status || '');
-        node.setAttribute('data-from-device', link.fromDevice);
-        node.setAttribute('data-from-port', link.fromPort);
-        node.setAttribute('data-to-device', link.toDevice);
-        node.setAttribute('data-to-port', link.toPort);
+        setAttributeIf(labelNode, 'x', ((fx + tx) / 2).toFixed(1));
+        setAttributeIf(labelNode, 'y', String(laneY - 6));
+        setTextIf(labelNode, link.label || (link.fromDevice + ' → ' + link.toDevice));
+        setAttributeIf(node, 'data-status', link.status || '');
+        setAttributeIf(node, 'data-from-device', link.fromDevice);
+        setAttributeIf(node, 'data-from-port', link.fromPort);
+        setAttributeIf(node, 'data-to-device', link.toDevice);
+        setAttributeIf(node, 'data-to-port', link.toPort);
       });
       Array.from(linkNodes.keys()).forEach(function (id) {
         if (seenLinks[id]) return;
@@ -1568,7 +1686,12 @@
         linkNodes.delete(id);
         linkPaths.delete(id);
       });
-      setAttrs(svg, { viewBox: '0 0 ' + width.toFixed(1) + ' ' + height.toFixed(1) });
+      var currentLinks = Array.prototype.slice.call(linkLayer.children);
+      if (desiredLinks.length !== currentLinks.length ||
+          !desiredLinks.every(function (node, index) { return node === currentLinks[index]; })) {
+        desiredLinks.forEach(function (node) { linkLayer.appendChild(node); });
+      }
+      setAttributeIf(svg, 'viewBox', '0 0 ' + width.toFixed(1) + ' ' + height.toFixed(1));
       setViewportMessage(note, invalidLinks ? '已跳过 ' + invalidLinks + ' 条引用未知设备/端口的连接。' : '');
     }
 

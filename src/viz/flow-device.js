@@ -16,7 +16,7 @@
     uniqueId = shared.uniqueId, validateHost = shared.validateHost, defaultId = shared.defaultId,
     component = shared.component, makeSvgAccessible = shared.makeSvgAccessible,
     setViewportMessage = shared.setViewportMessage, normalizeStatus = shared.normalizeStatus,
-    statusList = shared.statusList;
+    statusList = shared.statusList, setAttributeIf = shared.setAttributeIf, setTextIf = shared.setTextIf;
 
   /* ---------------- DeviceLinks ---------------- */
 
@@ -65,8 +65,8 @@
     }
 
     function render() {
-      root.setAttribute('aria-label', textOrEmpty(model.label) || '设备连接');
-      setText(accessible.title, textOrEmpty(model.label) || '设备连接');
+      setAttributeIf(root, 'aria-label', textOrEmpty(model.label) || '设备连接');
+      setTextIf(accessible.title, textOrEmpty(model.label) || '设备连接');
       var devices = normalizeDevices();
       var deviceIndexById = Object.create(null);
       devices.forEach(function (device, index) { deviceIndexById[device.id] = index; });
@@ -120,6 +120,7 @@
       var height = Math.max(240, maxLane + 46);
 
       var seenDevices = Object.create(null);
+      var desiredDeviceLayer = [];
       devices.forEach(function (device, index) {
         var node = deviceNodes.get(device.id);
         if (!node) {
@@ -131,15 +132,17 @@
           deviceNodes.set(device.id, node);
         }
         seenDevices[device.id] = true;
+        desiredDeviceLayer.push(node);
         var pos = positions[index];
-        node.setAttribute('data-status', device.status || '');
-        setAttrs(node.querySelector('.nviz-flow-devicelinks__device-box'), { x: pos.x.toFixed(1), width: boxWidth });
+        setAttributeIf(node, 'data-status', device.status || '');
+        setAttributeIf(node.querySelector('.nviz-flow-devicelinks__device-box'), 'x', pos.x.toFixed(1));
+        setAttributeIf(node.querySelector('.nviz-flow-devicelinks__device-box'), 'width', boxWidth);
         var labelNode = node.querySelector('.nviz-flow-devicelinks__device-label');
-        labelNode.setAttribute('x', (pos.x + boxWidth / 2).toFixed(1));
-        setText(labelNode, device.label || device.id);
+        setAttributeIf(labelNode, 'x', (pos.x + boxWidth / 2).toFixed(1));
+        setTextIf(labelNode, device.label || device.id);
         var statusNode = node.querySelector('.nviz-flow-devicelinks__device-status');
-        statusNode.setAttribute('x', (pos.x + boxWidth / 2).toFixed(1));
-        setText(statusNode, device.status || '');
+        setAttributeIf(statusNode, 'x', (pos.x + boxWidth / 2).toFixed(1));
+        setTextIf(statusNode, device.status || '');
         var seenPorts = Object.create(null);
         device.ports.forEach(function (port) {
           var key = device.id + ':' + port.id;
@@ -153,11 +156,14 @@
             portNodes.set(key, portNode);
           }
           seenPorts[key] = true;
-          portNode.setAttribute('data-id', key);
-          setAttrs(portNode.querySelector('.nviz-flow-devicelinks__port-dot'), { cx: portPos.x.toFixed(1), cy: portPos.y.toFixed(1) });
+          desiredDeviceLayer.push(portNode);
+          setAttributeIf(portNode, 'data-id', key);
+          setAttributeIf(portNode.querySelector('.nviz-flow-devicelinks__port-dot'), 'cx', portPos.x.toFixed(1));
+          setAttributeIf(portNode.querySelector('.nviz-flow-devicelinks__port-dot'), 'cy', portPos.y.toFixed(1));
           var portLabel = portNode.querySelector('.nviz-flow-devicelinks__port-label');
-          setAttrs(portLabel, { x: portPos.x.toFixed(1), y: (portPos.y - 9).toFixed(1) });
-          setText(portLabel, port.label || port.id);
+          setAttributeIf(portLabel, 'x', portPos.x.toFixed(1));
+          setAttributeIf(portLabel, 'y', (portPos.y - 9).toFixed(1));
+          setTextIf(portLabel, port.label || port.id);
         });
         Array.from(portNodes.keys()).forEach(function (key) {
           if (seenPorts[key] || key.indexOf(device.id + ':') !== 0) return;
@@ -178,8 +184,13 @@
           portNodes.delete(key);
         });
       });
-
+      var currentDeviceLayer = Array.prototype.slice.call(deviceLayer.children);
+      if (desiredDeviceLayer.length !== currentDeviceLayer.length ||
+          !desiredDeviceLayer.every(function (node, index) { return node === currentDeviceLayer[index]; })) {
+        desiredDeviceLayer.forEach(function (node) { deviceLayer.appendChild(node); });
+      }
       var seenLinks = Object.create(null);
+      var desiredLinks = [];
       normalizedLinks.forEach(function (link, index) {
         var node = linkNodes.get(link.id);
         if (!node) {
@@ -192,6 +203,7 @@
           linkPaths.set(link.id, node.querySelector('.nviz-flow-devicelinks__link-path'));
         }
         seenLinks[link.id] = true;
+        desiredLinks.push(node);
         var fx = link.fromPos.x;
         var fy = link.fromPos.y;
         var tx = link.toPos.x;
@@ -208,18 +220,18 @@
             ', ' + tx.toFixed(1) + ' ' + (laneY - 6) + ' V ' + ty;
         }
         var path = linkPaths.get(link.id);
-        path.setAttribute('d', d);
-        node.querySelector('.nviz-flow-devicelinks__link-arrow').setAttribute('d',
+        setAttributeIf(path, 'd', d);
+        setAttributeIf(node.querySelector('.nviz-flow-devicelinks__link-arrow'), 'd',
           'M ' + (tx - 4).toFixed(1) + ' ' + (ty - 12) + ' L ' + (tx + 4).toFixed(1) + ' ' + (ty - 12) + ' L ' + tx.toFixed(1) + ' ' + (ty - 4) + ' Z');
         var labelNode = node.querySelector('.nviz-flow-devicelinks__link-label');
-        labelNode.setAttribute('x', ((fx + tx) / 2).toFixed(1));
-        labelNode.setAttribute('y', String(laneY - 6));
-        setText(labelNode, link.label || (link.fromDevice + ' → ' + link.toDevice));
-        node.setAttribute('data-status', link.status || '');
-        node.setAttribute('data-from-device', link.fromDevice);
-        node.setAttribute('data-from-port', link.fromPort);
-        node.setAttribute('data-to-device', link.toDevice);
-        node.setAttribute('data-to-port', link.toPort);
+        setAttributeIf(labelNode, 'x', ((fx + tx) / 2).toFixed(1));
+        setAttributeIf(labelNode, 'y', String(laneY - 6));
+        setTextIf(labelNode, link.label || (link.fromDevice + ' → ' + link.toDevice));
+        setAttributeIf(node, 'data-status', link.status || '');
+        setAttributeIf(node, 'data-from-device', link.fromDevice);
+        setAttributeIf(node, 'data-from-port', link.fromPort);
+        setAttributeIf(node, 'data-to-device', link.toDevice);
+        setAttributeIf(node, 'data-to-port', link.toPort);
       });
       Array.from(linkNodes.keys()).forEach(function (id) {
         if (seenLinks[id]) return;
@@ -228,7 +240,12 @@
         linkNodes.delete(id);
         linkPaths.delete(id);
       });
-      setAttrs(svg, { viewBox: '0 0 ' + width.toFixed(1) + ' ' + height.toFixed(1) });
+      var currentLinks = Array.prototype.slice.call(linkLayer.children);
+      if (desiredLinks.length !== currentLinks.length ||
+          !desiredLinks.every(function (node, index) { return node === currentLinks[index]; })) {
+        desiredLinks.forEach(function (node) { linkLayer.appendChild(node); });
+      }
+      setAttributeIf(svg, 'viewBox', '0 0 ' + width.toFixed(1) + ' ' + height.toFixed(1));
       setViewportMessage(note, invalidLinks ? '已跳过 ' + invalidLinks + ' 条引用未知设备/端口的连接。' : '');
     }
 

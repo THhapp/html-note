@@ -3109,6 +3109,19 @@
   pointer-events: none;
 }
 
+/* opt-in 稳定状态槽：行状态 label 作为独立块行，每行常驻同盒模型的隐藏占位；
+ * label 显隐不改变行高；占位使用真实文本行高，不设固定 min-height，也不裁切/覆盖正文。 */
+.nui-table--stable-state .nui-table__state {
+  display: flex;
+  width: fit-content;
+  margin-inline-start: 0;
+}
+
+.nui-table__state--slot {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 /* ---- source: src/ui/expression.css ---- */
 /* C13 NoteUI.Expression — 有稳定身份的表达式项；不承担播放器。 */
 
@@ -11546,6 +11559,11 @@
 
 .nviz-flow-stagetrack {
   --nviz-flow-stagetrack-count: 1;
+  --nviz-flow-stagetrack-node-size: 16px;
+  --nviz-flow-stagetrack-node-border: 2px;
+  --nviz-flow-stagetrack-stage-pad-top: 6px;
+  --nviz-flow-stagetrack-stage-pad-bottom: 8px;
+  --nviz-flow-stagetrack-line-height: 2px;
   padding: var(--hnv-space-3, 12px);
   border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
   border-radius: var(--hnv-radius-object, 10px);
@@ -11568,18 +11586,20 @@
   align-items: center;
   gap: 4px;
   min-width: 0;
-  padding: 6px 4px 8px;
+  box-sizing: border-box;
+  padding: var(--nviz-flow-stagetrack-stage-pad-top) 4px var(--nviz-flow-stagetrack-stage-pad-bottom);
   border-radius: var(--hnv-radius-object, 10px);
   text-align: center;
 }
 
+/* 连接线中心与圆点圆心同源：padding + node-size/2 - line-height/2。 */
 .nviz-flow-stagetrack__stage::before {
   content: '';
   position: absolute;
-  top: 16px;
+  top: calc(var(--nviz-flow-stagetrack-stage-pad-top) + var(--nviz-flow-stagetrack-node-size) / 2 - var(--nviz-flow-stagetrack-line-height) / 2);
   left: -50%;
   right: 50%;
-  height: 2px;
+  height: var(--nviz-flow-stagetrack-line-height);
   background: var(--hnv-color-border, #dce2ea);
 }
 
@@ -11591,9 +11611,10 @@
   position: relative;
   z-index: 1;
   display: block;
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--hnv-color-border, #dce2ea);
+  box-sizing: border-box;
+  width: var(--nviz-flow-stagetrack-node-size);
+  height: var(--nviz-flow-stagetrack-node-size);
+  border: var(--nviz-flow-stagetrack-node-border) solid var(--hnv-color-border, #dce2ea);
   border-radius: 50%;
   background: var(--hnv-color-surface, #ffffff);
 }
@@ -11654,12 +11675,20 @@
 
 .nviz-flow-stagetrack__badge {
   display: inline-block;
+  box-sizing: border-box;
+  min-height: calc(var(--hnv-font-size-caption, 12px) * 1.6);
   padding: 0 6px;
   border-radius: 999px;
   background: var(--hnv-color-attention, #6f82b7);
   color: var(--hnv-color-surface, #ffffff);
   font-size: var(--hnv-font-size-caption, 12px);
   line-height: 1.6;
+  visibility: visible;
+}
+
+/* 目标徽标显隐不改变轨道高度：空槽仍占位，只隐藏视觉。 */
+.nviz-flow-stagetrack__badge[data-empty="true"] {
+  visibility: hidden;
 }
 
 .nviz-flow-stagetrack__bypasses {

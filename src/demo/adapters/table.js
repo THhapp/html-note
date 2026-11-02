@@ -522,13 +522,41 @@
       if (effect.kind === 'row-state') {
         var stateRow = table.getTarget({ row: effect.rowKey, part: 'row' });
         if (!stateRow) return;
-        specs.push({
-          el: stateRow,
-          keyframes: [{ opacity: 0.55 }, { opacity: 1 }],
-          options: { duration: cueDuration, easing: easing, fill: 'none' },
-          group: effect.group,
-          gate: 'ready',
-          effect: 'table-row-state'
+        /* 行状态变化：目标内容在 commit 时已经正确露出，不用 opacity 把目标“洗白再回来”。
+         * 用每个单元格的 inset 轮廓 cue（不覆盖文字/背景内容），p=0 透明，放行后短暂出现再消失；
+         * 目标内容始终可见、始终不参与透明度过渡。 */
+        var accent = '#315cda';
+        try {
+          var computed = global.getComputedStyle ? global.getComputedStyle(stateRow) : null;
+          var accentValue = computed ? computed.getPropertyValue('--hnv-color-accent').trim() : '';
+          if (accentValue) accent = accentValue;
+        } catch (error) { /* 回退到默认强调色 */ }
+        var cueKeyframes = [
+          { boxShadow: 'inset 0 0 0 2px transparent', offset: 0 },
+          { boxShadow: 'inset 0 0 0 2px ' + accent, offset: 0.35 },
+          { boxShadow: 'inset 0 0 0 2px transparent', offset: 1 }
+        ];
+        var rowCells = stateRow.querySelectorAll ? stateRow.querySelectorAll('td') : [];
+        if (!rowCells.length) {
+          specs.push({
+            el: stateRow,
+            keyframes: cueKeyframes,
+            options: { duration: cueDuration, easing: 'linear', fill: 'none' },
+            group: effect.group,
+            gate: 'ready',
+            effect: 'table-row-state'
+          });
+          return;
+        }
+        Array.prototype.forEach.call(rowCells, function (cell) {
+          specs.push({
+            el: cell,
+            keyframes: cueKeyframes,
+            options: { duration: cueDuration, easing: 'linear', fill: 'none' },
+            group: effect.group,
+            gate: 'ready',
+            effect: 'table-row-state'
+          });
         });
       }
     });
@@ -569,7 +597,9 @@
         empty: tableOptions.empty,
         rowState: tableOptions.rowState,
         cellState: tableOptions.cellState,
-        onSort: tableOptions.onSort
+        onSort: tableOptions.onSort,
+        /* scene 表格默认启用稳定状态槽；作者可在 binding options 显式 false 关闭。 */
+        stableStateLabels: tableOptions.stableStateLabels !== false
       });
       var destroyed = false;
       var overlays = [];

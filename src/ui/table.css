@@ -245,3 +245,16 @@
   overflow: hidden;
   pointer-events: none;
 }
+
+/* opt-in 稳定状态槽：行状态 label 作为独立块行，每行常驻同盒模型的隐藏占位；
+ * label 显隐不改变行高；占位使用真实文本行高，不设固定 min-height，也不裁切/覆盖正文。 */
+.nui-table--stable-state .nui-table__state {
+  display: flex;
+  width: fit-content;
+  margin-inline-start: 0;
+}
+
+.nui-table__state--slot {
+  visibility: hidden;
+  pointer-events: none;
+}

@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { MODULE_ORDER } from '../lib/source-order.mjs';
 
 const CORPUS_PATH = 'docs/查询语料.md';
 const MANIFEST_DIR = 'src/manifests';
@@ -32,6 +33,42 @@ function parseResourceSpec(text) {
 
 function splitAliases(text) {
   return String(text || '').split(/[、,，;；\s]+/).map((item) => item.trim()).filter(Boolean);
+}
+
+/* 结构化字段只认显式条目，不解析自然语言。
+ * 模块依赖：module[, module...]；none 表示无浏览器组件模块。
+ * 运行入口：independent|scene|public|recipe|authoring|example|tool（当前用于说明/校验，不猜上下文）。
+ * 区域组件依赖：region=module[；region=module...]；caller 表示由调用方 bindings 决定。 */
+const RUNTIME_VALUES = new Set(['independent', 'scene', 'public', 'recipe', 'authoring', 'example', 'tool']);
+function parseModuleNames(text) {
+  const raw = String(text || '').trim();
+  if (!raw) return null;
+  if (normalizeName(raw) === 'none') return [];
+  const names = raw.split(/[、,，;；\s]+/).map((item) => item.trim()).filter(Boolean);
+  return [...new Set(names)];
+}
+function parseRuntime(text) {
+  const value = normalizeName(text);
+  return RUNTIME_VALUES.has(value) ? value : null;
+}
+function parseRegionDependencies(text) {
+  const raw = String(text || '').trim();
+  if (!raw) return null;
+  if (normalizeName(raw) === 'caller') return { caller: true, groups: [] };
+  const groups = [];
+  for (const part of raw.split(/[；;]/)) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+    const eq = trimmed.indexOf('=');
+    if (eq < 0) continue;
+    const region = trimmed.slice(0, eq).trim();
+    const moduleName = trimmed.slice(eq + 1).trim();
+    if (!region || !moduleName) continue;
+    const existing = groups.find((item) => item.module === moduleName);
+    if (existing) existing.regions.push(region);
+    else groups.push({ module: moduleName, regions: [region] });
+  }
+  return { caller: false, groups };
 }
 function normalizeName(value) { return String(value || '').replace(/\s+/g, '').toLowerCase(); }
 
@@ -79,6 +116,11 @@ function parseCorpus(root) {
       links: parseLinks(body), resources: parseResourceSpec(fields['资源']),
       contextText: fields['调用上下文'] || '', usageText: fields['最小用法'] || '',
       depsText: fields['依赖'] || '', roleText: fields['资料角色'] || '',
+      moduleNames: parseModuleNames(fields['模块依赖']),
+      runtime: parseRuntime(fields['运行入口']),
+      runtimeText: fields['运行入口'] || '',
+      regionDependencies: parseRegionDependencies(fields['区域组件依赖']),
+      regionText: fields['区域组件依赖'] || '',
       publicEntry: isPublicEntry && componentId === 'I07'
     });
   }
@@ -99,7 +141,9 @@ function buildModules(root) {
   return { modules, manifests };
 }
 
-function moduleClosure(modules, name) {
+const MODULE_RANK = new Map(MODULE_ORDER.map((name, index) => [name, index]));
+function moduleClosure(modules, names) {
+  const roots = Array.isArray(names) ? names : [names];
   const seen = new Set();
   const order = [];
   function visit(current) {
@@ -109,7 +153,13 @@ function moduleClosure(modules, name) {
     if (module && Array.isArray(module.dependencies)) module.dependencies.forEach(visit);
     order.push(current);
   }
-  visit(name);
+  roots.forEach(visit);
+  /* 多模块闭包合并后按发布/加载顺序（MODULE_ORDER）稳定输出。 */
+  order.sort((a, b) => {
+    const rankA = MODULE_RANK.has(a) ? MODULE_RANK.get(a) : MODULE_ORDER.length;
+    const rankB = MODULE_RANK.has(b) ? MODULE_RANK.get(b) : MODULE_ORDER.length;
+    return rankA - rankB;
+  });
   return order;
 }
 
@@ -120,21 +170,15 @@ function moduleLoading(modules, moduleName) {
   });
 }
 
-function mergeLoading(...groups) {
-  const seen = new Set();
-  const out = [];
-  for (const group of groups) {
-    for (const item of group || []) {
-      if (!item || seen.has(item.module)) continue;
-      seen.add(item.module);
-      out.push(item);
-    }
-  }
-  return out;
+function moduleLoadingMany(modules, moduleNames) {
+  return moduleClosure(modules, moduleNames).map((name) => {
+    const data = modules.get(name) || {};
+    return { module: name, js: 'dist/modules/' + name + '.js', css: data.css && data.css.length ? 'dist/modules/' + name + '.css' : null };
+  });
 }
 
 function sceneLoading(catalog, entry) {
-  return mergeLoading(catalog.moduleLoading(entry.module), catalog.moduleLoading('demo-runtime'));
+  return catalog.moduleLoadingMany([entry.module, 'demo-runtime']);
 }
 
 function loadingSummary(loading) {
@@ -264,7 +308,9 @@ function buildTopic(record) {
     purpose: record.purpose, coverage: 'curated', aliases: [...aliases],
     terms: record.terms.slice(), limits: record.boundary ? [record.boundary] : [],
     curated: record, resources, contextText: record.contextText, usageText: record.usageText,
-    depsText: record.depsText, roleText: record.roleText, related: record.related, reads: record.reads, links: record.links
+    depsText: record.depsText, roleText: record.roleText, related: record.related, reads: record.reads, links: record.links,
+    runtime: record.runtime, moduleDependencies: Array.isArray(record.moduleNames) ? record.moduleNames.slice() : null,
+    regionDependencies: record.regionDependencies
   };
 }
 
@@ -286,6 +332,22 @@ function buildCatalog(root) {
   root = path.resolve(root);
   const { modules, manifests } = buildModules(root);
   const corpus = parseCorpus(root);
+  /* 结构化模块依赖必须能对应实际 manifest，避免语料写错模块名后静默回退。 */
+  for (const record of corpus) {
+    const names = record.moduleNames || [];
+    for (const name of names) {
+      if (!modules.has(name)) throw new Error('查询语料 ' + record.q + ' 模块依赖包含未知模块：' + name);
+    }
+    if (record.runtimeText && !record.runtime) throw new Error('查询语料 ' + record.q + ' 运行入口无法解析：' + record.runtimeText);
+    if (record.regionText || record.regionDependencies) {
+      if (!record.regionDependencies) throw new Error('查询语料 ' + record.q + ' 区域组件依赖无法解析：' + record.regionText);
+      if (!record.regionDependencies.caller && !record.regionDependencies.groups.length) throw new Error('查询语料 ' + record.q + ' 区域组件依赖没有 region=module 项：' + record.regionText);
+      for (const group of record.regionDependencies.groups) {
+        if (!modules.has(group.module)) throw new Error('查询语料 ' + record.q + ' 区域组件依赖包含未知模块：' + group.module);
+      }
+    }
+  }
+
   const curatedByComponent = new Map();
   const topicRecords = [];
   for (const record of corpus) {
@@ -319,7 +381,11 @@ function buildCatalog(root) {
       if (!byName.get(normalized).includes(entry)) byName.get(normalized).push(entry);
     }
   }
-  return { root, modules, manifests, corpus, components, topics, entries: components.concat(topics), byId, byName, moduleLoading: (name) => moduleLoading(modules, name), closure: (name) => moduleClosure(modules, name), resolveRef: (href, baseFile) => resolveRef(root, href, baseFile) };
+  return { root, modules, manifests, corpus, components, topics, entries: components.concat(topics), byId, byName,
+    moduleLoading: (name) => moduleLoading(modules, name),
+    moduleLoadingMany: (names) => moduleLoadingMany(modules, names),
+    closure: (name) => moduleClosure(modules, name),
+    resolveRef: (href, baseFile) => resolveRef(root, href, baseFile) };
 }
 
 function findEntry(catalog, token) {
@@ -417,21 +483,75 @@ function contextForComponent(catalog, entry, contextKey) {
   return contexts.filter((item) => item.key === contextKey);
 }
 
+const RUNTIME_CONTEXT_KEY = {
+  independent: 'independent',
+  scene: 'scene',
+  public: 'public',
+  recipe: 'recipe',
+  authoring: 'authoring',
+  tool: 'tool',
+  example: 'authoring'
+};
+
+function topicContextKey(entry) {
+  const key = entry.runtime && RUNTIME_CONTEXT_KEY[entry.runtime];
+  if (!key) throw new Error('主题条目 ' + entry.id + ' 缺少可解析的 运行入口');
+  return key;
+}
+
+function regionDependencyView(entry) {
+  const region = entry.regionDependencies;
+  if (!region) return null;
+  if (region.caller) {
+    return {
+      dependencies: [],
+      note: '区域组件由调用方 bindings 决定；配方骨架不内置区域组件模块。'
+    };
+  }
+  if (!region.groups.length) return null;
+  const groups = region.groups.map((group) => ({ module: group.module, regions: group.regions.slice() }));
+  const note = '区域组件按调用方 bindings 另加：' + groups.map((group) => group.regions.join('/') + '→' + group.module).join('；') + '。';
+  return { dependencies: groups, note };
+}
+
 function buildTopicContext(catalog, entry, contextKey) {
+  if (!Array.isArray(entry.moduleDependencies)) throw new Error('主题条目 ' + entry.id + ' 缺少 模块依赖');
+  const moduleNames = entry.moduleDependencies;
+  const dependencies = catalog.moduleLoadingMany(moduleNames);
+  const label = topicContextKey(entry);
   const ctx = {
-    key: entry.type === '配方' ? 'recipe' : entry.type === '公共接法' ? 'public' : entry.type === '构建工具' || entry.type === '验证工具' ? 'tool' : 'authoring',
-    label: entry.type, usage: entry.usageText || '', wholeLibrary: ['dist/note-library.css', 'dist/note-library.js'],
-    dependencies: entry.type === '配方' || entry.type === '完整示例' ? catalog.moduleLoading('demo-ui') : catalog.moduleLoading('demo-runtime'),
-    dependencySummary: entry.depsText || (entry.type === '配方' || entry.type === '完整示例' ? 'demo-ui → demo-runtime → core' : 'demo-runtime → core'),
-    refs: refsOf(entry), notes: [entry.curated && entry.curated.boundary, entry.roleText, entry.curated && entry.curated.related ? '关联: ' + entry.curated.related : null].filter(Boolean)
+    key: label,
+    label: entry.type,
+    runtime: entry.runtime || null,
+    usage: entry.usageText || '',
+    wholeLibrary: ['dist/note-library.css', 'dist/note-library.js'],
+    moduleDependencies: moduleNames.slice(),
+    dependencies,
+    dependencySummary: dependencies.length ? loadingSummary(dependencies) : '无浏览器组件模块依赖',
+    refs: refsOf(entry),
+    notes: [entry.curated && entry.curated.boundary, entry.roleText, entry.curated && entry.curated.related ? '关联: ' + entry.curated.related : null].filter(Boolean)
   };
+  if (entry.type === '配方') {
+    const region = regionDependencyView(entry);
+    if (region) {
+      ctx.regionDependencies = region.dependencies;
+      ctx.regionDependencyNote = region.note;
+      ctx.dependencySummary = (dependencies.length ? loadingSummary(dependencies) + '（配方骨架）' : '无骨架模块依赖') + '；' + region.note;
+      ctx.notes = ctx.notes.concat([
+        '配方只提供区域骨架、槽位、布局与清理；区域组件模块按实际 bindings 另加，不随配方骨架默认加载。',
+        region.note
+      ]);
+    }
+  }
   if (entry.type === '构建工具') {
     ctx.wholeLibrary = null;
+    ctx.moduleDependencies = [];
     ctx.dependencies = [];
     ctx.dependencySummary = 'Node 内置模块；无浏览器运行层、无 demo-runtime、无网络';
   }
   if (entry.type === '验证工具') {
     ctx.wholeLibrary = null;
+    ctx.moduleDependencies = [];
     ctx.dependencies = [];
     ctx.dependencySummary = entry.depsText || 'Node 内置模块 + playwright-core + 本机浏览器；无 demo-runtime';
     ctx.notes = ctx.notes.concat(['验证工具不加载整库或 demo-runtime；浏览器组件模块依赖与 Node 工具运行条件要分开读。']);

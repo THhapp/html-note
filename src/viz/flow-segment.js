@@ -16,7 +16,7 @@
     uniqueId = shared.uniqueId, validateHost = shared.validateHost, defaultId = shared.defaultId,
     component = shared.component, makeSvgAccessible = shared.makeSvgAccessible,
     setViewportMessage = shared.setViewportMessage, normalizeStatus = shared.normalizeStatus,
-    statusList = shared.statusList;
+    statusList = shared.statusList, setAttributeIf = shared.setAttributeIf, setTextIf = shared.setTextIf;
 
   /* ---------------- SegmentBar ---------------- */
 
@@ -97,8 +97,8 @@
     }
 
     function render() {
-      root.setAttribute('aria-label', textOrEmpty(model.label) || '段条');
-      setText(accessible.title, textOrEmpty(model.label) || '段条');
+      setAttributeIf(root, 'aria-label', textOrEmpty(model.label) || '段条');
+      setTextIf(accessible.title, textOrEmpty(model.label) || '段条');
       var segments = normalizeSegments();
       var values = segments.map(function (segment) { return segment.value; });
       var sum = values.reduce(function (total, value) { return total + value; }, 0);
@@ -119,15 +119,17 @@
         x += width;
       });
       var totalWidth = Math.max(trackBase, x);
-      setAttrs(svg, { viewBox: '0 0 ' + totalWidth.toFixed(1) + ' 100' });
-      setAttrs(trackLayer.querySelector('.nviz-flow-segmentbar__track-bg'), { width: totalWidth.toFixed(1) });
-      setAttrs(scaleText, { x: trackBase.toFixed(1) });
-      setText(scaleText, String(scaleMax));
+      setAttributeIf(svg, 'viewBox', '0 0 ' + totalWidth.toFixed(1) + ' 100');
+      setAttributeIf(trackLayer.querySelector('.nviz-flow-segmentbar__track-bg'), 'width', totalWidth.toFixed(1));
+      setAttributeIf(scaleText, 'x', trackBase.toFixed(1));
+      setTextIf(scaleText, String(scaleMax));
 
-      empty.hidden = segments.length > 0;
-      svg.style.display = segments.length ? '' : 'none';
+      if (empty.hidden !== (segments.length > 0)) empty.hidden = segments.length > 0;
+      var displayValue = segments.length ? '' : 'none';
+      if (svg.style.display !== displayValue) svg.style.display = displayValue;
 
       var seenSegments = Object.create(null);
+      var desiredSegments = [];
       segments.forEach(function (segment, index) {
         var info = layout[index];
         var node = segmentNodes.get(segment.id);
@@ -140,21 +142,26 @@
           segmentNodes.set(segment.id, node);
         }
         seenSegments[segment.id] = true;
+        desiredSegments.push(node);
         var rect = node.querySelector('.nviz-flow-segmentbar__segment-rect');
-        setAttrs(rect, { x: info.x.toFixed(1), width: info.width.toFixed(1) });
-        if (segment.color) rect.style.setProperty('--nviz-flow-segmentbar-segment-color', segment.color);
-        else rect.style.removeProperty('--nviz-flow-segmentbar-segment-color');
+        setAttributeIf(rect, 'x', info.x.toFixed(1));
+        setAttributeIf(rect, 'width', info.width.toFixed(1));
+        var colorValue = segment.color ? text(segment.color) : '';
+        if (rect.style.getPropertyValue('--nviz-flow-segmentbar-segment-color') !== colorValue) {
+          if (colorValue) rect.style.setProperty('--nviz-flow-segmentbar-segment-color', colorValue);
+          else rect.style.removeProperty('--nviz-flow-segmentbar-segment-color');
+        }
         var label = node.querySelector('.nviz-flow-segmentbar__label');
-        label.setAttribute('x', (info.x + info.width / 2).toFixed(1));
-        setText(label, segment.label || segment.id);
+        setAttributeIf(label, 'x', (info.x + info.width / 2).toFixed(1));
+        setTextIf(label, segment.label || segment.id);
         var valueNode = node.querySelector('.nviz-flow-segmentbar__value');
-        valueNode.setAttribute('x', (info.x + info.width / 2).toFixed(1));
-        setText(valueNode, String(segment.value));
-        node.setAttribute('data-real-value', String(segment.value));
-        node.setAttribute('data-ratio', String(Math.round(info.ratio * 10000) / 10000));
-        node.setAttribute('data-zero', info.zero ? 'true' : 'false');
-        node.setAttribute('data-clamped', info.clamped ? 'true' : 'false');
-        node.setAttribute('data-index', String(index));
+        setAttributeIf(valueNode, 'x', (info.x + info.width / 2).toFixed(1));
+        setTextIf(valueNode, String(segment.value));
+        setAttributeIf(node, 'data-real-value', String(segment.value));
+        setAttributeIf(node, 'data-ratio', String(Math.round(info.ratio * 10000) / 10000));
+        setAttributeIf(node, 'data-zero', info.zero ? 'true' : 'false');
+        setAttributeIf(node, 'data-clamped', info.clamped ? 'true' : 'false');
+        setAttributeIf(node, 'data-index', String(index));
       });
       Array.from(segmentNodes.keys()).forEach(function (id) {
         if (seenSegments[id]) return;
@@ -162,9 +169,15 @@
         if (node && node.parentNode) node.parentNode.removeChild(node);
         segmentNodes.delete(id);
       });
+      var currentSegments = Array.prototype.slice.call(segmentLayer.children);
+      if (desiredSegments.length !== currentSegments.length ||
+          !desiredSegments.every(function (node, index) { return node === currentSegments[index]; })) {
+        desiredSegments.forEach(function (node) { segmentLayer.appendChild(node); });
+      }
 
       var ranges = normalizeRanges(segments);
       var seenRanges = Object.create(null);
+      var desiredRanges = [];
       ranges.valid.forEach(function (range) {
         var node = rangeNodes.get(range.key);
         if (!node) {
@@ -175,17 +188,18 @@
           rangeNodes.set(range.key, node);
         }
         seenRanges[range.key] = true;
+        desiredRanges.push(node);
         var x0 = layout[range.start].x;
         var x1 = layout[range.end].x + layout[range.end].width;
-        node.querySelector('.nviz-flow-segmentbar__range-bracket').setAttribute('d',
+        setAttributeIf(node.querySelector('.nviz-flow-segmentbar__range-bracket'), 'd',
           'M ' + x0.toFixed(1) + ' 66 L ' + x0.toFixed(1) + ' 74 L ' + x1.toFixed(1) + ' 74 L ' + x1.toFixed(1) + ' 66');
         var labelNode = node.querySelector('.nviz-flow-segmentbar__range-label');
-        labelNode.setAttribute('x', ((x0 + x1) / 2).toFixed(1));
-        setText(labelNode, range.label || (segments[range.start].label + '–' + segments[range.end].label));
-        node.setAttribute('data-start', String(range.start));
-        node.setAttribute('data-end', String(range.end));
-        node.setAttribute('data-start-id', segments[range.start].id);
-        node.setAttribute('data-end-id', segments[range.end].id);
+        setAttributeIf(labelNode, 'x', ((x0 + x1) / 2).toFixed(1));
+        setTextIf(labelNode, range.label || (segments[range.start].label + '–' + segments[range.end].label));
+        setAttributeIf(node, 'data-start', String(range.start));
+        setAttributeIf(node, 'data-end', String(range.end));
+        setAttributeIf(node, 'data-start-id', segments[range.start].id);
+        setAttributeIf(node, 'data-end-id', segments[range.end].id);
       });
       Array.from(rangeNodes.keys()).forEach(function (key) {
         if (seenRanges[key]) return;
@@ -193,6 +207,11 @@
         if (node && node.parentNode) node.parentNode.removeChild(node);
         rangeNodes.delete(key);
       });
+      var currentRanges = Array.prototype.slice.call(rangeLayer.children);
+      if (desiredRanges.length !== currentRanges.length ||
+          !desiredRanges.every(function (node, index) { return node === currentRanges[index]; })) {
+        desiredRanges.forEach(function (node) { rangeLayer.appendChild(node); });
+      }
       setViewportMessage(note, ranges.invalid ? '已跳过 ' + ranges.invalid + ' 个引用未知段的范围。' : '');
     }
 

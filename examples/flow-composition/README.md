@@ -57,9 +57,10 @@ var session = NoteDemo.mount(host, demo);
   表格 `{columns,rows,sort,emphasis,caption,empty,dense,maxHeight}`；读数 `{text}`。
 - 每个改变 Binding 的 Step 都要在 `scene.bindings` 中显式列出；配方不推断 scene。
 - `flow-stage` 的效果组为 `stage:<id>` / `bypass:<id>`；`flow-packet` 为 `message:<id>` / `participant:<id>`；
-  `table` 为 `cell:<rowKey>:<colKey>` / `row:<rowKey>`。下段表格每个显现 step 还在 `scene.attention` 中把
-  公共 Focus 指向当前消息行的 `note` 单元（`groups: []` 观察，不整表门控）；需要局部放行时可在
-  `scene.attention.targets[].groups` 中引用这些组。
+  `table` 为 `cell:<rowKey>:<colKey>` / `row:<rowKey>`。下段的主要变化是当前报文显现：每个显现 step 的
+  `scene.attention` 指向当前报文 `{ binding:'packet', query:{ id:'message:<id>' }, groups:['message:<id>'] }`，
+  放行同名 flow-packet 组；表格与读数只辅助同步，不再逐格巡视 `note` 单元。需要局部放行其他对象时，
+  可在 `scene.attention.targets[].groups` 中引用对应组名。
 - 页面只用 `session.subscribe()` 更新左上角 phase 文字；图形、表格、字幕都不由页面补写。
 - 缺少组件/Adapter 时挂载失败会显示 `role="alert"` 错误块，不静默跳过。
 

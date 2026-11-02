@@ -9695,13 +9695,41 @@
       if (effect.kind === 'row-state') {
         var stateRow = table.getTarget({ row: effect.rowKey, part: 'row' });
         if (!stateRow) return;
-        specs.push({
-          el: stateRow,
-          keyframes: [{ opacity: 0.55 }, { opacity: 1 }],
-          options: { duration: cueDuration, easing: easing, fill: 'none' },
-          group: effect.group,
-          gate: 'ready',
-          effect: 'table-row-state'
+        /* 行状态变化：目标内容在 commit 时已经正确露出，不用 opacity 把目标“洗白再回来”。
+         * 用每个单元格的 inset 轮廓 cue（不覆盖文字/背景内容），p=0 透明，放行后短暂出现再消失；
+         * 目标内容始终可见、始终不参与透明度过渡。 */
+        var accent = '#315cda';
+        try {
+          var computed = global.getComputedStyle ? global.getComputedStyle(stateRow) : null;
+          var accentValue = computed ? computed.getPropertyValue('--hnv-color-accent').trim() : '';
+          if (accentValue) accent = accentValue;
+        } catch (error) { /* 回退到默认强调色 */ }
+        var cueKeyframes = [
+          { boxShadow: 'inset 0 0 0 2px transparent', offset: 0 },
+          { boxShadow: 'inset 0 0 0 2px ' + accent, offset: 0.35 },
+          { boxShadow: 'inset 0 0 0 2px transparent', offset: 1 }
+        ];
+        var rowCells = stateRow.querySelectorAll ? stateRow.querySelectorAll('td') : [];
+        if (!rowCells.length) {
+          specs.push({
+            el: stateRow,
+            keyframes: cueKeyframes,
+            options: { duration: cueDuration, easing: 'linear', fill: 'none' },
+            group: effect.group,
+            gate: 'ready',
+            effect: 'table-row-state'
+          });
+          return;
+        }
+        Array.prototype.forEach.call(rowCells, function (cell) {
+          specs.push({
+            el: cell,
+            keyframes: cueKeyframes,
+            options: { duration: cueDuration, easing: 'linear', fill: 'none' },
+            group: effect.group,
+            gate: 'ready',
+            effect: 'table-row-state'
+          });
         });
       }
     });
@@ -9742,7 +9770,9 @@
         empty: tableOptions.empty,
         rowState: tableOptions.rowState,
         cellState: tableOptions.cellState,
-        onSort: tableOptions.onSort
+        onSort: tableOptions.onSort,
+        /* scene 表格默认启用稳定状态槽；作者可在 binding options 显式 false 关闭。 */
+        stableStateLabels: tableOptions.stableStateLabels !== false
       });
       var destroyed = false;
       var overlays = [];
@@ -9981,30 +10011,91 @@
         var target = normalizeView(ctx && ctx.targetView).model;
         var reduced = !!(ctx && ctx.motion === 'never');
         var groups = diffGroups(source, target);
+        var records = [];
+        var sourceStages = Object.create(null);
+        source.stages.forEach(function (stage) { sourceStages[stage.id] = stage; });
+        var sourceBypass = Object.create(null);
+        source.bypass.forEach(function (item) { sourceBypass[item.id] = item; });
+        function styleValue(node, property) {
+          return node && global.getComputedStyle ? global.getComputedStyle(node).getPropertyValue(property) : '';
+        }
+        function resolveElement(record) {
+          if (record.prehideEl) return record.prehideEl;
+          if (record.kind === 'new') {
+            return record.target === 'stage' ? component.getTarget(record.id) : component.getTarget(record.group);
+          }
+          return record.el || null;
+        }
+        groups.forEach(function (group) {
+          if (group.indexOf('stage:') === 0) {
+            var id = group.slice(6);
+            var before = sourceStages[id];
+            var targetStage = null;
+            target.stages.forEach(function (stage) { if (stage.id === id) targetStage = stage; });
+            if (!targetStage) return;
+            if (!before) {
+              records.push({ kind: 'new', group: group, target: 'stage', id: id });
+            } else if (before.status !== targetStage.status || before.label !== targetStage.label || before.target !== targetStage.target) {
+              var node = component.getTarget(id);
+              if (node) records.push({
+                kind: 'stage-style', group: group, id: id, el: node,
+                source: { border: styleValue(node, 'border-top-color'), background: styleValue(node, 'background-color') }
+              });
+            }
+          } else if (group.indexOf('bypass:') === 0 && !sourceBypass[group]) {
+            records.push({ kind: 'new', group: group, target: 'bypass' });
+          }
+        });
         return {
           groups: function () { return groups.slice(); },
-          commit: function () { apply(target); },
+          commit: function () {
+            apply(target);
+            if (reduced) return;
+            records.forEach(function (record) {
+              if (record.kind !== 'new') return;
+              var node = resolveElement(record);
+              if (!node) return;
+              record.prehideEl = node;
+              record.savedOpacity = node.style.opacity;
+              node.style.opacity = '0';
+            });
+          },
           targets: function () { return []; },
           effects: function (effectCtx) {
             if (reduced) return [];
             var timing = effectCtx && isObject(effectCtx.timing) ? effectCtx.timing : {};
             var duration = typeof timing.enterDuration === 'number' ? Math.max(0, timing.enterDuration) : 420;
-            var specs = [];
-            groups.forEach(function (group) {
-              var key = targetKeyFor(group);
-              var node = key == null ? null : component.getTarget(key);
-              if (!node) return;
-              specs.push({
-                el: node,
-                keyframes: [{ opacity: '0.35' }, { opacity: '1' }],
-                options: { duration: duration, easing: timing.easing },
-                group: group,
-                gate: 'ready'
-              });
-            });
-            return specs;
+            var easing = typeof timing.easing === 'string' ? timing.easing : undefined;
+            return records.map(function (record) {
+              var node = resolveElement(record);
+              if (!node) return null;
+              var options = { duration: duration, fill: 'both' };
+              if (easing) options.easing = easing;
+              if (record.kind === 'new') {
+                return { el: node, keyframes: [{ opacity: '0' }, { opacity: '1' }], options: options, group: record.group, gate: 'ready' };
+              }
+              if (record.kind === 'stage-style') {
+                return {
+                  el: node,
+                  keyframes: [
+                    { borderColor: record.source.border, backgroundColor: record.source.background },
+                    { borderColor: styleValue(node, 'border-top-color'), backgroundColor: styleValue(node, 'background-color') }
+                  ],
+                  options: options,
+                  group: record.group,
+                  gate: 'ready'
+                };
+              }
+              return null;
+            }).filter(Boolean);
           },
-          cleanup: function () {}
+          cleanup: function () {
+            records.forEach(function (record) {
+              if (record.kind !== 'new' || !record.prehideEl) return;
+              record.prehideEl.style.opacity = record.savedOpacity == null ? '' : record.savedOpacity;
+              record.prehideEl = null;
+            });
+          }
         };
       },
       destroy: function () {
@@ -10195,30 +10286,53 @@
         var target = normalizeView(ctx && ctx.targetView).model;
         var reduced = !!(ctx && ctx.motion === 'never');
         var groups = diffGroups(source, target);
+        var records = [];
+        var sourceMessages = Object.create(null);
+        source.messages.forEach(function (message) { sourceMessages[message.id] = message; });
+        target.messages.forEach(function (message) {
+          var before = sourceMessages[message.id];
+          if (message.revealed && (!before || !before.revealed)) {
+            records.push({ kind: 'reveal', group: 'message:' + message.id, targetKey: 'message:' + message.id });
+          }
+        });
+        function resolveElement(record) {
+          if (record.prehideEl) return record.prehideEl;
+          return component.getTarget(record.targetKey);
+        }
         return {
           groups: function () { return groups.slice(); },
-          commit: function () { apply(target); },
+          commit: function () {
+            apply(target);
+            if (reduced) return;
+            records.forEach(function (record) {
+              var node = resolveElement(record);
+              if (!node) return;
+              record.prehideEl = node;
+              record.savedOpacity = node.style.opacity;
+              node.style.opacity = '0';
+            });
+          },
           targets: function () { return []; },
           effects: function (effectCtx) {
             if (reduced) return [];
             var timing = effectCtx && isObject(effectCtx.timing) ? effectCtx.timing : {};
             var duration = typeof timing.enterDuration === 'number' ? Math.max(0, timing.enterDuration) : 420;
-            var specs = [];
-            groups.forEach(function (group) {
-              var key = targetFor(group);
-              var node = key == null ? null : component.getTarget(key);
-              if (!node) return;
-              specs.push({
-                el: node,
-                keyframes: [{ opacity: '0.25' }, { opacity: '1' }],
-                options: { duration: duration, easing: timing.easing },
-                group: group,
-                gate: 'ready'
-              });
-            });
-            return specs;
+            var easing = typeof timing.easing === 'string' ? timing.easing : undefined;
+            return records.map(function (record) {
+              var node = resolveElement(record);
+              if (!node) return null;
+              var options = { duration: duration, fill: 'both' };
+              if (easing) options.easing = easing;
+              return { el: node, keyframes: [{ opacity: '0' }, { opacity: '1' }], options: options, group: record.group, gate: 'ready' };
+            }).filter(Boolean);
           },
-          cleanup: function () {}
+          cleanup: function () {
+            records.forEach(function (record) {
+              if (!record.prehideEl) return;
+              record.prehideEl.style.opacity = record.savedOpacity == null ? '' : record.savedOpacity;
+              record.prehideEl = null;
+            });
+          }
         };
       },
       destroy: function () { if (destroyed) return; destroyed = true; component.destroy(); }
@@ -10383,24 +10497,104 @@
         var target = normalizeView(ctx && ctx.targetView).model;
         var reduced = !!(ctx && ctx.motion === 'never');
         var groups = diffGroups(source, target);
+        var records = [];
+        var sourceSegments = Object.create(null);
+        source.segments.forEach(function (segment) { sourceSegments[segment.id] = segment; });
+        var sourceRanges = Object.create(null);
+        source.ranges.forEach(function (range) { sourceRanges[range.id] = range; });
+        target.segments.forEach(function (segment) {
+          var before = sourceSegments[segment.id];
+          if (!before) {
+            records.push({ kind: 'new', group: 'segment:' + segment.id, targetKey: segment.id });
+            return;
+          }
+          if (before.value !== segment.value || before.displayWidth !== segment.displayWidth || before.zero !== segment.zero) {
+            var groupNode = component.getTarget(segment.id);
+            var rect = groupNode && groupNode.querySelector('.nviz-flow-segmentbar__segment-rect');
+            var sourceWidth = rect ? Number(rect.getAttribute('width')) : NaN;
+            if (rect && isFinite(sourceWidth)) {
+              records.push({ kind: 'width', group: 'segment:' + segment.id, targetKey: segment.id, sourceWidth: sourceWidth });
+            }
+          }
+        });
+        target.ranges.forEach(function (range) {
+          if (!sourceRanges[range.id]) records.push({ kind: 'new', group: 'range:' + range.id, targetKey: 'range:' + range.id });
+        });
+        function resolveElement(record) {
+          if (record.rect) return record.rect;
+          if (record.prehideEl) return record.prehideEl;
+          return component.getTarget(record.targetKey);
+        }
         return {
           groups: function () { return groups.slice(); },
-          commit: function () { apply(target); },
+          commit: function () {
+            apply(target);
+            if (reduced) return;
+            records.forEach(function (record) {
+              if (record.kind === 'new') {
+                var node = component.getTarget(record.targetKey);
+                if (!node) return;
+                record.prehideEl = node;
+                record.savedOpacity = node.style.opacity;
+                node.style.opacity = '0';
+                return;
+              }
+              if (record.kind === 'width') {
+                var groupNode = component.getTarget(record.targetKey);
+                var rect = groupNode && groupNode.querySelector('.nviz-flow-segmentbar__segment-rect');
+                var targetWidth = rect ? Number(rect.getAttribute('width')) : NaN;
+                if (!rect || !isFinite(targetWidth) || !(targetWidth > 0)) return;
+                record.rect = rect;
+                record.ratio = record.sourceWidth / targetWidth;
+                record.savedTransform = rect.style.transform;
+                record.savedTransformBox = rect.style.transformBox;
+                record.savedTransformOrigin = rect.style.transformOrigin;
+                rect.style.transformBox = 'fill-box';
+                rect.style.transformOrigin = 'left center';
+                rect.style.transform = 'scaleX(' + record.ratio + ')';
+              }
+            });
+          },
           targets: function () { return []; },
           effects: function (effectCtx) {
             if (reduced) return [];
             var timing = effectCtx && isObject(effectCtx.timing) ? effectCtx.timing : {};
             var duration = typeof timing.enterDuration === 'number' ? Math.max(0, timing.enterDuration) : 420;
-            var specs = [];
-            groups.forEach(function (group) {
-              var key = group.indexOf('segment:') === 0 ? group.slice(8) : (group.indexOf('range:') === 0 ? group.slice(6) : group);
-              var node = component.getTarget(key);
-              if (!node) return;
-              specs.push({ el: node, keyframes: [{ opacity: '0.4' }, { opacity: '1' }], options: { duration: duration, easing: timing.easing }, group: group, gate: 'ready' });
-            });
-            return specs;
+            var easing = typeof timing.easing === 'string' ? timing.easing : undefined;
+            return records.map(function (record) {
+              var node = resolveElement(record);
+              if (!node) return null;
+              var options = { duration: duration, fill: 'both' };
+              if (easing) options.easing = easing;
+              if (record.kind === 'new') {
+                return { el: node, keyframes: [{ opacity: '0' }, { opacity: '1' }], options: options, group: record.group, gate: 'ready' };
+              }
+              if (record.kind === 'width') {
+                return {
+                  el: node,
+                  keyframes: [{ transform: 'scaleX(' + record.ratio + ')' }, { transform: 'scaleX(1)' }],
+                  options: options,
+                  group: record.group,
+                  gate: 'ready'
+                };
+              }
+              return null;
+            }).filter(Boolean);
           },
-          cleanup: function () {}
+          cleanup: function () {
+            records.forEach(function (record) {
+              if (record.prehideEl) {
+                record.prehideEl.style.opacity = record.savedOpacity == null ? '' : record.savedOpacity;
+                record.prehideEl = null;
+              }
+              if (record.rect) {
+                record.rect.style.transform = record.savedTransform == null ? '' : record.savedTransform;
+                record.rect.style.transformBox = record.savedTransformBox == null ? '' : record.savedTransformBox;
+                record.rect.style.transformOrigin = record.savedTransformOrigin == null ? '' : record.savedTransformOrigin;
+                record.rect = null;
+              }
+            });
+          }
         };
       },
       destroy: function () { if (destroyed) return; destroyed = true; component.destroy(); }
@@ -10550,23 +10744,105 @@
         var target = normalizeView(ctx && ctx.targetView).model;
         var reduced = !!(ctx && ctx.motion === 'never');
         var groups = diffGroups(source, target);
+        var records = [];
+        var sourceLinks = Object.create(null);
+        source.links.forEach(function (link) { sourceLinks[link.id] = link; });
+        var sourceDevices = Object.create(null);
+        source.devices.forEach(function (device) { sourceDevices[device.id] = device; });
+        function styleValue(node, property) {
+          return node && global.getComputedStyle ? global.getComputedStyle(node).getPropertyValue(property) : '';
+        }
+        target.links.forEach(function (link) {
+          var before = sourceLinks[link.id];
+          if (!before) {
+            records.push({ kind: 'new', group: 'link:' + link.id, targetKey: 'link:' + link.id });
+            return;
+          }
+          if (before.label !== link.label || before.status !== link.status ||
+              JSON.stringify(before.from) !== JSON.stringify(link.from) || JSON.stringify(before.to) !== JSON.stringify(link.to)) {
+            var path = component.getLinkPath(link.id);
+            if (path) records.push({ kind: 'link-style', group: 'link:' + link.id, targetKey: 'link:' + link.id, id: link.id, sourceStroke: styleValue(path, 'stroke') });
+          }
+        });
+        target.devices.forEach(function (device) {
+          var before = sourceDevices[device.id];
+          if (!before) {
+            records.push({ kind: 'new', group: 'device:' + device.id, targetKey: 'device:' + device.id });
+            return;
+          }
+          if (before.label !== device.label || before.status !== device.status || JSON.stringify(before.ports) !== JSON.stringify(device.ports)) {
+            var node = component.getTarget('device:' + device.id);
+            var box = node && node.querySelector('.nviz-flow-devicelinks__device-box');
+            if (box) records.push({ kind: 'device-style', group: 'device:' + device.id, targetKey: 'device:' + device.id, sourceStroke: styleValue(box, 'stroke'), sourceFill: styleValue(box, 'fill') });
+          }
+        });
+        function resolveElement(record) {
+          if (record.prehideEl) return record.prehideEl;
+          return component.getTarget(record.targetKey);
+        }
         return {
           groups: function () { return groups.slice(); },
-          commit: function () { apply(target); },
+          commit: function () {
+            apply(target);
+            if (reduced) return;
+            records.forEach(function (record) {
+              if (record.kind !== 'new') return;
+              var node = component.getTarget(record.targetKey);
+              if (!node) return;
+              record.prehideEl = node;
+              record.savedOpacity = node.style.opacity;
+              node.style.opacity = '0';
+            });
+          },
           targets: function () { return []; },
           effects: function (effectCtx) {
             if (reduced) return [];
             var timing = effectCtx && isObject(effectCtx.timing) ? effectCtx.timing : {};
             var duration = typeof timing.enterDuration === 'number' ? Math.max(0, timing.enterDuration) : 420;
-            var specs = [];
-            groups.forEach(function (group) {
-              var node = component.getTarget(group);
-              if (!node) return;
-              specs.push({ el: node, keyframes: [{ opacity: '0.3' }, { opacity: '1' }], options: { duration: duration, easing: timing.easing }, group: group, gate: 'ready' });
-            });
-            return specs;
+            var easing = typeof timing.easing === 'string' ? timing.easing : undefined;
+            return records.map(function (record) {
+              var node = resolveElement(record);
+              if (!node) return null;
+              var options = { duration: duration, fill: 'both' };
+              if (easing) options.easing = easing;
+              if (record.kind === 'new') {
+                return { el: node, keyframes: [{ opacity: '0' }, { opacity: '1' }], options: options, group: record.group, gate: 'ready' };
+              }
+              if (record.kind === 'link-style') {
+                var path = component.getLinkPath(record.id);
+                if (!path) return null;
+                return {
+                  el: path,
+                  keyframes: [{ stroke: record.sourceStroke }, { stroke: styleValue(path, 'stroke') }],
+                  options: options,
+                  group: record.group,
+                  gate: 'ready'
+                };
+              }
+              if (record.kind === 'device-style') {
+                var box = node.querySelector('.nviz-flow-devicelinks__device-box');
+                if (!box) return null;
+                return {
+                  el: box,
+                  keyframes: [
+                    { stroke: record.sourceStroke, fill: record.sourceFill },
+                    { stroke: styleValue(box, 'stroke'), fill: styleValue(box, 'fill') }
+                  ],
+                  options: options,
+                  group: record.group,
+                  gate: 'ready'
+                };
+              }
+              return null;
+            }).filter(Boolean);
           },
-          cleanup: function () {}
+          cleanup: function () {
+            records.forEach(function (record) {
+              if (!record.prehideEl) return;
+              record.prehideEl.style.opacity = record.savedOpacity == null ? '' : record.savedOpacity;
+              record.prehideEl = null;
+            });
+          }
         };
       },
       destroy: function () { if (destroyed) return; destroyed = true; component.destroy(); }

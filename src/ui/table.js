@@ -96,7 +96,10 @@
     maxHeight: null,
     dense: false,
     rowState: null,
-    cellState: null
+    cellState: null,
+    /* opt-in：状态 label 使用稳定槽（每行常驻隐藏占位，label 显隐不改变行高）。
+     * Adapter 场景默认开启；独立使用默认关闭。 */
+    stableStateLabels: false
   };
   var TABLE_NO_VALUE = {};
   var tableCollator = null;
@@ -198,23 +201,49 @@
     return tokens;
   }
 
-  /* 状态可见标签：仅作者显式给 label 时出现；内容替换会清掉子节点，所以调用方在 setContent 之后调用。 */
-  function setTableStateLabel(host, items, box) {
+  /* 状态可见标签：仅作者显式给 label 时出现；内容替换会清掉子节点，所以调用方在 setContent 之后调用。
+   * stableState 不为空时（opt-in），无标签也保留一个真实文本行高度的隐藏槽：
+   * - 隐藏槽用同一个 .nui-table__state 盒模型和已见过的示例文字，label 出现/消失时行高与列宽不跳；
+   * - 槽内文字是真实 DOM 文本（不是固定 min-height），不裁切换行文字；aria-hidden 且 visibility:hidden；
+   * - 没有标签时不再 removeChild，避免 label 消失导致表格高度回缩。 */
+  function setTableStateLabel(host, items, box, stableState) {
     if (!box) return;
+    var stable = stableState && stableState.enabled === true ? stableState : null;
     var labels = [];
     items.forEach(function (item) {
       if (item.label && labels.indexOf(item.label) < 0) labels.push(item.label);
     });
     var label = labels.join(' ');
     if (!label) {
-      if (box.el && box.el.parentNode === host) host.removeChild(box.el);
+      if (!stable) {
+        if (box.el && box.el.parentNode === host) host.removeChild(box.el);
+        return;
+      }
+      if (!box.el) box.el = create('span', 'nui-table__state nui-table__state--slot');
+      else box.el.className = 'nui-table__state nui-table__state--slot';
+      var placeholder = stable.sampleText || '\u00A0';
+      if (box.el.textContent !== placeholder) box.el.textContent = placeholder;
+      box.el.setAttribute('aria-hidden', 'true');
+      box.el.style.visibility = 'hidden';
+      if (box.el.parentNode !== host) host.appendChild(box.el);
       return;
     }
     if (!box.el) box.el = create('span', 'nui-table__state');
+    box.el.className = 'nui-table__state';
+    box.el.removeAttribute('aria-hidden');
+    box.el.style.visibility = '';
     if (box.el.textContent !== label) box.el.textContent = label;
     if (items.length && items[0].type) box.el.setAttribute('data-state', items[0].type);
     else box.el.removeAttribute('data-state');
     if (box.el.parentNode !== host) host.appendChild(box.el);
+    if (stable && box.el.parentNode) {
+      /* 记录已见 label 的自然宽度作为后续隐藏槽的示例文字；不需要向示例/作者要求 min-height。 */
+      var width = box.el.offsetWidth;
+      if (width > stable.sampleWidth) {
+        stable.sampleWidth = width;
+        stable.sampleText = label;
+      }
+    }
   }
 
   NoteUI.Table = {
@@ -241,6 +270,11 @@
       scroll.appendChild(table);
       root.append(scroll, hint);
 
+      var stableState = {
+        enabled: state.stableStateLabels === true,
+        sampleText: '\u00A0',
+        sampleWidth: 0
+      };
       var rowMap = Object.create(null);
       var rowRecordByKey = Object.create(null);
       var rowRecords = Object.create(null);
@@ -434,7 +468,8 @@
           setContent(cell.td, value);
           cell.value = value;
         }
-        setTableStateLabel(cell.td, items, cell.label);
+        setTableStateLabel(cell.td, items, cell.label,
+          stableState.enabled && (items.length > 0 || (cell.label && cell.label.el)) ? stableState : null);
       }
 
       function updateRowRecord(record, entry, columns) {
@@ -451,7 +486,7 @@
         var items = rowStatesOf(entry.row, entry.index, entry.key);
         record.rowStates = items;
         record.rowStateTokens = setTableState(record.tr, 'data-row-state', 'nui-table__row--state-', items, record.rowStateTokens);
-        if (record.cells.length) setTableStateLabel(record.cells[0].td, items, record.rowLabel);
+        if (record.cells.length) setTableStateLabel(record.cells[0].td, items, record.rowLabel, stableState);
       }
 
       function removeRowRecord(record) {
@@ -649,6 +684,7 @@
       }
 
       function render() {
+        stableState.enabled = state.stableStateLabels === true;
         var columns = currentColumns();
         if (activeSort.key != null) {
           var hasActive = columns.some(function (column) { return sameKey(column.key, activeSort.key); });
@@ -685,6 +721,8 @@
         else scroll.style.removeProperty('max-height');
         root.classList.toggle('nui-table--dense', Boolean(state.dense));
         root.classList.toggle('nui-table--sortable', sortEnabled);
+        stableState.enabled = state.stableStateLabels === true;
+        root.classList.toggle('nui-table--stable-state', stableState.enabled);
         scroll.setAttribute('aria-label', captionBase);
         updateScrollState();
       }

@@ -160,30 +160,91 @@
         var target = normalizeView(ctx && ctx.targetView).model;
         var reduced = !!(ctx && ctx.motion === 'never');
         var groups = diffGroups(source, target);
+        var records = [];
+        var sourceStages = Object.create(null);
+        source.stages.forEach(function (stage) { sourceStages[stage.id] = stage; });
+        var sourceBypass = Object.create(null);
+        source.bypass.forEach(function (item) { sourceBypass[item.id] = item; });
+        function styleValue(node, property) {
+          return node && global.getComputedStyle ? global.getComputedStyle(node).getPropertyValue(property) : '';
+        }
+        function resolveElement(record) {
+          if (record.prehideEl) return record.prehideEl;
+          if (record.kind === 'new') {
+            return record.target === 'stage' ? component.getTarget(record.id) : component.getTarget(record.group);
+          }
+          return record.el || null;
+        }
+        groups.forEach(function (group) {
+          if (group.indexOf('stage:') === 0) {
+            var id = group.slice(6);
+            var before = sourceStages[id];
+            var targetStage = null;
+            target.stages.forEach(function (stage) { if (stage.id === id) targetStage = stage; });
+            if (!targetStage) return;
+            if (!before) {
+              records.push({ kind: 'new', group: group, target: 'stage', id: id });
+            } else if (before.status !== targetStage.status || before.label !== targetStage.label || before.target !== targetStage.target) {
+              var node = component.getTarget(id);
+              if (node) records.push({
+                kind: 'stage-style', group: group, id: id, el: node,
+                source: { border: styleValue(node, 'border-top-color'), background: styleValue(node, 'background-color') }
+              });
+            }
+          } else if (group.indexOf('bypass:') === 0 && !sourceBypass[group]) {
+            records.push({ kind: 'new', group: group, target: 'bypass' });
+          }
+        });
         return {
           groups: function () { return groups.slice(); },
-          commit: function () { apply(target); },
+          commit: function () {
+            apply(target);
+            if (reduced) return;
+            records.forEach(function (record) {
+              if (record.kind !== 'new') return;
+              var node = resolveElement(record);
+              if (!node) return;
+              record.prehideEl = node;
+              record.savedOpacity = node.style.opacity;
+              node.style.opacity = '0';
+            });
+          },
           targets: function () { return []; },
           effects: function (effectCtx) {
             if (reduced) return [];
             var timing = effectCtx && isObject(effectCtx.timing) ? effectCtx.timing : {};
             var duration = typeof timing.enterDuration === 'number' ? Math.max(0, timing.enterDuration) : 420;
-            var specs = [];
-            groups.forEach(function (group) {
-              var key = targetKeyFor(group);
-              var node = key == null ? null : component.getTarget(key);
-              if (!node) return;
-              specs.push({
-                el: node,
-                keyframes: [{ opacity: '0.35' }, { opacity: '1' }],
-                options: { duration: duration, easing: timing.easing },
-                group: group,
-                gate: 'ready'
-              });
-            });
-            return specs;
+            var easing = typeof timing.easing === 'string' ? timing.easing : undefined;
+            return records.map(function (record) {
+              var node = resolveElement(record);
+              if (!node) return null;
+              var options = { duration: duration, fill: 'both' };
+              if (easing) options.easing = easing;
+              if (record.kind === 'new') {
+                return { el: node, keyframes: [{ opacity: '0' }, { opacity: '1' }], options: options, group: record.group, gate: 'ready' };
+              }
+              if (record.kind === 'stage-style') {
+                return {
+                  el: node,
+                  keyframes: [
+                    { borderColor: record.source.border, backgroundColor: record.source.background },
+                    { borderColor: styleValue(node, 'border-top-color'), backgroundColor: styleValue(node, 'background-color') }
+                  ],
+                  options: options,
+                  group: record.group,
+                  gate: 'ready'
+                };
+              }
+              return null;
+            }).filter(Boolean);
           },
-          cleanup: function () {}
+          cleanup: function () {
+            records.forEach(function (record) {
+              if (record.kind !== 'new' || !record.prehideEl) return;
+              record.prehideEl.style.opacity = record.savedOpacity == null ? '' : record.savedOpacity;
+              record.prehideEl = null;
+            });
+          }
         };
       },
       destroy: function () {
