@@ -80,6 +80,12 @@
   overflow-wrap: anywhere;
 }
 
+/* 数组内容：节点成为兄弟项；给相邻块级项留出与正文一致的段间距。
+   字符串/单节点路径不添加该类，保持原有外观。 */
+.nui-notice__content--nodes > * + * {
+  margin-block-start: var(--hnv-space-1, 4px);
+}
+
 .nui-notice__content > :first-child,
 .nui-disclosure__content > :first-child { margin-top: 0; }
 .nui-notice__content > :last-child,

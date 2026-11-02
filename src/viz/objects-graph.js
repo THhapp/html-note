@@ -1,7 +1,25 @@
 /*! NoteViz objects D01-D06 — D03 Graph.
  *  Classic script; load after src/viz/objects.js (internal shared helpers).
  *  Public entry: NoteViz.Graph.
- *  No network, no eval, no HTML parsing. */
+ *  No network, no eval, no HTML parsing.
+ *
+ *  Edge identity and targets (D03 extension):
+ *    edges[].id 可选稳定 ID；缺省按 from -> to 生成，平行同向边为 "from -> to #2"…
+ *    （与 NoteBlocks.ProcessFlow 的 edgeIds 解析约定一致；重复显式 id 也补后缀）。
+ *    edgeFocus / edgeChanged 是独立的边状态选项，节点 focus / changed 仍是节点专用。
+ *    边 <g>、path 在 update() 时按稳定 id 复用；节点 getTarget 不解析边 ID。
+ *
+ *  查询 API（实例方法）：
+ *    getEdgeTarget(id) -> <g> | null
+ *    getEdgePath(id) -> <path> | null
+ *    getEdgeLength(id) -> number(局部用户单位) | null
+ *    getEdgePoint(id, ratio) -> {x,y} 局部坐标 | null
+ *    getEdgePointAt(id, distance) -> {x,y,distance,ratio} 局部坐标 | null
+ *    getEdgePointClient(id, ratio) -> {x,y} DOM client 坐标（路径 screen CTM 转换）| null
+ *    getEdgeEndpoints(id) -> {start:{x,y}, end:{x,y}} 局部坐标 | null
+ *    getEdgeInfo(id) -> {id,from,to,label,directed,mark,length,endpoints} | null
+ *    局部坐标与 viewBox/节点坐标同一空间；边是作者声明的 from/to 直连锚点，
+ *    不做自动路由，查询返回路径真实几何而不是“元素中心连线”的语义。 */
 (function (global) {
   'use strict';
 
@@ -29,6 +47,10 @@
   var wrapText = shared.wrapText;
   var closestInside = shared.closestInside;
   var toIdSet = shared.toIdSet;
+
+  function removeNode(node) {
+    if (node && node.parentNode) node.parentNode.removeChild(node);
+  }
 
   /* =====================================================================
    * D03 — Graph
@@ -58,14 +80,36 @@
     var byId = new Map();
     nodes.forEach(function (node) { byId.set(node.id, node); });
     var list = Array.isArray(input) ? input : [];
+    var routeSeen = new Map();
+    var used = new Set();
     return list.map(function (edge) {
       if (!edge || typeof edge !== 'object') return null;
       var from = edge.from == null ? '' : text(edge.from);
       var to = edge.to == null ? '' : text(edge.to);
       if (!byId.has(from) || !byId.has(to)) return null;
+      var route = from + ' -> ' + to;
+      var routeCount = routeSeen.get(route) || 0;
+      routeSeen.set(route, routeCount + 1);
+      var base = edge.id == null ? '' : text(edge.id);
+      if (!base) {
+        /* 缺省稳定键与 NoteBlocks.ProcessFlow 的 edgeIds 解析约定一致：
+           route 第一次出现为 "from -> to"，之后为 "from -> to #2"…；
+           显式 id 的边也占用 route 序号。 */
+        base = routeCount === 0 ? route : route + ' #' + (routeCount + 1);
+      }
+      /* 作者提供重复 id 时也补后缀，保证每条边的 DOM 目标/路径句柄唯一。 */
+      var id = base;
+      var suffix = 1;
+      while (used.has(id)) {
+        suffix += 1;
+        id = base + ' #' + suffix;
+      }
+      used.add(id);
       return {
+        id: id,
         from: from,
         to: to,
+        route: route,
         label: edge.label == null ? '' : text(edge.label),
         directed: edge.directed === true
       };
@@ -144,6 +188,8 @@
       var scroll = null;
       var svgBag = null;
       var nodeEls = new Map();
+      var edgeEls = new Map();     // 边稳定 id → <g>，更新时复用
+      var edgeState = new Map();   // 当前渲染边记录：path/group/端点/mark，供查询 API
       var markerId = uniqueId('nviz-graph-arrow');
       var titleId = uniqueId('nviz-graph-title');
       var descId = uniqueId('nviz-graph-desc');
@@ -185,6 +231,8 @@
         height: null,
         focus: null,
         changed: null,
+        edgeFocus: null,
+        edgeChanged: null,
         label: '节点关系图',
         onSelect: null
       }, options || {});
@@ -396,12 +444,78 @@
         parent.appendChild(label);
       }
 
+      /* 边 <g> 在更新时复用：title/path/label 容器各自保持同一节点；
+         path 始终是 <path>，可直接用原生 getTotalLength/getPointAtLength 查询。 */
+      function ensureEdgeStructure(group) {
+        var title = null;
+        var path = null;
+        var labelWrap = null;
+        var child = group.firstChild;
+        while (child) {
+          if (child.nodeType === 1) {
+            if (child.tagName && child.tagName.toLowerCase() === 'title') title = child;
+            else if (child.getAttribute('class') === 'nviz-graph__edgeline') path = child;
+            else if (child.getAttribute('class') === 'nviz-graph__edgelabelwrap') labelWrap = child;
+          }
+          child = child.nextSibling;
+        }
+        if (!title) {
+          title = svgEl('title');
+          group.insertBefore(title, group.firstChild);
+        }
+        if (path && path.tagName && path.tagName.toLowerCase() !== 'path') {
+          removeNode(path);
+          path = null;
+        }
+        if (!path) {
+          path = svgEl('path', { class: 'nviz-graph__edgeline' });
+          group.appendChild(path);
+        }
+        if (!labelWrap) {
+          labelWrap = svgEl('g', { class: 'nviz-graph__edgelabelwrap' });
+          group.appendChild(labelWrap);
+        }
+        return { title: title, path: path, labelWrap: labelWrap };
+      }
+
+      /* 路径在 SVG 局部坐标（与节点 box 同在边/节点层的用户坐标系）生成；
+         自环沿用固定小回环，普通边为直线。端点/标签位置同时缓存供查询。 */
+      function edgePathGeometry(edge, from, to) {
+        if (edge.from === edge.to) {
+          var loopStart = { x: from.cx + from.width / 2, y: from.cy - 10 };
+          var loopEnd = { x: to.cx + to.width / 2, y: to.cy + 10 };
+          return {
+            d: 'M ' + loopStart.x + ' ' + loopStart.y +
+              ' C ' + (loopStart.x + 52) + ' ' + (loopStart.y - 38) + ' ' +
+              (loopEnd.x + 52) + ' ' + (loopEnd.y + 38) + ' ' +
+              loopEnd.x + ' ' + loopEnd.y,
+            start: loopStart,
+            end: loopEnd,
+            labelX: loopStart.x + 56,
+            labelY: from.cy
+          };
+        }
+        var dx = to.cx - from.cx;
+        var dy = to.cy - from.cy;
+        var start = rectEdgePoint(from.cx, from.cy, from.width, from.height, dx, dy);
+        var end = rectEdgePoint(to.cx, to.cy, to.width, to.height, -dx, -dy);
+        return {
+          d: 'M ' + start.x + ' ' + start.y + ' L ' + end.x + ' ' + end.y,
+          start: start,
+          end: end,
+          labelX: (start.x + end.x) / 2,
+          labelY: (start.y + end.y) / 2 - 7
+        };
+      }
+
       function render(patch) {
         var nodes = normalizeGraphNodes(model.nodes);
         var edges = normalizeGraphEdges(model.edges, nodes);
         var label = text(model.label) || '节点关系图';
         var focus = toIdSet(model.focus);
         var changed = toIdSet(model.changed);
+        var edgeFocus = toIdSet(model.edgeFocus);
+        var edgeChanged = toIdSet(model.edgeChanged);
         var interactive = typeof model.onSelect === 'function';
         var positions = new Map();
         var oldNodeEls = nodeEls;
@@ -411,7 +525,6 @@
         root.setAttribute('aria-label', label);
         root.setAttribute('data-layout', model.layout === 'manual' ? 'manual' : 'layered');
         viewport.setAttribute('aria-label', label + '，可滚动画布');
-        edgeLayer.replaceChildren();
         nodeLayer.replaceChildren();
         setText(svgTitle, label);
         setText(svgDesc, '');
@@ -424,6 +537,17 @@
           groupMap.get(node.group).push(node);
         });
 
+        /* 先清理本次不存在的边，空节点早退时旧边目标也会立即失效。 */
+        var nextEdgeIds = new Set();
+        edges.forEach(function (edge) { nextEdgeIds.add(edge.id); });
+        edgeEls.forEach(function (group, id) {
+          if (!nextEdgeIds.has(id)) {
+            removeNode(group);
+            edgeEls.delete(id);
+          }
+        });
+        edgeState.clear();
+
         if (!nodes.length) {
           viewport.hidden = true;
           legend.hidden = true;
@@ -431,6 +555,7 @@
           note.hidden = true;
           empty.hidden = false;
           nodeEls = newNodeEls;
+          edgeState.clear();
           if (scroll) scroll.schedule();
           return;
         }
@@ -464,41 +589,36 @@
           var from = positions.get(edge.from);
           var to = positions.get(edge.to);
           if (!from || !to) return;
-          var group = svgEl('g', { class: 'nviz-graph__edge' });
-          var edgeTitle = svgEl('title');
-          edgeTitle.textContent = (edge.directed ? '方向 ' : '') + edge.from + ' 到 ' + edge.to +
-            (edge.label ? '：' + edge.label : '');
-          group.appendChild(edgeTitle);
-          if (edge.from === edge.to) {
-            var loopStart = { x: from.cx + from.width / 2, y: from.cy - 10 };
-            var loopEnd = { x: to.cx + to.width / 2, y: to.cy + 10 };
-            var loop = svgEl('path', {
-              class: 'nviz-graph__edgeline',
-              d: 'M ' + loopStart.x + ' ' + loopStart.y +
-                ' C ' + (loopStart.x + 52) + ' ' + (loopStart.y - 38) + ' ' +
-                (loopEnd.x + 52) + ' ' + (loopEnd.y + 38) + ' ' +
-                loopEnd.x + ' ' + loopEnd.y
-            });
-            if (edge.directed) loop.setAttribute('marker-end', 'url(#' + markerId + ')');
-            group.appendChild(loop);
-            edgeLabel(group, edge, loopStart.x + 56, from.cy);
-          } else {
-            var dx = to.cx - from.cx;
-            var dy = to.cy - from.cy;
-            var start = rectEdgePoint(from.cx, from.cy, from.width, from.height, dx, dy);
-            var end = rectEdgePoint(to.cx, to.cy, to.width, to.height, -dx, -dy);
-            var line = svgEl('line', {
-              class: 'nviz-graph__edgeline',
-              x1: String(start.x),
-              y1: String(start.y),
-              x2: String(end.x),
-              y2: String(end.y)
-            });
-            if (edge.directed) line.setAttribute('marker-end', 'url(#' + markerId + ')');
-            group.appendChild(line);
-            edgeLabel(group, edge, (start.x + end.x) / 2, (start.y + end.y) / 2 - 7);
-          }
+          var mark = markOf(edgeFocus.has(edge.id), edgeChanged.has(edge.id));
+          var geometry = edgePathGeometry(edge, from, to);
+          var group = edgeEls.get(edge.id) || svgEl('g');
+          var parts = ensureEdgeStructure(group);
+          group.setAttribute('class', 'nviz-graph__edge');
+          group.setAttribute('data-edge-id', edge.id);
+          group.setAttribute('data-from', edge.from);
+          group.setAttribute('data-to', edge.to);
+          group.setAttribute('data-mark', mark || 'none');
+          parts.title.textContent = (edge.directed ? '方向 ' : '') + edge.from + ' 到 ' + edge.to +
+            (edge.label ? '：' + edge.label : '') + markAria(mark);
+          parts.path.setAttribute('d', geometry.d);
+          if (edge.directed) parts.path.setAttribute('marker-end', 'url(#' + markerId + ')');
+          else parts.path.removeAttribute('marker-end');
+          parts.labelWrap.replaceChildren();
+          if (edge.label) edgeLabel(parts.labelWrap, edge, geometry.labelX, geometry.labelY);
           edgeLayer.appendChild(group);
+          edgeEls.set(edge.id, group);
+          edgeState.set(edge.id, {
+            id: edge.id,
+            from: edge.from,
+            to: edge.to,
+            label: edge.label,
+            directed: edge.directed,
+            mark: mark,
+            group: group,
+            path: parts.path,
+            start: { x: geometry.start.x, y: geometry.start.y },
+            end: { x: geometry.end.x, y: geometry.end.y }
+          });
         });
 
         var focusLabels = [];
@@ -558,6 +678,112 @@
       instance.getTarget = function (id) {
         if (instance.destroyed || id == null) return null;
         return nodeEls.get(String(id)) || null;
+      };
+
+      /* ---------- 边目标与路径查询 ----------
+       * 边 id：作者提供 edge.id；缺省为 "from -> to"，平行同向边追加 " #2"…
+       * 所有点/端点坐标均为 SVG 局部用户坐标（与 viewBox 同坐标系）；
+       * getEdgePointClient 用路径的 screen CTM 转成 DOM 视口 client 坐标。
+       * 边查询与节点 getTarget 分开：getTarget 永远只返回节点 <g>。 */
+      function liveEdge(id) {
+        if (instance.destroyed || id == null) return null;
+        var record = edgeState.get(String(id));
+        if (!record || !record.path) return null;
+        return record;
+      }
+
+      function edgeLengthOf(record) {
+        var length = 0;
+        try { length = record.path.getTotalLength(); } catch (err) { length = 0; }
+        return isFinite(length) ? length : 0;
+      }
+
+      function edgePointAtRatio(record, ratio) {
+        var value = Number(ratio);
+        if (!isFinite(value)) value = 0;
+        value = Math.min(1, Math.max(0, value));
+        var length = edgeLengthOf(record);
+        if (!length) return { x: record.start.x, y: record.start.y, ratio: value };
+        var point = record.path.getPointAtLength(length * value);
+        return { x: point.x, y: point.y, ratio: value };
+      }
+
+      function edgePointToClient(record, point) {
+        var ctm = null;
+        try { ctm = record.path.getScreenCTM(); } catch (err) { ctm = null; }
+        if (ctm) {
+          return {
+            x: ctm.a * point.x + ctm.c * point.y + ctm.e,
+            y: ctm.b * point.x + ctm.d * point.y + ctm.f
+          };
+        }
+        var rect = svg.getBoundingClientRect();
+        var view = svg.viewBox && svg.viewBox.baseVal;
+        if (!view || !view.width || !view.height) {
+          return { x: rect.left + point.x, y: rect.top + point.y };
+        }
+        return {
+          x: rect.left + (point.x - view.x) * rect.width / view.width,
+          y: rect.top + (point.y - view.y) * rect.height / view.height
+        };
+      }
+
+      instance.getEdgeTarget = function (id) {
+        var record = liveEdge(id);
+        return record ? record.group : null;
+      };
+      instance.getEdgePath = function (id) {
+        var record = liveEdge(id);
+        return record ? record.path : null;
+      };
+      instance.getEdgeLength = function (id) {
+        var record = liveEdge(id);
+        return record ? edgeLengthOf(record) : null;
+      };
+      instance.getEdgePoint = function (id, ratio) {
+        var record = liveEdge(id);
+        if (!record) return null;
+        var point = edgePointAtRatio(record, ratio);
+        return { x: point.x, y: point.y };
+      };
+      instance.getEdgePointClient = function (id, ratio) {
+        var record = liveEdge(id);
+        if (!record) return null;
+        var point = edgePointAtRatio(record, ratio);
+        return edgePointToClient(record, point);
+      };
+      instance.getEdgePointAt = function (id, distance) {
+        var record = liveEdge(id);
+        if (!record) return null;
+        var length = edgeLengthOf(record);
+        var offset = Number(distance);
+        if (!isFinite(offset)) offset = 0;
+        offset = Math.min(length, Math.max(0, offset));
+        if (!length) return { x: record.start.x, y: record.start.y, distance: 0, ratio: 0 };
+        var point = record.path.getPointAtLength(offset);
+        return { x: point.x, y: point.y, distance: offset, ratio: offset / length };
+      };
+      instance.getEdgeEndpoints = function (id) {
+        var record = liveEdge(id);
+        if (!record) return null;
+        return {
+          start: { x: record.start.x, y: record.start.y },
+          end: { x: record.end.x, y: record.end.y }
+        };
+      };
+      instance.getEdgeInfo = function (id) {
+        var record = liveEdge(id);
+        if (!record) return null;
+        return {
+          id: record.id,
+          from: record.from,
+          to: record.to,
+          label: record.label,
+          directed: record.directed,
+          mark: record.mark || 'none',
+          length: edgeLengthOf(record),
+          endpoints: instance.getEdgeEndpoints(id)
+        };
       };
       return instance;
     }

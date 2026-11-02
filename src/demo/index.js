@@ -107,7 +107,13 @@
     NoteDemo.compile = global.NoteDemoAuthor.compile;
     NoteDemo.author = global.NoteDemoAuthor;
     if (global.NoteDemoAuthor.effects) NoteDemo.effects = global.NoteDemoAuthor.effects;
+    if (global.NoteDemoAuthor.sceneAdapter) NoteDemo.sceneAdapter = global.NoteDemoAuthor.sceneAdapter;
+    if (global.NoteDemoAuthor.timingFacts) NoteDemo.timingFacts = global.NoteDemoAuthor.timingFacts;
   }
+  /* 加载顺序兜底：scene-adapter.js / timing-facts.js 若在 authoring/index 之后加载，
+   * 它们也会自挂到 NoteDemo；这里保证按清单顺序加载时同样可用。 */
+  if (!NoteDemo.sceneAdapter && Internals.sceneAdapter) NoteDemo.sceneAdapter = Internals.sceneAdapter;
+  if (!NoteDemo.timingFacts && Internals.timingFacts) NoteDemo.timingFacts = Internals.timingFacts;
   NoteDemo.version = VERSION;
 
   Internals.createSession = createSession;

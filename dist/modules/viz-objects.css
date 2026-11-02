@@ -678,6 +678,9 @@
   stroke-width: 1.5;
   stroke-linecap: round;
   opacity: .72;
+  transition: stroke var(--hnv-motion-ui, 160ms) var(--hnv-motion-ease-ui, ease),
+    stroke-width var(--hnv-motion-ui, 160ms) var(--hnv-motion-ease-ui, ease),
+    opacity var(--hnv-motion-ui, 160ms) var(--hnv-motion-ease-ui, ease);
 }
 
 .nviz-graph__arrowhead {
@@ -694,6 +697,38 @@
   fill: var(--hnv-color-muted, #5c6879);
   font-size: 11.5px;
   line-height: 1.3;
+}
+
+/* 边关注/变化：虚线=关注，实线加粗=变化；兼具时按变化的实线状态表现。
+   与节点一样不依赖颜色单独表意：虚线/线宽/标签底色同时变化。 */
+.nviz-graph__edge[data-mark="focus"] .nviz-graph__edgeline {
+  stroke: var(--hnv-color-attention, #6f82b7);
+  stroke-width: 2;
+  stroke-dasharray: 5 3;
+  opacity: .95;
+}
+
+.nviz-graph__edge[data-mark="changed"] .nviz-graph__edgeline,
+.nviz-graph__edge[data-mark="both"] .nviz-graph__edgeline {
+  stroke: var(--hnv-color-accent, #315cda);
+  stroke-width: 2.6;
+  opacity: 1;
+}
+
+.nviz-graph__edge[data-mark="changed"] .nviz-graph__edgelabel,
+.nviz-graph__edge[data-mark="both"] .nviz-graph__edgelabel {
+  fill: var(--hnv-color-accent, #315cda);
+  font-weight: 600;
+}
+
+.nviz-graph__edge[data-mark="changed"] .nviz-graph__edgelabel-bg,
+.nviz-graph__edge[data-mark="both"] .nviz-graph__edgelabel-bg {
+  fill: var(--hnv-color-accent-soft, #eef2ff);
+  stroke: var(--hnv-color-accent, #315cda);
+}
+
+.nviz-graph__edge[data-mark="focus"] .nviz-graph__edgelabel-bg {
+  stroke: var(--hnv-color-attention, #6f82b7);
 }
 
 .nviz-graph__node {
@@ -1345,6 +1380,7 @@
   .nviz-matrix__headmark,
   .nviz-graph__box,
   .nviz-graph__node,
+  .nviz-graph__edgeline,
   .nviz-timeline__marker,
   .nviz-timeline__card,
   .nviz-tree__box,

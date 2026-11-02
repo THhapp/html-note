@@ -412,10 +412,34 @@
     }
     var kind = input.kind;
     if (kind === 'local') {
-      var localAllowed = { kind: true, dx: true, dy: true, width: true, height: true };
+      var localAllowed = { kind: true, dx: true, dy: true, width: true, height: true, outset: true, inset: true };
       Object.keys(input).forEach(function (key) {
-        if (!own(localAllowed, key)) issues.push(pathKey(path, key), 'local range 只允许 kind/dx/dy/width/height');
+        if (!own(localAllowed, key)) issues.push(pathKey(path, key), 'local range 只允许 kind/dx/dy/width/height/outset/inset');
       });
+      var hasOutset = own(input, 'outset');
+      var hasInset = own(input, 'inset');
+      var hasAbsolute = own(input, 'dx') || own(input, 'dy') || own(input, 'width') || own(input, 'height');
+      if (hasOutset || hasInset) {
+        /* 相对形式：以主目标当前视口矩形四边等量外扩（outset）或内缩（inset），单位 CSS 像素；
+         * 与绝对 dx/dy/width/height 互斥，避免两种语义叠加。 */
+        if (hasAbsolute) {
+          issues.push(path, 'local range 的相对外扩/内缩（outset/inset）与绝对 dx/dy/width/height 互斥');
+          return null;
+        }
+        if (hasOutset && hasInset) {
+          issues.push(pathKey(path, 'inset'), 'outset 与 inset 只能声明一个');
+          return null;
+        }
+        var relativeKey = hasOutset ? 'outset' : 'inset';
+        var relativeValue = input[relativeKey];
+        if (typeof relativeValue !== 'number' || !isFinite(relativeValue) || relativeValue < 0) {
+          issues.push(pathKey(path, relativeKey), '必须是大于等于 0 的有限数字（CSS 像素）');
+          return null;
+        }
+        var relative = { kind: 'local' };
+        relative[relativeKey] = relativeValue;
+        return deepFreeze(relative);
+      }
       var numbers = {};
       var valid = true;
       ['dx', 'dy'].forEach(function (key) {
@@ -457,12 +481,19 @@
           continue;
         }
         Object.keys(ref).forEach(function (key) {
-          if (key !== 'binding' && key !== 'query') {
-            issues.push(pathKey(refPath, key), 'union refs 只允许 binding 与 query（深度 ≤1，不再嵌套 range）');
+          if (key !== 'binding' && key !== 'query' && key !== 'optional') {
+            issues.push(pathKey(refPath, key), 'union refs 只允许 binding/query/optional（深度 ≤1，不再嵌套 range）');
           }
         });
+        if (isNonEmptyString(ref.binding) && ref.query != null && ref.optional !== undefined && typeof ref.optional !== 'boolean') {
+          refsValid = false;
+          continue;
+        }
         if (isNonEmptyString(ref.binding) && ref.query != null) {
-          refs.push(deepFreeze({ binding: ref.binding, query: cloneData(ref.query) }));
+          var unionRef = { binding: ref.binding, query: cloneData(ref.query) };
+          /* 只有显式 optional:true 才保留字段；false 与省略等价，保持旧快照形状。 */
+          if (ref.optional === true) unionRef.optional = true;
+          refs.push(deepFreeze(unionRef));
         } else {
           refsValid = false;
         }

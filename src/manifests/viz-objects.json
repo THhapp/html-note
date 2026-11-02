@@ -8,9 +8,15 @@
     "src/viz/objects-timeline-tree.js",
     "src/viz/objects-compare.js"
   ],
-  "css": ["src/viz/objects.css"],
-  "demos": ["gallery/demos/viz-objects.js"],
-  "dependencies": ["core"],
+  "css": [
+    "src/viz/objects.css"
+  ],
+  "demos": [
+    "gallery/demos/viz-objects.js"
+  ],
+  "dependencies": [
+    "core"
+  ],
   "entries": [
     {
       "id": "D01",
@@ -18,11 +24,45 @@
       "cn": "序列与位串",
       "category": "图形与数据对象",
       "purpose": "以稳定对象 ID 呈现位串、字节或盒子序列，支持索引、分组、局部关注与本步变化，并保持更新后的对象身份。",
-      "inputs": ["items", "variant", "index", "groups", "focus", "changed", "dense", "label", "summary", "stateText", "stable"],
-      "customizable": ["对象内容与唯一 ID", "bits/bytes/boxes 变体", "索引显示", "分组范围与标签", "关注对象", "变化对象", "紧凑密度", "可访问名称"],
-      "states": ["位串等宽格", "字节值与分组", "盒子序列", "长序列局部滚动", "关注", "变化", "同一对象关注且变化", "内容替换", "空序列", "减少动效"],
+      "inputs": [
+        "items",
+        "variant",
+        "index",
+        "groups",
+        "focus",
+        "changed",
+        "dense",
+        "label",
+        "summary",
+        "stateText",
+        "stable"
+      ],
+      "customizable": [
+        "对象内容与唯一 ID",
+        "bits/bytes/boxes 变体",
+        "索引显示",
+        "分组范围与标签",
+        "关注对象",
+        "变化对象",
+        "紧凑密度",
+        "可访问名称"
+      ],
+      "states": [
+        "位串等宽格",
+        "字节值与分组",
+        "盒子序列",
+        "长序列局部滚动",
+        "关注",
+        "变化",
+        "同一对象关注且变化",
+        "内容替换",
+        "空序列",
+        "减少动效"
+      ],
       "usage": "NoteViz.Sequence.mount(host, { variant: 'bits', index: true, items: [{ id: 'b0', value: '0' }, { id: 'b1', value: '1' }], groups: [{ label: '符号位', start: 0, count: 1 }], focus: ['b1'], changed: ['b1'] })",
-      "dependencies": ["core"],
+      "dependencies": [
+        "core"
+      ],
       "limitations": [
         "关注与变化由宿主显式给出，不自动比较前后数据来推断差异。",
         "对象 ID 在实例内应唯一。字符串项使用位置回退 ID（item-0 等）；更新时调整位置要由宿主提供稳定 id 才能保持对象身份。",
@@ -33,7 +73,11 @@
       ],
       "userReview": "not-reviewed",
       "reviewScope": "新增候选，未获用户评价",
-      "consensus": ["K06", "K07", "K12"],
+      "consensus": [
+        "K06",
+        "K07",
+        "K12"
+      ],
       "docs": "docs/viz-objects.md#D01",
       "notes": "getTarget(id) 返回对象单元；同 id 更新复用 DOM；关注与变化同时出现时合并为一条状态摘要与单一外框。"
     },
@@ -43,11 +87,46 @@
       "cn": "矩阵与网格数据",
       "category": "图形与数据对象",
       "purpose": "用原生表格语义呈现带行列标签的矩阵，支持行列、单元和范围的关注/变化、可替换单元渲染与大尺寸局部滚动。",
-      "inputs": ["rows", "columns", "values", "focus", "changed", "caption", "cellRenderer", "maxHeight", "dense", "label", "summary", "stateText"],
-      "customizable": ["行列标签与稳定 ID", "二维单元值", "行列/单元/范围标记", "caption", "cellRenderer 输出", "最大高度", "紧凑密度", "可访问名称"],
-      "states": ["规则矩阵", "长行列标签", "自定义单元渲染", "关注行/列/单元", "变化行/列/单元", "范围强调", "单元同时关注且变化", "大表横向与纵向滚动", "空矩阵", "减少动效"],
+      "inputs": [
+        "rows",
+        "columns",
+        "values",
+        "focus",
+        "changed",
+        "caption",
+        "cellRenderer",
+        "maxHeight",
+        "dense",
+        "label",
+        "summary",
+        "stateText"
+      ],
+      "customizable": [
+        "行列标签与稳定 ID",
+        "二维单元值",
+        "行列/单元/范围标记",
+        "caption",
+        "cellRenderer 输出",
+        "最大高度",
+        "紧凑密度",
+        "可访问名称"
+      ],
+      "states": [
+        "规则矩阵",
+        "长行列标签",
+        "自定义单元渲染",
+        "关注行/列/单元",
+        "变化行/列/单元",
+        "范围强调",
+        "单元同时关注且变化",
+        "大表横向与纵向滚动",
+        "空矩阵",
+        "减少动效"
+      ],
       "usage": "NoteViz.Matrix.mount(host, { rows: [{ id: 'r1', label: '第 1 行' }], columns: [{ id: 'c1', label: '指标 A' }], values: [[42]], caption: '状态矩阵', focus: { cells: [{ row: 'r1', col: 'c1' }] } })",
-      "dependencies": ["core"],
+      "dependencies": [
+        "core"
+      ],
       "limitations": [
         "不做排序、筛选、编辑、公式计算或跨表关联；值只按宿主提供的内容显示。",
         "范围通过逐单元标记表达，不做合并单元格、区域边框或拖拽选择。",
@@ -57,7 +136,11 @@
       ],
       "userReview": "not-reviewed",
       "reviewScope": "新增候选，未获用户评价",
-      "consensus": ["K06", "K07", "K12"],
+      "consensus": [
+        "K06",
+        "K07",
+        "K12"
+      ],
       "docs": "docs/viz-objects.md#D02",
       "notes": "表格使用 table/thead/tbody/th scope；行列与单元标记有文字状态；更新保留同 key 的单元格 DOM。"
     },
@@ -67,24 +150,65 @@
       "cn": "节点与关系图",
       "category": "图形与数据对象",
       "purpose": "按宿主提供的节点、边与分组绘制 SVG 关系图，支持基础分层或手动坐标、方向箭头、边标签和局部关注/变化。",
-      "inputs": ["nodes", "edges", "layout", "width", "height", "focus", "changed", "label", "onSelect"],
-      "customizable": ["节点标签、坐标与分组", "边方向与标签", "layered/manual 布局", "最小画布宽高", "关注与变化节点", "可选节点选择回调", "可访问名称"],
-      "states": ["分层布局", "手动坐标布局", "有向箭头", "无向边", "边标签", "节点分组图例", "关注节点", "变化节点", "关注并变化", "宽/高画布局部滚动", "节点选择（鼠标与键盘）", "空图", "减少动效"],
+      "inputs": [
+        "nodes",
+        "edges",
+        "layout",
+        "width",
+        "height",
+        "focus",
+        "changed",
+        "label",
+        "onSelect",
+        "edgeFocus",
+        "edgeChanged"
+      ],
+      "customizable": [
+        "节点标签、坐标与分组",
+        "边方向与标签",
+        "layered/manual 布局",
+        "最小画布宽高",
+        "关注与变化节点",
+        "可选节点选择回调",
+        "可访问名称"
+      ],
+      "states": [
+        "分层布局",
+        "手动坐标布局",
+        "有向箭头",
+        "无向边",
+        "边标签",
+        "节点分组图例",
+        "关注节点",
+        "变化节点",
+        "关注并变化",
+        "宽/高画布局部滚动",
+        "节点选择（鼠标与键盘）",
+        "空图",
+        "减少动效"
+      ],
       "usage": "NoteViz.Graph.mount(host, { layout: 'layered', nodes: [{ id: 'a', label: '输入' }, { id: 'b', label: '输出', group: '流程' }], edges: [{ from: 'a', to: 'b', label: '进入', directed: true }], focus: ['b'] })",
-      "dependencies": ["core"],
+      "dependencies": [
+        "core"
+      ],
       "limitations": [
-        "不做拖拽编辑、自动避障、自动缩放平移或大型图引擎；边为直线，自环使用固定小回路，密集图可能出现标签重叠。",
         "分层布局按无环部分的最长层级排布；环上剩余节点暂放在末尾层级，不保证最优。",
         "分组通过节点编号徽记与上方图例表达，不绘制分组包围框。",
         "手动坐标指节点中心，画布会扩展以容纳节点；width/height 是最小画布尺寸，不是强制缩放。",
         "边只有当 edge.directed === true 时显示箭头；不推断方向。",
-        "图形只有传入 onSelect 时节点才可聚焦和选择；否则节点不是交互控件。"
+        "图形只有传入 onSelect 时节点才可聚焦和选择；否则节点不是交互控件。",
+        "边有稳定 id；edgeFocus/edgeChanged 只作用于边，节点 focus/changed 不变；直线边以 SVG path 绘制，可用原生路径测量。",
+        "getEdge* 方法返回 SVG 局部坐标/路径；不做自动路由、避障或把元素中心连线当作通用语义。"
       ],
       "userReview": "not-reviewed",
       "reviewScope": "新增候选，未获用户评价",
-      "consensus": ["K06", "K07", "K12"],
+      "consensus": [
+        "K06",
+        "K07",
+        "K12"
+      ],
       "docs": "docs/viz-objects.md#D03",
-      "notes": "SVG 渲染；每个实例生成唯一箭头 marker id；getTarget 返回节点 <g>，更新复用节点 g。"
+      "notes": "SVG 渲染；每个实例生成唯一箭头 marker id；getTarget 返回节点 <g>，更新复用节点 g。 getEdgeTarget/getEdgePath/getEdgeLength/getEdgePoint/getEdgePointAt/getEdgePointClient/getEdgeEndpoints/getEdgeInfo 提供边目标、路径长度、比例点、距离点、视口点和端点；更新复用边 g/path。"
     },
     {
       "id": "D04",
@@ -92,11 +216,44 @@
       "cn": "时间线",
       "category": "图形与数据对象",
       "purpose": "按宿主给定顺序呈现事件、区间和阶段，支持横/纵变体、当前项、关注/变化、可替换内容与时间范围说明。",
-      "inputs": ["items", "orientation", "current", "focus", "changed", "start", "end", "formatTime", "label"],
-      "customizable": ["事件/区间/阶段与时间文字", "横向或纵向", "当前项", "关注与变化项", "可见时间范围", "时间文字格式化", "可访问名称"],
-      "states": ["横向事件", "纵向事件", "区间", "阶段", "当前项", "关注", "变化", "当前+关注+变化合成", "滚动长内容", "内容替换", "空时间线", "减少动效"],
+      "inputs": [
+        "items",
+        "orientation",
+        "current",
+        "focus",
+        "changed",
+        "start",
+        "end",
+        "formatTime",
+        "label"
+      ],
+      "customizable": [
+        "事件/区间/阶段与时间文字",
+        "横向或纵向",
+        "当前项",
+        "关注与变化项",
+        "可见时间范围",
+        "时间文字格式化",
+        "可访问名称"
+      ],
+      "states": [
+        "横向事件",
+        "纵向事件",
+        "区间",
+        "阶段",
+        "当前项",
+        "关注",
+        "变化",
+        "当前+关注+变化合成",
+        "滚动长内容",
+        "内容替换",
+        "空时间线",
+        "减少动效"
+      ],
       "usage": "NoteViz.Timeline.mount(host, { orientation: 'horizontal', current: 't1', items: [{ id: 't0', label: '开始', timeLabel: '09:00' }, { id: 't1', label: '窗口', timeLabel: '09:10–09:30', kind: 'range', start: 9, end: 30 }], start: '09:00', end: '09:30' })",
-      "dependencies": ["core"],
+      "dependencies": [
+        "core"
+      ],
       "limitations": [
         "时间线按 items 给定顺序排列，不把数值时间转换为比例坐标，也不自动排序；需要时间比例轴时不属于本项范围。",
         "start/end 只显示可见时间范围说明，不裁剪、缩放或重排 items。",
@@ -107,7 +264,11 @@
       ],
       "userReview": "not-reviewed",
       "reviewScope": "新增候选，未获用户评价",
-      "consensus": ["K06", "K07", "K12"],
+      "consensus": [
+        "K06",
+        "K07",
+        "K12"
+      ],
       "docs": "docs/viz-objects.md#D04",
       "notes": "事件圆点、区间实线胶囊、阶段虚线胶囊；状态文字与 aria-current 同时表达当前项。"
     },
@@ -117,11 +278,35 @@
       "cn": "层级结构图",
       "category": "图形与数据对象",
       "purpose": "从宿主层级数据生成基础树形布局，以 SVG 节点与连线表达父子关系和重点；只读，不承担展开收起或目录选择。",
-      "inputs": ["nodes", "orientation", "focus", "changed", "label"],
-      "customizable": ["层级节点与标签", "向下/向右方向", "关注与变化节点", "可访问名称"],
-      "states": ["向下层级", "向右层级", "深树局部滚动", "宽树局部滚动", "关注节点", "变化节点", "关注并变化", "内容更新", "空树", "减少动效"],
+      "inputs": [
+        "nodes",
+        "orientation",
+        "focus",
+        "changed",
+        "label"
+      ],
+      "customizable": [
+        "层级节点与标签",
+        "向下/向右方向",
+        "关注与变化节点",
+        "可访问名称"
+      ],
+      "states": [
+        "向下层级",
+        "向右层级",
+        "深树局部滚动",
+        "宽树局部滚动",
+        "关注节点",
+        "变化节点",
+        "关注并变化",
+        "内容更新",
+        "空树",
+        "减少动效"
+      ],
       "usage": "NoteViz.TreeDiagram.mount(host, { orientation: 'down', nodes: [{ id: 'root', label: '根', children: [{ id: 'a', label: '分支 A' }] }], focus: ['a'] })",
-      "dependencies": ["core"],
+      "dependencies": [
+        "core"
+      ],
       "limitations": [
         "只接受嵌套的 children 层级数据；不接收扁平的 parentId 列表，也不解析图形语法。",
         "只做基础整齐树布局，不做紧凑树、正交连线避障、边缘交叉最小化或大型树虚拟化。",
@@ -131,7 +316,11 @@
       ],
       "userReview": "not-reviewed",
       "reviewScope": "新增候选，未获用户评价",
-      "consensus": ["K06", "K07", "K12"],
+      "consensus": [
+        "K06",
+        "K07",
+        "K12"
+      ],
       "docs": "docs/viz-objects.md#D05",
       "notes": "与 N07 TreeView 分工明确；SVG <text> 标签可读可选；getTarget 返回节点 <g>，更新复用节点。"
     },
@@ -141,11 +330,36 @@
       "cn": "状态对照",
       "category": "图形与数据对象",
       "purpose": "提供并排或上下排列的通用前后/多态对照容器，承载宿主 DOM 或纯文本内容，支持标签替换、变化侧强调和窄容器自动堆叠。",
-      "inputs": ["left", "right", "mode", "labels", "focusChanged"],
-      "customizable": ["左右标题与内容", "并排或上下模式", "两侧标签、分隔标签与变化侧文案", "变化侧强调", "自动窄容器堆叠"],
-      "states": ["并排对照", "上下对照", "窄容器自动堆叠", "单侧内容", "前后两种内容配置", "变化侧强调", "标签替换", "DOM 内容", "字符串内容", "空对照"],
+      "inputs": [
+        "left",
+        "right",
+        "mode",
+        "labels",
+        "focusChanged"
+      ],
+      "customizable": [
+        "左右标题与内容",
+        "并排或上下模式",
+        "两侧标签、分隔标签与变化侧文案",
+        "变化侧强调",
+        "自动窄容器堆叠"
+      ],
+      "states": [
+        "并排对照",
+        "上下对照",
+        "窄容器自动堆叠",
+        "单侧内容",
+        "前后两种内容配置",
+        "变化侧强调",
+        "标签替换",
+        "DOM 内容",
+        "字符串内容",
+        "空对照"
+      ],
       "usage": "NoteViz.CompareView.mount(host, { left: { title: '处理前', content: '旧值' }, right: { title: '处理后', content: '新值' }, labels: { left: '前态', right: '后态' }, focusChanged: 'right' })",
-      "dependencies": ["core"],
+      "dependencies": [
+        "core"
+      ],
       "limitations": [
         "不执行 diff、不推断共同对象，也不定位变化位置；共同字段对应与变化标记由两侧内容/宿主负责。",
         "没有 overlay 模式；当前只提供 side-by-side 与 stacked。",
@@ -156,7 +370,11 @@
       ],
       "userReview": "not-reviewed",
       "reviewScope": "新增候选，未获用户评价",
-      "consensus": ["K06", "K07", "K12"],
+      "consensus": [
+        "K06",
+        "K07",
+        "K12"
+      ],
       "docs": "docs/viz-objects.md#D06",
       "notes": "通用容器不复制对象实现；窄容器靠 ResizeObserver 切换上下排列；变化侧用边框/顶条与文字强调。"
     }

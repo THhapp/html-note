@@ -734,6 +734,30 @@
         "2026-10-30 公共过渡能力首批：NoteUI.Expression 静态组件、text/tex 项、稳定 id、update/getState/getTarget/getMotionTargets/setSceneActive，与 expression Adapter 的项级 layout/值交换/进入/退出；gallery 与矩阵演示实际挂载，真实 Edge 与 public-transition 检查通过。",
         "2026-10-30 动效承接整改：Expression 改为稳定 unit→contentCarrier→valueSlot，未变项与 Math 实例复用；同 ID 换值旧副本在 contentCarrier 内跟随目标 unit，新增 cue-only 差分；gallery/矩阵演示与 public-transition 29/29 通过。"
       ]
+    },
+    "D07": {
+      "status": "verified",
+      "verification": [
+        "Flow kit 开发探针：四个图形真实 Edge 独立挂载、稳定 ID 更新复用、getTarget 分支、StageTrack 状态/旁路、PacketFlow 逐步显现、SegmentBar 零长度/尺度、DeviceLinks path/pointAt 均通过；无页面/控制台错误。"
+      ]
+    },
+    "D08": {
+      "status": "verified",
+      "verification": [
+        "Flow kit 开发探针：四个图形真实 Edge 独立挂载、稳定 ID 更新复用、getTarget 分支、StageTrack 状态/旁路、PacketFlow 逐步显现、SegmentBar 零长度/尺度、DeviceLinks path/pointAt 均通过；无页面/控制台错误。"
+      ]
+    },
+    "D09": {
+      "status": "verified",
+      "verification": [
+        "Flow kit 开发探针：四个图形真实 Edge 独立挂载、稳定 ID 更新复用、getTarget 分支、StageTrack 状态/旁路、PacketFlow 逐步显现、SegmentBar 零长度/尺度、DeviceLinks path/pointAt 均通过；无页面/控制台错误。"
+      ]
+    },
+    "D10": {
+      "status": "verified",
+      "verification": [
+        "Flow kit 开发探针：四个图形真实 Edge 独立挂载、稳定 ID 更新复用、getTarget 分支、StageTrack 状态/旁路、PacketFlow 逐步显现、SegmentBar 零长度/尺度、DeviceLinks path/pointAt 均通过；无页面/控制台错误。"
+      ]
     }
   }
 }

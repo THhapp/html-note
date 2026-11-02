@@ -1218,7 +1218,7 @@
       }
     }
 
-    /* ---------------- attention target resolution（range local/union） ---------------- */
+    /* ---------------- attention target resolution（有效性 / range local / union） ---------------- */
 
     function missingAttentionError(frameId, index, target, detail) {
       return new Error('Frame "' + text(frameId) + '" 的 attention 目标缺失（第 ' + (index + 1) +
@@ -1226,35 +1226,91 @@
         (detail ? '：' + detail : '') + '。');
     }
 
-    function makeAttentionMeasure(desc) {
-      return function measure() {
-        var main = desc.mainElement;
-        if (!main || !isConnected(main)) throw new Error('attention 目标元素已断开。');
-        var base = rawRectOf(main);
-        if (!desc.range) return base;
-        if (desc.range.kind === 'local') {
-          var dx = numberOr(desc.range.dx, 0);
-          var dy = numberOr(desc.range.dy, 0);
-          var width = Math.max(0, numberOr(desc.range.width, base.width));
-          var height = Math.max(0, numberOr(desc.range.height, base.height));
-          return {
-            left: base.left + dx, top: base.top + dy,
-            width: width, height: height,
-            right: base.left + dx + width, bottom: base.top + dy + height
-          };
+    function geometryInternals() {
+      var geometry = Internals.sceneGeometry;
+      if (!geometry || typeof geometry.readTargetGeometry !== 'function' ||
+          typeof geometry.applyLocalRange !== 'function' || typeof geometry.unionRects !== 'function') {
+        throw new Error('NoteDemo 默认舞台需要先加载 scene-geometry.js（scene attention 目标几何判定）。');
+      }
+      return geometry;
+    }
+
+    function attentionGeometryError(desc, detail) {
+      return new Error('Frame "' + text(desc.frameId) + '" 的 attention 目标几何无效（第 ' + (desc.index + 1) +
+        ' 个目标，Binding "' + text(desc.binding) + '"，query ' + readQuery(desc.query) + '）：' + detail + '。');
+    }
+
+    function unionRefLabel(ref) {
+      return 'Binding "' + text(ref && ref.binding) + '"，query ' + readQuery(ref && ref.query);
+    }
+
+    /* 目标几何：主目标必须可定位；display:none/断开/无布局矩形不当作 0,0 参与迁移或 union。
+     * opacity:0 的待入场内容只要有真实矩形仍有效；SVG 线允许一维为 0，SVG 点需显式范围。
+     * 返回视口矩形（尚未叠加 Focus 组件的默认 6px 外扩，避免重复叠加）。 */
+    function computeAttentionGeometry(desc) {
+      var geometry = geometryInternals();
+      var mainGeo = geometry.readTargetGeometry(desc.mainElement);
+      if (!mainGeo.ok) throw attentionGeometryError(desc, mainGeo.issue || '目标不可用');
+      var base = mainGeo.rect;
+      var range = desc.range;
+      if (!range) {
+        if (mainGeo.kind === 'point') {
+          throw attentionGeometryError(desc, '目标为零尺寸点，不能作为观察范围；请提供 local/union 显式范围，或指向有真实布局区域的元素');
         }
-        /* union：主元素 + refs 的并集；refs 每次重新解析以适配组件重建。 */
+        return base;
+      }
+      if (range.kind === 'local') {
+        var local = geometry.applyLocalRange(base, range);
+        if (!local.ok) throw attentionGeometryError(desc, local.issue || 'local range 不可用');
+        return local.rect;
+      }
+      if (range.kind === 'union') {
+        /* 主元素始终参与并集；无效几何成员不参与。optional 成员缺失/暂不可用跳过，必需成员明确报错。 */
         var rects = [base];
         for (var i = 0; i < desc.unionRefs.length; i += 1) {
           var entry = desc.unionRefs[i];
-          var element = resolveTarget(entry.ref) || entry.element;
-          if (!element || !isConnected(element)) {
-            throw new Error('attention union ref 目标已断开：Binding "' + text(entry.ref && entry.ref.binding) + '"。');
+          var optional = !!(entry.ref && entry.ref.optional === true);
+          var element = resolveTarget(entry.ref);
+          if (!element) {
+            if (optional) { entry.element = null; continue; }
+            throw attentionGeometryError(desc, 'union 辅助成员不可解析（必需）：' + unionRefLabel(entry.ref) +
+              '；确可缺失请显式声明 optional:true');
           }
           entry.element = element;
-          rects.push(rawRectOf(element));
+          var memberGeo = geometry.readTargetGeometry(element);
+          if (!memberGeo.ok) {
+            if (optional) continue;
+            throw attentionGeometryError(desc, 'union 辅助成员几何无效（必需）：' + unionRefLabel(entry.ref) + '：' +
+              (memberGeo.issue || '不可用'));
+          }
+          rects.push(memberGeo.rect);
         }
-        return unionRectOf(rects);
+        var union = geometry.unionRects(rects);
+        if (!union) throw attentionGeometryError(desc, 'union 范围无法形成有效矩形');
+        if (typeof geometry.classifyRect === 'function' && geometry.classifyRect(union) === 'point') {
+          throw attentionGeometryError(desc, 'union 范围退化为零尺寸点');
+        }
+        return union;
+      }
+      throw new Error('Frame "' + text(desc.frameId) + '" 的 attention range 未知类型：' + text(range.kind) + '。');
+    }
+
+    function makeAttentionMeasure(desc) {
+      return function measure() {
+        var main = desc.mainElement;
+        if (!main || !isConnected(main)) {
+          /* 运行中临时重建/断开：保留上一有效落点，由 reanchor 重新按逻辑身份解析。 */
+          if (desc.lastRect) return desc.lastRect;
+          throw new Error('attention 目标元素已断开。');
+        }
+        try {
+          var rect = computeAttentionGeometry(desc);
+          desc.lastRect = rect;
+          return rect;
+        } catch (error) {
+          if (desc.lastRect) return desc.lastRect;
+          throw error;
+        }
       };
     }
 
@@ -1272,47 +1328,50 @@
         range: target && target.range ? target.range : null,
         unionRefs: [],
         mainElement: main,
+        lastRect: null,
         measure: null
       };
       if (desc.range && typeof desc.range === 'object') {
         if (desc.range.kind === 'union') {
           var refs = Array.isArray(desc.range.refs) ? desc.range.refs : [];
+          if (!refs.length) {
+            throw new Error('Frame "' + text(frameId) + '" 的 attention union range 缺少 refs。');
+          }
           for (var r = 0; r < refs.length; r += 1) {
-            var ref = refs[r];
-            var element = resolveTarget(ref);
-            if (!element) {
-              throw missingAttentionError(frameId, index, target, 'union ref 目标不可解析：Binding "' +
-                text(ref && ref.binding) + '"，query ' + readQuery(ref && ref.query));
-            }
-            desc.unionRefs.push({ ref: ref, element: element });
+            desc.unionRefs.push({ ref: refs[r], element: null });
           }
         } else if (desc.range.kind !== 'local') {
           throw new Error('Frame "' + text(frameId) + '" 的 attention range 未知类型：' + text(desc.range.kind) + '。');
         }
       }
       desc.measure = makeAttentionMeasure(desc);
+      /* 先算一次初始几何：缺少布局/dispaly:none/必需 union 成员无效在此明确报错，不静默退化。 */
+      var initial = desc.measure();
+      if (!initial) throw attentionGeometryError(desc, '目标初始几何不可用');
+      desc.lastRect = initial;
       if (focusRegistry) focusRegistry.set(main, { measure: desc.measure });
       return desc;
     }
 
-    /* DOM 重建后重新解析同一逻辑目标并静默 reanchor；缺失返回 false 由调用方隐藏。 */
+    /* DOM 重建后重新解析同一逻辑目标并静默 reanchor；missing 由调用方隐藏，invalid/failed 保留上一有效落点。 */
     function reanchorFocusTo(desc) {
       var view = sessionFocusView();
-      if (!view || !desc) return false;
+      if (!view || !desc) return 'missing';
       var main = resolveTarget({ binding: desc.binding, query: desc.query });
-      if (!main) return false;
+      if (!main) return 'missing';
       if (main !== desc.mainElement) {
         if (focusRegistry) focusRegistry.delete(desc.mainElement);
         desc.mainElement = main;
         if (focusRegistry) focusRegistry.set(main, { measure: desc.measure });
       }
-      if (typeof view.reanchor !== 'function') return true;
+      if (typeof view.reanchor !== 'function') return 'ok';
       try {
+        /* 若新元素暂不可用，measure 会返回上一有效落点；静默重绑定，不回到屏幕角落再飞入。 */
         view.reanchor({ el: main, geometry: focusGeometry });
-        return true;
+        return 'ok';
       } catch (error) {
         logError('NoteDemo presentation：会话焦点 reanchor 失败。', error);
-        return false;
+        return 'failed';
       }
     }
 
@@ -1320,7 +1379,8 @@
       if (!lastFocusDesc) return;
       var view = sessionFocusView();
       if (!view || !view.visible) return;
-      if (!reanchorFocusTo(lastFocusDesc)) {
+      var status = reanchorFocusTo(lastFocusDesc);
+      if (status === 'missing') {
         hideSessionFocus();
         return;
       }
@@ -1332,7 +1392,8 @@
       if (!lastFocusDesc) return;
       var view = sessionFocusView();
       if (!view || !view.visible) return;
-      if (!reanchorFocusTo(lastFocusDesc)) {
+      var status = reanchorFocusTo(lastFocusDesc);
+      if (status === 'missing') {
         hideSessionFocus();
         return;
       }
@@ -1357,7 +1418,16 @@
         return Promise.reject(error);
       }
       if (!session) return Promise.resolve(false);
-      if (focusRegistry) focusRegistry.set(desc.mainElement, { measure: desc.measure });
+      /* 解析到 show 之间若 DOM 已重建：按逻辑身份重新取当前元素，再交给 Focus。 */
+      var current = resolveTarget({ binding: desc.binding, query: desc.query });
+      if (!current) {
+        return Promise.reject(missingAttentionError(desc.frameId, desc.index, desc.target, 'Binding 目标不可解析'));
+      }
+      if (current !== desc.mainElement) {
+        if (focusRegistry) focusRegistry.delete(desc.mainElement);
+        desc.mainElement = current;
+        if (focusRegistry) focusRegistry.set(current, { measure: desc.measure });
+      }
       var view = session.view;
       try {
         view.show({ el: desc.mainElement, geometry: focusGeometry });

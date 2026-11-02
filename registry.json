@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "generatedBy": "scripts/build.mjs",
   "build": {
-    "time": "2026-11-02T07:37:55.636Z",
+    "time": "2026-11-02T11:55:00.212Z",
     "mode": "final",
     "command": "node scripts/build.mjs --final --release",
     "moduleOrder": [
@@ -18,6 +18,7 @@
       "ui-feedback",
       "ui-extended",
       "viz-objects",
+      "viz-flow",
       "viz-mechanisms",
       "viz-chart",
       "blocks",
@@ -40,7 +41,7 @@
     "preview": {
       "path": "dist/组件库-预览.html",
       "selfContained": true,
-      "bytes": 3755382
+      "bytes": 3923515
     }
   },
   "statusLegend": {
@@ -50,14 +51,14 @@
     "blocked": "存在需主控或用户处理的具体阻塞"
   },
   "counts": {
-    "total": 101,
-    "expected": 101,
+    "total": 105,
+    "expected": 105,
     "missing": 0,
     "extra": 0,
     "byStatus": {
       "planned": 0,
       "implemented": 0,
-      "verified": 101,
+      "verified": 105,
       "blocked": 0
     },
     "byCategory": {
@@ -69,7 +70,7 @@
       "输入与表单": 15,
       "浮层与弹出界面": 4,
       "反馈与状态": 6,
-      "图形与数据对象": 6,
+      "图形与数据对象": 10,
       "可复用变化机制": 4,
       "基础统计图": 1,
       "通用库扩展": 7,
@@ -500,6 +501,35 @@
       ]
     },
     {
+      "module": "viz-flow",
+      "title": "流程与连接图形",
+      "dependencies": [
+        "core"
+      ],
+      "manifests": [
+        "src/manifests/viz-flow.json"
+      ],
+      "js": [
+        "src/viz/flow.js"
+      ],
+      "css": [
+        "src/viz/flow.css"
+      ],
+      "demos": [
+        "gallery/demos/viz-flow.js"
+      ],
+      "dist": [
+        "dist/modules/viz-flow.js",
+        "dist/modules/viz-flow.css"
+      ],
+      "entries": [
+        "D07",
+        "D08",
+        "D09",
+        "D10"
+      ]
+    },
+    {
       "module": "viz-mechanisms",
       "title": "可复用变化机制",
       "dependencies": [
@@ -635,6 +665,8 @@
         "src/demo/scene-effects.js",
         "src/demo/scene-attention.js",
         "src/demo/scene.js",
+        "src/demo/scene-adapter.js",
+        "src/demo/timing-facts.js",
         "src/demo/runner.js",
         "src/demo/bindings.js",
         "src/demo/controller.js",
@@ -947,8 +979,8 @@
       "example": "examples/run.html?id=R04",
       "limitations": [
         "常驻说明不是 Tooltip，不负责悬停触发或自动消失",
-        "content 只接受文本或单个 DOM 节点：DOM 节点会被移入、不克隆；数组与普通对象抛带 NoteUI.Notice 前缀的 TypeError",
-        "不内置关闭按钮或自动隐藏"
+        "不内置关闭按钮或自动隐藏",
+        "content 接受文本、单个 DOM 节点或节点数组；普通对象/函数等非法输入抛 TypeError，mount/update 先校验再改旧内容。"
       ],
       "status": "verified",
       "verification": [
@@ -965,7 +997,7 @@
         "K16"
       ],
       "docs": "docs/legacy.md#R04",
-      "notes": "V05 收紧 content 契约：只接受文本或单个 DOM 节点；数组/普通对象抛 TypeError，update 同样校验。"
+      "notes": "数组按顺序插入为兄弟节点，null 项跳过；数组中的非法项会在写入前失败，不破坏旧内容。"
     },
     {
       "id": "R05",
@@ -2249,7 +2281,9 @@
         "onSort",
         "emphasis",
         "maxHeight",
-        "dense"
+        "dense",
+        "rowState",
+        "cellState"
       ],
       "customizable": [
         "列 key/label/align/width/sortable",
@@ -2257,7 +2291,11 @@
         "表注与空态",
         "本地排序初值与回调",
         "行/列强调",
-        "最大高度和密度"
+        "最大高度和密度",
+        "row.state / cellStates 行状态与单元状态",
+        "rowState/cellState 计算函数",
+        "getTarget 行/单元查询",
+        "getState 只读快照"
       ],
       "states": [
         "基础表格",
@@ -2309,7 +2347,7 @@
         "K13"
       ],
       "docs": "docs/ui-content.md#C06",
-      "notes": "onSort(info, event) 的 info 含 key、direction、column、rows；只在用户点击表头时触发。列可额外传 sortable:false。"
+      "notes": "onSort(info, event) 的 info 含 key、direction、column、rows；只在用户点击表头时触发。列可额外传 sortable:false。 状态渲染为 data-row-state/data-cell-state 与 nui-table__row--state-<type>/nui-table__cell--state-<type>；只有显式 label 才生成可见状态标签。getState() 返回当前显示顺序的行、单元格、状态、排序与强调快照。"
     },
     {
       "id": "C07",
@@ -4195,7 +4233,9 @@
         "disabledReason",
         "required",
         "error",
-        "onChange"
+        "onChange",
+        "ticks",
+        "segments"
       ],
       "customizable": [
         "单值/区间",
@@ -4233,7 +4273,9 @@
       "limitations": [
         "区间由两个上下排列的原生 range 输入提供，不使用自绘双拇指；交叉时当前滑块停在另一端",
         "programmatic update 会将值夹紧到范围并吸附到步长",
-        "轨道视觉依赖 accent-color；宿主主题需保证对比度"
+        "轨道视觉依赖 accent-color；宿主主题需保证对比度",
+        "ticks 只做可选视觉刻度；segments 是显式单调分段映射，position 使用 0–100，线性默认不变。",
+        "分段模式原生 input 处于位置域；宿主应使用 getValue()/onChange/aria-valuetext 读取真实值。"
       ],
       "status": "verified",
       "verification": [
@@ -4248,7 +4290,7 @@
         "K13"
       ],
       "docs": "docs/ui-forms-advanced.md#F10",
-      "notes": "getValue() 单值返回 number，区间返回 [min, max]。"
+      "notes": "getValue() 单值返回 number，区间返回 [min, max]。 刻度行 aria-hidden；分段必须连续覆盖 min..max 与 0..100，坏配置/冲突在 update 前失败并保持旧状态。"
     },
     {
       "id": "F11",
@@ -5524,7 +5566,9 @@
         "focus",
         "changed",
         "label",
-        "onSelect"
+        "onSelect",
+        "edgeFocus",
+        "edgeChanged"
       ],
       "customizable": [
         "节点标签、坐标与分组",
@@ -5572,12 +5616,13 @@
       "preview": "gallery/index.html#D03",
       "example": "examples/run.html?id=D03",
       "limitations": [
-        "不做拖拽编辑、自动避障、自动缩放平移或大型图引擎；边为直线，自环使用固定小回路，密集图可能出现标签重叠。",
         "分层布局按无环部分的最长层级排布；环上剩余节点暂放在末尾层级，不保证最优。",
         "分组通过节点编号徽记与上方图例表达，不绘制分组包围框。",
         "手动坐标指节点中心，画布会扩展以容纳节点；width/height 是最小画布尺寸，不是强制缩放。",
         "边只有当 edge.directed === true 时显示箭头；不推断方向。",
-        "图形只有传入 onSelect 时节点才可聚焦和选择；否则节点不是交互控件。"
+        "图形只有传入 onSelect 时节点才可聚焦和选择；否则节点不是交互控件。",
+        "边有稳定 id；edgeFocus/edgeChanged 只作用于边，节点 focus/changed 不变；直线边以 SVG path 绘制，可用原生路径测量。",
+        "getEdge* 方法返回 SVG 局部坐标/路径；不做自动路由、避障或把元素中心连线当作通用语义。"
       ],
       "status": "verified",
       "verification": [
@@ -5592,7 +5637,7 @@
         "K12"
       ],
       "docs": "docs/viz-objects.md#D03",
-      "notes": "SVG 渲染；每个实例生成唯一箭头 marker id；getTarget 返回节点 <g>，更新复用节点 g。"
+      "notes": "SVG 渲染；每个实例生成唯一箭头 marker id；getTarget 返回节点 <g>，更新复用节点 g。 getEdgeTarget/getEdgePath/getEdgeLength/getEdgePoint/getEdgePointAt/getEdgePointClient/getEdgeEndpoints/getEdgeInfo 提供边目标、路径长度、比例点、距离点、视口点和端点；更新复用边 g/path。"
     },
     {
       "id": "D04",
@@ -5830,6 +5875,273 @@
       ],
       "docs": "docs/viz-objects.md#D06",
       "notes": "通用容器不复制对象实现；窄容器靠 ResizeObserver 切换上下排列；变化侧用边框/顶条与文字强调。"
+    },
+    {
+      "id": "D07",
+      "name": "NoteViz.Flow.StageTrack",
+      "cn": "阶段轨",
+      "category": "图形与数据对象",
+      "module": "viz-flow",
+      "purpose": "按宿主阶段顺序呈现当前、完成、跳过与失败状态，并显示作者显式声明的旁路端点；不自动播放，也不推断分支剧情。",
+      "inputs": [
+        "stages",
+        "current",
+        "target",
+        "skipped",
+        "failed",
+        "bypass",
+        "statusLabels",
+        "label"
+      ],
+      "customizable": [
+        "阶段 ID 与标签",
+        "当前/目标阶段",
+        "跳过/失败集合",
+        "显式旁路 from→to 与标签",
+        "状态文案",
+        "可访问名称"
+      ],
+      "states": [
+        "待处理",
+        "当前",
+        "完成",
+        "跳过",
+        "失败",
+        "目标阶段",
+        "显式旁路",
+        "更新后节点复用"
+      ],
+      "usage": "NoteViz.Flow.StageTrack.mount(host, { stages: [{ id: 's1', label: '准备' }, { id: 's2', label: '执行' }], current: 's2', bypass: [{ from: 's1', to: 's2' }] })",
+      "dependencies": [
+        "core"
+      ],
+      "source": [
+        "src/viz/flow.js",
+        "src/viz/flow.css"
+      ],
+      "dist": [
+        "dist/modules/viz-flow.js",
+        "dist/modules/viz-flow.css",
+        "dist/note-library.js",
+        "dist/note-library.css"
+      ],
+      "demo": "gallery/demos/viz-flow.js#D07",
+      "preview": "examples/flow-kit/index.html",
+      "example": "examples/run.html?id=D07",
+      "limitations": [
+        "阶段状态由宿主传入，不根据步骤推进自动推断完成或跳过。",
+        "旁路只接受已存在的阶段端点，不自动生成分支剧情或网络配置语义。",
+        "不提供播放按钮、计时器、展开/收起或步骤内容面板。"
+      ],
+      "status": "verified",
+      "verification": [
+        "Flow kit 开发探针：四个图形真实 Edge 独立挂载、稳定 ID 更新复用、getTarget 分支、StageTrack 状态/旁路、PacketFlow 逐步显现、SegmentBar 零长度/尺度、DeviceLinks path/pointAt 均通过；无页面/控制台错误。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "新增候选，未获用户评价",
+      "consensus": [
+        "K06",
+        "K07",
+        "K12"
+      ],
+      "docs": "docs/viz-flow.md#D07",
+      "notes": "getTarget(id) 返回阶段行；'track'/'bypasses' 返回轨道容器；更新按阶段 ID 复用节点。"
+    },
+    {
+      "id": "D08",
+      "name": "NoteViz.Flow.PacketFlow",
+      "cn": "消息流图",
+      "category": "图形与数据对象",
+      "module": "viz-flow",
+      "purpose": "以参与者、方向和稳定消息 ID 呈现报文/消息交换，由宿主控制可见条数或显现集合，不内置播放器。",
+      "inputs": [
+        "participants",
+        "messages",
+        "revealed",
+        "visibleCount",
+        "focus",
+        "label"
+      ],
+      "customizable": [
+        "参与者 ID/标签",
+        "消息 from/to/标签",
+        "逐步显现条数或 id 集合",
+        "当前关注消息",
+        "可访问名称"
+      ],
+      "states": [
+        "参与者与生命线",
+        "按序消息方向",
+        "部分显现",
+        "全部显现",
+        "关注消息",
+        "更新复用"
+      ],
+      "usage": "NoteViz.Flow.PacketFlow.mount(host, { participants: [{ id: 'a', label: '客户端' }, { id: 'b', label: '服务端' }], messages: [{ id: 'm1', from: 'a', to: 'b', label: '请求' }], visibleCount: 1 })",
+      "dependencies": [
+        "core"
+      ],
+      "source": [
+        "src/viz/flow.js",
+        "src/viz/flow.css"
+      ],
+      "dist": [
+        "dist/modules/viz-flow.js",
+        "dist/modules/viz-flow.css",
+        "dist/note-library.js",
+        "dist/note-library.css"
+      ],
+      "demo": "gallery/demos/viz-flow.js#D08",
+      "preview": "examples/flow-kit/index.html",
+      "example": "examples/run.html?id=D08",
+      "limitations": [
+        "方向由消息 from/to 与参与者顺序表达，不推断请求/响应或协议语义。",
+        "逐步显现只读取 visibleCount/revealed，不创建计时器、自动下一帧或播放器。",
+        "消息过多时在局部视口滚动，不做自动避让或复杂序列图排版。"
+      ],
+      "status": "verified",
+      "verification": [
+        "Flow kit 开发探针：四个图形真实 Edge 独立挂载、稳定 ID 更新复用、getTarget 分支、StageTrack 状态/旁路、PacketFlow 逐步显现、SegmentBar 零长度/尺度、DeviceLinks path/pointAt 均通过；无页面/控制台错误。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "新增候选，未获用户评价",
+      "consensus": [
+        "K06",
+        "K07",
+        "K12"
+      ],
+      "docs": "docs/viz-flow.md#D08",
+      "notes": "getTarget(messageId) 返回消息组；参与者与消息均按 id 复用 DOM。"
+    },
+    {
+      "id": "D09",
+      "name": "NoteViz.Flow.SegmentBar",
+      "cn": "分段长度条",
+      "category": "图形与数据对象",
+      "module": "viz-flow",
+      "purpose": "把真实数值、显示尺度和最小可读宽度分开表达，支持零长度、字段插入/移除、标签和范围目标。",
+      "inputs": [
+        "segments",
+        "scaleMax",
+        "minWidth",
+        "ranges",
+        "label"
+      ],
+      "customizable": [
+        "字段 ID/标签/数值",
+        "显示尺度",
+        "最小可读宽度",
+        "可见字段集合",
+        "范围目标"
+      ],
+      "states": [
+        "按数值比例",
+        "零长度最小标记",
+        "显示尺度切换",
+        "字段插入",
+        "字段移除",
+        "范围边界",
+        "空段"
+      ],
+      "usage": "NoteViz.Flow.SegmentBar.mount(host, { segments: [{ id: 'head', label: '首部', value: 14 }, { id: 'data', label: '数据', value: 1500 }], scaleMax: 1518 })",
+      "dependencies": [
+        "core"
+      ],
+      "source": [
+        "src/viz/flow.js",
+        "src/viz/flow.css"
+      ],
+      "dist": [
+        "dist/modules/viz-flow.js",
+        "dist/modules/viz-flow.css",
+        "dist/note-library.js",
+        "dist/note-library.css"
+      ],
+      "demo": "gallery/demos/viz-flow.js#D09",
+      "preview": "examples/flow-kit/index.html",
+      "example": "examples/run.html?id=D09",
+      "limitations": [
+        "最小可读宽度会让显示长度偏离严格比例；真实值仍保留在 data-real-value 与读回中。",
+        "不计算协议字段、填充量或帧长；数值、单位和比例说明由作者提供。",
+        "范围只组织已存在的连续字段边界，不替代 Range 的多层括线能力。"
+      ],
+      "status": "verified",
+      "verification": [
+        "Flow kit 开发探针：四个图形真实 Edge 独立挂载、稳定 ID 更新复用、getTarget 分支、StageTrack 状态/旁路、PacketFlow 逐步显现、SegmentBar 零长度/尺度、DeviceLinks path/pointAt 均通过；无页面/控制台错误。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "新增候选，未获用户评价",
+      "consensus": [
+        "K06",
+        "K07",
+        "K12"
+      ],
+      "docs": "docs/viz-flow.md#D09",
+      "notes": "getTarget(fieldId) 返回字段节点；'track' 返回整条；范围 id 返回边界/区域节点（如有）。"
+    },
+    {
+      "id": "D10",
+      "name": "NoteViz.Flow.DeviceLinks",
+      "cn": "设备连接图",
+      "category": "图形与数据对象",
+      "module": "viz-flow",
+      "purpose": "以稳定 ID 呈现设备、命名端口和连接关系，支持状态、目标查询、连接路径和路径点采样。",
+      "inputs": [
+        "devices",
+        "links",
+        "width",
+        "height",
+        "label"
+      ],
+      "customizable": [
+        "设备与端口 ID/标签",
+        "设备位置",
+        "连接端点/标签/状态",
+        "画布尺寸",
+        "可访问名称"
+      ],
+      "states": [
+        "默认/手动排布",
+        "端口标记",
+        "连接状态",
+        "路径采样",
+        "更新复用"
+      ],
+      "usage": "NoteViz.Flow.DeviceLinks.mount(host, { devices: [{ id: 'a', label: 'A', ports: [{ id: 'out', label: 'OUT' }] }, { id: 'b', label: 'B', ports: [{ id: 'in', label: 'IN' }] }], links: [{ id: 'ab', from: { device: 'a', port: 'out' }, to: { device: 'b', port: 'in' }, status: 'active' }] })",
+      "dependencies": [
+        "core"
+      ],
+      "source": [
+        "src/viz/flow.js",
+        "src/viz/flow.css"
+      ],
+      "dist": [
+        "dist/modules/viz-flow.js",
+        "dist/modules/viz-flow.css",
+        "dist/note-library.js",
+        "dist/note-library.css"
+      ],
+      "demo": "gallery/demos/viz-flow.js#D10",
+      "preview": "examples/flow-kit/index.html",
+      "example": "examples/run.html?id=D10",
+      "limitations": [
+        "只做有限的默认/手动排布，不做自动避障、自动路由或图编辑器。",
+        "连接路径是端点之间的有限曲线路径，不代表网络协议或接受规则。",
+        "pointAt 返回 SVG 局部坐标和角度，供宿主做传播采样；不自动创建移动副本或播放器。"
+      ],
+      "status": "verified",
+      "verification": [
+        "Flow kit 开发探针：四个图形真实 Edge 独立挂载、稳定 ID 更新复用、getTarget 分支、StageTrack 状态/旁路、PacketFlow 逐步显现、SegmentBar 零长度/尺度、DeviceLinks path/pointAt 均通过；无页面/控制台错误。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "新增候选，未获用户评价",
+      "consensus": [
+        "K06",
+        "K07",
+        "K12"
+      ],
+      "docs": "docs/viz-flow.md#D10",
+      "notes": "getTarget(id) 支持设备/端口/连接；getLinkPath(id) 返回 SVG path；pointAt(id, ratio) 返回 {x,y,angle,length,total}（SVG 用户坐标与弧度）。"
     },
     {
       "id": "M01",
@@ -8091,6 +8403,8 @@
         "src/demo/scene-effects.js",
         "src/demo/scene-attention.js",
         "src/demo/scene.js",
+        "src/demo/scene-adapter.js",
+        "src/demo/timing-facts.js",
         "src/demo/runner.js",
         "src/demo/bindings.js",
         "src/demo/controller.js",

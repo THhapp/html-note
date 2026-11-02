@@ -598,10 +598,34 @@
     }
     var kind = input.kind;
     if (kind === 'local') {
-      var localAllowed = { kind: true, dx: true, dy: true, width: true, height: true };
+      var localAllowed = { kind: true, dx: true, dy: true, width: true, height: true, outset: true, inset: true };
       Object.keys(input).forEach(function (key) {
-        if (!own(localAllowed, key)) issues.push(pathKey(path, key), 'local range 只允许 kind/dx/dy/width/height');
+        if (!own(localAllowed, key)) issues.push(pathKey(path, key), 'local range 只允许 kind/dx/dy/width/height/outset/inset');
       });
+      var hasOutset = own(input, 'outset');
+      var hasInset = own(input, 'inset');
+      var hasAbsolute = own(input, 'dx') || own(input, 'dy') || own(input, 'width') || own(input, 'height');
+      if (hasOutset || hasInset) {
+        /* 相对形式：以主目标当前视口矩形四边等量外扩（outset）或内缩（inset），单位 CSS 像素；
+         * 与绝对 dx/dy/width/height 互斥，避免两种语义叠加。 */
+        if (hasAbsolute) {
+          issues.push(path, 'local range 的相对外扩/内缩（outset/inset）与绝对 dx/dy/width/height 互斥');
+          return null;
+        }
+        if (hasOutset && hasInset) {
+          issues.push(pathKey(path, 'inset'), 'outset 与 inset 只能声明一个');
+          return null;
+        }
+        var relativeKey = hasOutset ? 'outset' : 'inset';
+        var relativeValue = input[relativeKey];
+        if (typeof relativeValue !== 'number' || !isFinite(relativeValue) || relativeValue < 0) {
+          issues.push(pathKey(path, relativeKey), '必须是大于等于 0 的有限数字（CSS 像素）');
+          return null;
+        }
+        var relative = { kind: 'local' };
+        relative[relativeKey] = relativeValue;
+        return deepFreeze(relative);
+      }
       var numbers = {};
       var valid = true;
       ['dx', 'dy'].forEach(function (key) {
@@ -643,12 +667,19 @@
           continue;
         }
         Object.keys(ref).forEach(function (key) {
-          if (key !== 'binding' && key !== 'query') {
-            issues.push(pathKey(refPath, key), 'union refs 只允许 binding 与 query（深度 ≤1，不再嵌套 range）');
+          if (key !== 'binding' && key !== 'query' && key !== 'optional') {
+            issues.push(pathKey(refPath, key), 'union refs 只允许 binding/query/optional（深度 ≤1，不再嵌套 range）');
           }
         });
+        if (isNonEmptyString(ref.binding) && ref.query != null && ref.optional !== undefined && typeof ref.optional !== 'boolean') {
+          refsValid = false;
+          continue;
+        }
         if (isNonEmptyString(ref.binding) && ref.query != null) {
-          refs.push(deepFreeze({ binding: ref.binding, query: cloneData(ref.query) }));
+          var unionRef = { binding: ref.binding, query: cloneData(ref.query) };
+          /* 只有显式 optional:true 才保留字段；false 与省略等价，保持旧快照形状。 */
+          if (ref.optional === true) unionRef.optional = true;
+          refs.push(deepFreeze(unionRef));
         } else {
           refsValid = false;
         }
@@ -2196,6 +2227,193 @@
     return Array.isArray(value);
   }
 
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+  var EPSILON = 0.01;
+
+  function isElement(value) {
+    return !!value && value.nodeType === 1;
+  }
+
+  function isConnected(element) {
+    if (!element) return false;
+    if (typeof element.isConnected === 'boolean') return element.isConnected;
+    var doc = global.document;
+    return !!(doc && doc.documentElement && doc.documentElement.contains(element));
+  }
+
+  function isSvgElement(element) {
+    return !!(element && (element.ownerSVGElement || element.namespaceURI === SVG_NS));
+  }
+
+  function computedStyleOf(node) {
+    if (!global.getComputedStyle) return null;
+    try { return global.getComputedStyle(node); } catch (error) { return null; }
+  }
+
+  function finite(value) {
+    return typeof value === 'number' && isFinite(value);
+  }
+
+  function normalizedRect(raw) {
+    if (!raw) return null;
+    if (!finite(raw.left) || !finite(raw.top) || !finite(raw.width) || !finite(raw.height)) return null;
+    return {
+      left: raw.left, top: raw.top, width: raw.width, height: raw.height,
+      right: finite(raw.right) ? raw.right : raw.left + raw.width,
+      bottom: finite(raw.bottom) ? raw.bottom : raw.top + raw.height
+    };
+  }
+
+  function classifyRect(rect) {
+    if (!rect) return 'invalid';
+    if (Math.abs(rect.width) <= EPSILON && Math.abs(rect.height) <= EPSILON) return 'point';
+    if (Math.abs(rect.width) <= EPSILON || Math.abs(rect.height) <= EPSILON) return 'line';
+    return 'area';
+  }
+
+  /* 布局可用性：断开、display:none、visibility:hidden/collapse 都不算可定位几何；
+   * opacity:0 的待入场内容仍可能有真实矩形，不在这里判无效。 */
+  function layoutIssue(element) {
+    if (!isConnected(element)) return '节点已从文档断开';
+    var node = element;
+    while (node && node.nodeType === 1) {
+      var style = computedStyleOf(node);
+      if (style) {
+        if (style.display === 'none') {
+          return node === element ? 'display:none' : '祖先 display:none';
+        }
+      }
+      node = node.parentElement;
+    }
+    return null;
+  }
+
+  /* 供 presentation 目标解析使用：区分节点存在/布局有效/零尺寸形态。
+   * 返回 { ok, rect, kind:'area'|'line'|'point', issue, connected, svg }。 */
+  function readTargetGeometry(element) {
+    var output = { ok: false, rect: null, kind: 'invalid', issue: null, connected: false, svg: isSvgElement(element) };
+    if (!isElement(element)) {
+      output.issue = '目标节点不存在';
+      return output;
+    }
+    output.connected = isConnected(element);
+    if (!output.connected) {
+      output.issue = '节点已从文档断开';
+      return output;
+    }
+    var issue = layoutIssue(element);
+    if (issue) {
+      output.issue = '目标布局不可用（' + issue + '）';
+      return output;
+    }
+    var rect = normalizedRect(effectsModule().rectOf(element));
+    if (!rect) {
+      output.issue = '目标没有可用的布局矩形';
+      return output;
+    }
+    output.rect = rect;
+    output.kind = classifyRect(rect);
+    output.ok = true;
+    return output;
+  }
+
+  function finiteNumber(value) {
+    return finite(value) ? value : null;
+  }
+
+  function nonNegativeNumber(value) {
+    return finite(value) && value >= 0 ? value : null;
+  }
+
+  /* local range：绝对 dx/dy/width/height 或相对 outset/inset（四边等量，CSS 像素）。
+   * 返回 { ok, rect, kind, issue }；不修改输入。 */
+  function applyLocalRange(baseRect, range) {
+    var output = { ok: false, rect: null, kind: 'invalid', issue: null };
+    if (!baseRect || !range || typeof range !== 'object') {
+      output.issue = 'local range 缺少基准矩形或范围对象';
+      return output;
+    }
+    var hasOutset = Object.prototype.hasOwnProperty.call(range, 'outset');
+    var hasInset = Object.prototype.hasOwnProperty.call(range, 'inset');
+    var hasAbsolute = ['dx', 'dy', 'width', 'height'].some(function (key) {
+      return Object.prototype.hasOwnProperty.call(range, key);
+    });
+    if ((hasOutset || hasInset) && hasAbsolute) {
+      output.issue = 'local range 的相对外扩/内缩与绝对 dx/dy/width/height 不能同时使用';
+      return output;
+    }
+    if (hasOutset && hasInset) {
+      output.issue = 'local range 的 outset 与 inset 只能声明一个';
+      return output;
+    }
+    var rect;
+    if (hasOutset || hasInset) {
+      var key = hasOutset ? 'outset' : 'inset';
+      var amount = nonNegativeNumber(range[key]);
+      if (amount == null) {
+        output.issue = 'local range 的 ' + key + ' 必须是大于等于 0 的有限数字（CSS 像素）';
+        return output;
+      }
+      var delta = hasOutset ? amount : -amount;
+      rect = {
+        left: baseRect.left - delta,
+        top: baseRect.top - delta,
+        width: baseRect.width + delta * 2,
+        height: baseRect.height + delta * 2
+      };
+      if (rect.width < 0) rect.width = 0;
+      if (rect.height < 0) rect.height = 0;
+    } else {
+      var dx = finiteNumber(range.dx);
+      var dy = finiteNumber(range.dy);
+      var width = nonNegativeNumber(range.width);
+      var height = nonNegativeNumber(range.height);
+      if (dx == null || dy == null || width == null || height == null) {
+        output.issue = 'local range 缺少 dx/dy/width/height（或使用 outset/inset 相对形式）';
+        return output;
+      }
+      rect = { left: baseRect.left + dx, top: baseRect.top + dy, width: width, height: height };
+    }
+    rect.right = rect.left + rect.width;
+    rect.bottom = rect.top + rect.height;
+    output.rect = rect;
+    output.kind = classifyRect(rect);
+    if (output.kind === 'invalid') {
+      output.issue = 'local range 归一化失败';
+      return output;
+    }
+    if (output.kind === 'point') {
+      output.issue = 'local range 退化为零尺寸（width/height 均为 0）';
+      return output;
+    }
+    output.ok = true;
+    return output;
+  }
+
+  /* 并集：调用方负责排除无效/可选缺失成员；空集返回 null。 */
+  function unionRects(rects) {
+    var list = isArray(rects) ? rects : [];
+    var left = Infinity;
+    var top = Infinity;
+    var right = -Infinity;
+    var bottom = -Infinity;
+    for (var i = 0; i < list.length; i += 1) {
+      var rect = list[i];
+      if (!rect || !finite(rect.left) || !finite(rect.top) || !finite(rect.width) || !finite(rect.height)) continue;
+      if (rect.left < left) left = rect.left;
+      if (rect.top < top) top = rect.top;
+      var itemRight = finite(rect.right) ? rect.right : rect.left + rect.width;
+      var itemBottom = finite(rect.bottom) ? rect.bottom : rect.top + rect.height;
+      if (itemRight > right) right = itemRight;
+      if (itemBottom > bottom) bottom = itemBottom;
+    }
+    if (!isFinite(left) || !isFinite(top) || !isFinite(right) || !isFinite(bottom)) return null;
+    return {
+      left: left, top: top, right: right, bottom: bottom,
+      width: Math.max(0, right - left), height: Math.max(0, bottom - top)
+    };
+  }
+
   function rectOf(element) {
     return effectsModule().rectOf(element);
   }
@@ -2236,7 +2454,11 @@
   Internals.sceneGeometry = {
     rectOf: rectOf,
     flipElement: flipElement,
-    captureSourceRects: captureSourceRects
+    captureSourceRects: captureSourceRects,
+    readTargetGeometry: readTargetGeometry,
+    applyLocalRange: applyLocalRange,
+    classifyRect: classifyRect,
+    unionRects: unionRects
   };
 })(window);
 
@@ -2985,6 +3207,20 @@
     }, 'NoteDemoInternals.sceneAttention（src/demo/scene-attention.js）');
   }
 
+  /* 可选时序事实出口：由 timing-facts.js 按需安装 Internals.sceneTimingFacts；
+   * 默认不存在，观察不参与运行决策，也不改变 scene 行为。 */
+  function factsSink() {
+    var facts = Internals.sceneTimingFacts;
+    return facts && typeof facts.emit === 'function' ? facts : null;
+  }
+
+  var factsRunSequence = 0;
+
+  function nowMs() {
+    if (global.performance && typeof global.performance.now === 'function') return global.performance.now();
+    return Date.now();
+  }
+
   function afterFrame() {
     return new Promise(function (resolve) {
       if (typeof global.requestAnimationFrame !== 'function') {
@@ -3069,6 +3305,37 @@
     var presentation = options.presentation || null;
     var motionName = options.motion === 'reduced' ? 'reduced' : 'normal';
     var reason = normalizeReason(options);
+    var factSink = factsSink();
+    var factRunId = factSink ? (factsRunSequence += 1) : 0;
+
+    function emitFact(kind, detail) {
+      if (!factSink) return;
+      var payload = {
+        kind: kind,
+        at: nowMs(),
+        runId: factRunId,
+        frameId: transition ? transition.to : null,
+        sourceFrameId: transition ? transition.from : null,
+        motion: motionName,
+        binding: null,
+        index: null,
+        groups: null,
+        track: null,
+        group: null
+      };
+      if (isObject(detail)) {
+        if (detail.binding != null) payload.binding = detail.binding;
+        if (typeof detail.index === 'number') payload.index = detail.index;
+        if (isArray(detail.groups)) payload.groups = detail.groups.slice();
+        if (detail.track != null) payload.track = detail.track;
+        if (detail.group != null) payload.group = detail.group;
+      }
+      try {
+        factSink.emit(payload);
+      } catch (error) {
+        /* 时序观察失败不影响运行。 */
+      }
+    }
 
     return new Promise(function (resolve, reject) {
       var definition;
@@ -3082,6 +3349,7 @@
       var port = null;
       var attention = null;
       var attentionCoordinator = null;
+      var attentionInfos = [];
       var attentionEnabled = false;
       var runtimes = {};
       var scope = null;
@@ -3397,6 +3665,15 @@
         });
       }
 
+      function attentionFactDetail(index) {
+        var info = attentionInfos[index] || null;
+        return {
+          index: index,
+          binding: info ? info.binding : null,
+          groups: info && isArray(info.groups) ? info.groups : null
+        };
+      }
+
       function setupAttention() {
         attentionEnabled = motionName !== 'reduced' && !!scene.attention;
         if (!scene.attention) {
@@ -3442,10 +3719,22 @@
         }
         attention.validate();
         attentionCoordinator = {
-          start: function (index) { attention.start(index); },
-          ready: function (index) { return attention.ready(index); }
+          start: function (index) {
+            /* presentation 只在 Focus 真实到达后调用 start；先记录到达，再放行内容组，
+             * 这样观察到的顺序是 focus-arrival → effect-start。 */
+            emitFact('focus-arrival', attentionFactDetail(index));
+            attention.start(index);
+          },
+          ready: function (index) {
+            var ready = attention.ready(index);
+            Promise.resolve(ready).then(function () {
+              emitFact('attention-ready', attentionFactDetail(index));
+            }, function () { /* 失败由 scene 统一处理 */ });
+            return ready;
+          }
         };
         var infos = attention.targetInfos();
+        attentionInfos = infos;
         infos.forEach(function (info) {
           if (!info || !info.member) return;
           var member = info.member;
@@ -3516,21 +3805,44 @@
         } else {
           runtime.trackList.push(runtime.defaultTrack);
         }
+        runtime.defaultTrack.binding = member.binding;
+        runtime.defaultTrack.trackKind = 'default';
+        if (runtime.layoutTrack) {
+          runtime.layoutTrack.binding = member.binding;
+          runtime.layoutTrack.trackKind = 'layout';
+        }
+        runtime.groupNames.forEach(function (name) {
+          var track = runtime.groupTracks[name];
+          track.binding = member.binding;
+          track.trackKind = 'group';
+          track.groupName = name;
+        });
         runtime.memberReady = Promise.all(runtime.trackList.map(function (trackInfo) { return trackInfo.ready; }));
         runtime.memberFinished = Promise.all(runtime.trackList.map(function (trackInfo) { return trackInfo.finished; }));
         return runtime;
+      }
+
+      function trackFactDetail(trackInfo) {
+        if (!trackInfo) return null;
+        return {
+          binding: trackInfo.binding == null ? null : trackInfo.binding,
+          track: trackInfo.trackKind == null ? 'default' : trackInfo.trackKind,
+          group: trackInfo.groupName == null ? null : trackInfo.groupName
+        };
       }
 
       function resolveTrackReady(trackInfo) {
         if (!trackInfo || trackInfo.readyResolved) return;
         trackInfo.readyResolved = true;
         trackInfo.resolveReady(true);
+        emitFact('ready', trackFactDetail(trackInfo));
       }
 
       function resolveTrackFinished(trackInfo) {
         if (!trackInfo || trackInfo.finishedResolved) return;
         trackInfo.finishedResolved = true;
         trackInfo.resolveFinished(true);
+        emitFact('finished', trackFactDetail(trackInfo));
       }
 
       function waitHandle(handle) {
@@ -3564,6 +3876,7 @@
         trackInfo.started = true;
         /* 本 Binding 的第一个内容效果轨道开始接管：来源视觉交接释放。 */
         releaseSourceVisibility(runtime.member);
+        emitFact('effect-start', trackFactDetail(trackInfo));
         if (!trackInfo.readyHandles.length && !trackInfo.finishHandles.length) {
           resolveTrackReady(trackInfo);
           resolveTrackFinished(trackInfo);
@@ -3595,6 +3908,7 @@
         releaseSourceVisibility(runtime.member);
         var trackInfo = runtime.defaultTrack;
         trackInfo.started = true;
+        emitFact('effect-start', trackFactDetail(trackInfo));
         var member = runtime.member;
         if (!runtime.revealContainer) {
           resolveTrackReady(trackInfo);
@@ -4004,6 +4318,7 @@
             }
             if (motionName === 'reduced') {
               /* 减少动效：揭示与标记直接到位，不创建动画/进度；仍执行提交后核对与收尾。 */
+              emitFact('reduced', null);
               scope.showRevealContainers();
               scope.showMarkRoots();
               var reducedSettleError = settlePort();
@@ -4065,8 +4380,675 @@
   }
 
   Internals.scene = {
-    run: run
+    run: run,
+    supportsTimingFacts: true,
+    timingFactsVersion: 1
   };
+})(window);
+
+/* ---- source: src/demo/scene-adapter.js ---- */
+/* NoteDemo scene adapter helper — 自定义图形接入 scene 的共享胶水。
+ * Scope: window.NoteDemoInternals.sceneAdapter（由 src/demo/index.js 发布为 NoteDemo.sceneAdapter）
+ * Depends on: 无（只组织现有 Adapter / PreparedChange 契约，不调用 scene 内部实现）。
+ *
+ * 作者提供：领域视图、绘图/恢复方法、目标解析、每步局部变化计划（planStep）。
+ * 公共 helper 统一：normalizeView 包装、restore/readView 包装、PreparedChange 的
+ * commit/groups/targets/effects/cleanup/sourceElements 组织、减少动效直接落终态、
+ * effectCtx.timing 的最终值透传（0 合法，不夹入未声明最低时长）。
+ *
+ * 不新建播放器、不持有会话历史、不启动第二套动画；效果句柄、ready/finished、
+ * 取消与清理仍归公共 scene 所有。经典脚本，无模块 / 无网络 / 无 eval。
+ */
+(function (global) {
+  'use strict';
+
+  var Internals = global.NoteDemoInternals = global.NoteDemoInternals || {};
+  var VERSION = '1.0.0';
+
+  function fail(message) {
+    throw new Error('NoteDemo.sceneAdapter: ' + message);
+  }
+
+  function isObject(value) {
+    return !!value && typeof value === 'object' && !Array.isArray(value);
+  }
+
+  function isArray(value) {
+    return Array.isArray(value);
+  }
+
+  function own(object, key) {
+    return object != null && Object.prototype.hasOwnProperty.call(Object(object), key);
+  }
+
+  function messageOf(error) {
+    if (error == null) return '';
+    if (typeof error === 'string') return error;
+    if (error.message != null) return String(error.message);
+    return String(error);
+  }
+
+  function viewModel(view) {
+    return isObject(view) && own(view, 'model') ? view.model : null;
+  }
+
+  function copyStrings(value, where) {
+    if (!isArray(value)) fail(where + ' 必须是 string[]。');
+    var output = [];
+    for (var i = 0; i < value.length; i += 1) {
+      if (typeof value[i] !== 'string' || value[i].trim() === '') {
+        fail(where + '[' + i + '] 必须是非空字符串。');
+      }
+      if (output.indexOf(value[i]) < 0) output.push(value[i]);
+    }
+    return output;
+  }
+
+  function validateTimingDefaults(input) {
+    if (!isObject(input)) fail('spec.sceneTimingDefaults 必须是稀疏 timing 对象。');
+    var output = {};
+    Object.keys(input).forEach(function (key) {
+      var value = input[key];
+      if (key === 'easing') {
+        if (typeof value !== 'string' || value.trim() === '') {
+          fail('spec.sceneTimingDefaults.easing 必须是非空字符串。');
+        }
+        output[key] = value;
+        return;
+      }
+      if (typeof value !== 'number' || !isFinite(value) || value < 0) {
+        fail('spec.sceneTimingDefaults.' + key + ' 必须是大于等于 0 的有限数字（0 合法）。');
+      }
+      output[key] = value;
+    });
+    return output;
+  }
+
+  /* 可选作者便利：生成 progress EffectSpec。只做最小结构校验，duration/easing 由
+   * 作者从 effectCtx.timing 的最终值传入；0 是合法时长，不做最低时长夹取。 */
+  function progress(config) {
+    if (!isObject(config)) fail('progress(config) 需要一个对象。');
+    var spec = { type: 'progress' };
+    if (typeof config.update !== 'function') fail('progress(config).update 必须是函数。');
+    spec.update = config.update;
+    if (typeof config.duration !== 'number' || !isFinite(config.duration) || config.duration < 0) {
+      fail('progress(config).duration 必须是大于等于 0 的有限数字（0 合法）。');
+    }
+    spec.duration = config.duration;
+    if (config.delay != null) {
+      if (typeof config.delay !== 'number' || !isFinite(config.delay) || config.delay < 0) {
+        fail('progress(config).delay 必须是大于等于 0 的有限数字。');
+      }
+      spec.delay = config.delay;
+    }
+    if (config.easing != null) {
+      if (typeof config.easing !== 'string' || config.easing.trim() === '') {
+        fail('progress(config).easing 必须是非空字符串。');
+      }
+      spec.easing = config.easing;
+    }
+    if (config.group != null) {
+      if (typeof config.group !== 'string' || config.group.trim() === '') {
+        fail('progress(config).group 必须是非空字符串。');
+      }
+      spec.group = config.group;
+    }
+    if (config.gate != null) {
+      if (config.gate !== 'ready' && config.gate !== 'finish') {
+        fail('progress(config).gate 只支持 "ready" 或 "finish"。');
+      }
+      spec.gate = config.gate;
+    }
+    if (config.effect != null) spec.effect = String(config.effect);
+    return spec;
+  }
+
+  function preparedFromPlan(plan, reduced, name) {
+    if (!isObject(plan)) fail(name + ' 的 planStep() 必须返回 PreparedChange 形状的对象。');
+    if (typeof plan.commit !== 'function') fail(name + ' 的 planStep() 缺少同步 commit()。');
+    var committed = false;
+    var cleaned = false;
+
+    function groups() {
+      var value = typeof plan.groups === 'function' ? plan.groups() : plan.groups;
+      if (value == null) return undefined;
+      return copyStrings(value, name + ' plan.groups()');
+    }
+
+    function targets() {
+      if (typeof plan.targets !== 'function') return [];
+      var value = plan.targets();
+      if (value == null) return [];
+      if (!isArray(value)) fail(name + ' plan.targets() 必须返回数组。');
+      return value;
+    }
+
+    function effects(ctx) {
+      /* 减少动效：由 helper 统一跳过效果，Adapter 的 commit 已按 reduced 直接落目标终态。 */
+      if (reduced) return [];
+      if (typeof plan.effects !== 'function') return [];
+      var timing = isObject(ctx) && isObject(ctx.timing) ? ctx.timing : null;
+      if (!timing) fail(name + ' 的 scene effects 上下文缺少 timing（加载顺序或 scene 版本不匹配）。');
+      var meta = {
+        bindingId: isObject(ctx) && ctx.bindingId != null ? ctx.bindingId : null,
+        motion: isObject(ctx) && ctx.motion != null ? ctx.motion : 'auto',
+        attention: isObject(ctx) && ctx.attention === true,
+        grouped: isObject(ctx) && ctx.grouped === true,
+        groups: isObject(ctx) && isArray(ctx.groups) ? ctx.groups.slice() : []
+      };
+      var specs = plan.effects(timing, meta);
+      if (specs == null) return [];
+      if (!isArray(specs)) fail(name + ' 的 plan.effects(timing) 必须返回 EffectSpec[]。');
+      return specs;
+    }
+
+    function sourceElements() {
+      if (typeof plan.sourceElements !== 'function') return undefined;
+      return plan.sourceElements();
+    }
+
+    return {
+      /* 同步提交完整目标；helper 只做一次性守卫，不替 Adapter 改活 DOM。 */
+      commit: function () {
+        if (committed) return;
+        committed = true;
+        plan.commit();
+      },
+      targets: targets,
+      groups: groups,
+      effects: effects,
+      sourceElements: sourceElements,
+      cleanup: function () {
+        if (cleaned) return;
+        cleaned = true;
+        if (typeof plan.cleanup === 'function') plan.cleanup();
+      },
+      facts: function () {
+        if (typeof plan.facts === 'function') return plan.facts();
+        return { entered: [], exited: [], valueChanged: [] };
+      }
+    };
+  }
+
+  function prepareChange(instance, name, ctx) {
+    if (!isObject(ctx)) fail(name + ' 的 prepareChange(ctx) 收到无效上下文。');
+    var reduced = ctx.motion === 'never';
+    var input = {
+      bindingId: ctx.bindingId == null ? null : ctx.bindingId,
+      sourceFrameId: ctx.sourceFrameId == null ? null : ctx.sourceFrameId,
+      targetFrameId: ctx.targetFrameId == null ? null : ctx.targetFrameId,
+      sourceView: ctx.sourceView == null ? null : ctx.sourceView,
+      targetView: ctx.targetView == null ? null : ctx.targetView,
+      sourceModel: viewModel(ctx.sourceView),
+      targetModel: viewModel(ctx.targetView),
+      motion: ctx.motion == null ? 'auto' : ctx.motion,
+      reduced: reduced,
+      signal: ctx.signal == null ? null : ctx.signal
+    };
+    var plan;
+    try {
+      plan = instance.planStep(input);
+    } catch (error) {
+      fail(name + ' 的 planStep() 失败：' + messageOf(error));
+    }
+    if (plan && typeof plan.then === 'function') {
+      return Promise.resolve(plan).then(function (value) {
+        return preparedFromPlan(value, reduced, name);
+      }, function (error) {
+        fail(name + ' 的 planStep() 异步失败：' + messageOf(error));
+      });
+    }
+    return preparedFromPlan(plan, reduced, name);
+  }
+
+  function mountFactory(spec, name) {
+    return function mount(host, options) {
+      var instance;
+      try {
+        instance = spec.mount(host, options);
+      } catch (error) {
+        fail('Adapter "' + name + '" mount() 失败：' + messageOf(error));
+      }
+      if (!isObject(instance)) fail('Adapter "' + name + '" mount() 必须返回实例对象。');
+      if (typeof instance.restore !== 'function') {
+        fail('Adapter "' + name + '" 的实例缺少 restore(model, view)。');
+      }
+      var handle = {
+        restore: function (view) {
+          return instance.restore(viewModel(view), view);
+        }
+      };
+      if (typeof instance.readView === 'function') {
+        handle.readView = function () {
+          return instance.readView();
+        };
+      } else if (typeof instance.readModel === 'function') {
+        handle.readView = function () {
+          var model = instance.readModel();
+          if (!isObject(model)) fail('Adapter "' + name + '" 的 readModel() 必须返回 model 对象。');
+          var cues = typeof instance.cues === 'function' ? instance.cues(model) : {};
+          if (cues == null) cues = {};
+          if (!isObject(cues)) fail('Adapter "' + name + '" 的 cues(model) 必须返回对象。');
+          return { model: model, cues: cues };
+        };
+      }
+      if (typeof instance.target === 'function') {
+        handle.target = function (query) {
+          return instance.target(query);
+        };
+      }
+      if (typeof instance.applyCues === 'function') {
+        handle.applyCues = function (cues) {
+          return instance.applyCues(cues);
+        };
+      }
+      if (typeof instance.settleVisual === 'function') {
+        handle.settleVisual = function () {
+          return instance.settleVisual();
+        };
+      }
+      if (typeof instance.planStep === 'function') {
+        handle.prepareChange = function (ctx) {
+          return prepareChange(instance, name, ctx);
+        };
+      }
+      if (typeof instance.destroy === 'function') {
+        handle.destroy = function () {
+          return instance.destroy();
+        };
+      }
+      return handle;
+    };
+  }
+
+  /* 定义一个完整 Adapter。spec：
+   *   name（必填）、sceneModes?、defaultSceneMode?、sceneTimingDefaults?、
+   *   normalizeView(input, options)（必填）、validateAction?、mount(host, options)（必填）。
+   * mount 返回的实例：
+   *   restore(model, view)（必填）、readModel()/readView()（scene 参与者需要）、
+   *   cues(model)?、target(query)?、applyCues?、settleVisual?、destroy?、
+   *   planStep(input)（layout/update 参与者需要）→ PreparedChange 形状：
+   *   { groups?, commit(), targets?, effects?(timing, meta), sourceElements?, cleanup?, facts? }。
+   * planStep(input)：{bindingId, sourceFrameId, targetFrameId, sourceView, targetView,
+   *   sourceModel, targetModel, motion, reduced, signal}；同步或返回 Promise 均可。
+   */
+  function define(spec) {
+    if (!isObject(spec)) fail('define(spec) 需要一个对象。');
+    var name = typeof spec.name === 'string' ? spec.name.trim() : '';
+    if (!name) fail('spec.name 必须是非空字符串。');
+    if (typeof spec.normalizeView !== 'function') fail('spec.normalizeView 必须是函数。');
+    if (typeof spec.mount !== 'function') fail('spec.mount 必须是函数。');
+    var sceneModes = null;
+    if (spec.sceneModes != null) sceneModes = copyStrings(spec.sceneModes, 'spec.sceneModes');
+    if (spec.defaultSceneMode != null) {
+      if (typeof spec.defaultSceneMode !== 'string' || spec.defaultSceneMode.trim() === '') {
+        fail('spec.defaultSceneMode 必须是非空字符串。');
+      }
+      if (sceneModes && sceneModes.indexOf(spec.defaultSceneMode) < 0) {
+        fail('spec.defaultSceneMode "' + spec.defaultSceneMode + '" 必须出现在 spec.sceneModes 中。');
+      }
+    }
+    var timingDefaults = spec.sceneTimingDefaults == null ? null : validateTimingDefaults(spec.sceneTimingDefaults);
+    var adapter = {
+      name: name,
+      normalizeView: function (input, options) {
+        var normalized = spec.normalizeView(input, options);
+        if (!isObject(normalized)) fail('Adapter "' + name + '" 的 normalizeView() 必须返回对象。');
+        if (own(normalized, 'model') || own(normalized, 'cues')) {
+          if (!own(normalized, 'model') || !own(normalized, 'cues')) {
+            fail('Adapter "' + name + '" 的 normalizeView() 返回含 model/cues 时必须两者都有。');
+          }
+          return { model: normalized.model, cues: normalized.cues };
+        }
+        return { model: normalized, cues: {} };
+      },
+      validateAction: function (action, options) {
+        if (typeof spec.validateAction === 'function') return spec.validateAction(action, options);
+        fail('Adapter "' + name + '" 只用于 scene，不支持 actions。');
+      },
+      mount: mountFactory(spec, name)
+    };
+    if (sceneModes) adapter.sceneModes = sceneModes;
+    if (spec.defaultSceneMode != null) adapter.defaultSceneMode = spec.defaultSceneMode;
+    if (timingDefaults) adapter.sceneTimingDefaults = timingDefaults;
+    return adapter;
+  }
+
+  var api = {
+    version: VERSION,
+    define: define,
+    progress: progress
+  };
+
+  Internals.sceneAdapter = api;
+  if (global.NoteDemo) global.NoteDemo.sceneAdapter = api;
+  if (global.NoteDemoAuthor) global.NoteDemoAuthor.sceneAdapter = api;
+})(window);
+
+/* ---- source: src/demo/timing-facts.js ---- */
+/* NoteDemo timing facts — 按需的 scene 时序观察。
+ * Scope: window.NoteDemoInternals.timingFacts（由 src/demo/index.js 发布为 NoteDemo.timingFacts）
+ * Depends on: src/demo/scene.js 的窄时序出口（Internals.scene.supportsTimingFacts）。
+ *
+ * 默认关闭：只有调用 watch()/collect() 时才安装 scene 的轻量 emit 出口，停止后移除；
+ * 全部数据只在内存，不写文件、不发网络请求、不参与运行决策。
+ *
+ * fact 字段（scene 发出）：
+ *   { kind, at, runId, frameId, sourceFrameId, motion, binding, index, groups, track, group }
+ *   kind: 'focus-arrival' | 'attention-ready' | 'effect-start' | 'ready' | 'finished' | 'reduced'
+ *   frameId = 本次过渡目标 Frame，sourceFrameId = 来源 Frame；binding 为 scene 参与者；
+ *   track: 'default' | 'layout' | 'group'；group 仅在 track==='group' 时为组名；
+ *   index/groups 仅 attention 到达/ready 事实携带。
+ *
+ * 用法：
+ *   var rec = NoteDemo.timingFacts.watch(session, { onFact: function (fact) {} });
+ *   session.next();
+ *   rec.summary();  // 按 run/frame/binding/组汇总时长
+ *   rec.stop();
+ * 经典脚本，无模块 / 无网络 / 无 eval。
+ */
+(function (global) {
+  'use strict';
+
+  var Internals = global.NoteDemoInternals = global.NoteDemoInternals || {};
+  var VERSION = '1.0.0';
+  var recorders = [];
+  var installed = false;
+
+  function fail(message) {
+    throw new Error('NoteDemo.timingFacts: ' + message);
+  }
+
+  function isObject(value) {
+    return !!value && typeof value === 'object' && !Array.isArray(value);
+  }
+
+  function isArray(value) {
+    return Array.isArray(value);
+  }
+
+  function nowMs() {
+    if (global.performance && typeof global.performance.now === 'function') {
+      return global.performance.now();
+    }
+    return Date.now();
+  }
+
+  /* scene.js 的窄出口标记；旧构建没有该标记时明确报错，而不是静默返回空事实。 */
+  function supported() {
+    return !!(Internals.scene && Internals.scene.supportsTimingFacts === true);
+  }
+
+  function sinkEmit(fact) {
+    if (!fact) return;
+    for (var i = 0; i < recorders.length; i += 1) {
+      var recorder = recorders[i];
+      if (!recorder || !recorder.active) continue;
+      try {
+        recorder._accept(fact);
+      } catch (error) {
+        /* 观察失败不打断运行，也不影响其它 recorder。 */
+      }
+    }
+  }
+
+  function install() {
+    if (installed) return;
+    if (!supported()) {
+      fail('当前 scene.js 没有提供时序事实出口（需要新版公共编排层）。');
+    }
+    installed = true;
+    Internals.sceneTimingFacts = {
+      version: 1,
+      emit: sinkEmit
+    };
+  }
+
+  function uninstall() {
+    installed = false;
+    if (!Internals.sceneTimingFacts) return;
+    try {
+      delete Internals.sceneTimingFacts;
+    } catch (error) {
+      Internals.sceneTimingFacts = null;
+    }
+  }
+
+  function normalizeFact(fact) {
+    var source = isObject(fact) ? fact : {};
+    var at = typeof source.at === 'number' && isFinite(source.at) ? source.at : nowMs();
+    return {
+      kind: typeof source.kind === 'string' ? source.kind : '',
+      at: at,
+      runId: source.runId == null ? null : source.runId,
+      frameId: source.frameId == null ? null : String(source.frameId),
+      sourceFrameId: source.sourceFrameId == null ? null : String(source.sourceFrameId),
+      motion: source.motion === 'reduced' ? 'reduced' : 'normal',
+      binding: source.binding == null ? null : String(source.binding),
+      index: typeof source.index === 'number' ? source.index : null,
+      groups: isArray(source.groups) ? source.groups.slice() : null,
+      track: source.track == null ? null : String(source.track),
+      group: source.group == null ? null : String(source.group)
+    };
+  }
+
+  function createRecorder(options) {
+    var config = isObject(options) ? options : {};
+    var list = [];
+    var listeners = [];
+    var predicate = typeof config.predicate === 'function' ? config.predicate : null;
+    var recorder = {
+      active: false,
+      label: config.label == null ? null : String(config.label),
+      startedAt: nowMs(),
+      version: VERSION,
+      _unsubscribe: null
+    };
+
+    function notify(fact) {
+      for (var i = 0; i < listeners.length; i += 1) {
+        try {
+          listeners[i](fact);
+        } catch (error) {
+          /* 观察回调异常不回传给 scene。 */
+        }
+      }
+    }
+
+    function accept(fact) {
+      var normalized = normalizeFact(fact);
+      if (predicate && predicate(normalized) !== true) return;
+      list.push(normalized);
+      notify(normalized);
+    }
+
+    recorder._accept = accept;
+    recorder.snapshot = function () {
+      return list.slice();
+    };
+    recorder.count = function () {
+      return list.length;
+    };
+    recorder.clear = function () {
+      list.length = 0;
+    };
+    recorder.onFact = function (callback) {
+      if (typeof callback !== 'function') fail('onFact(callback) 需要函数。');
+      listeners.push(callback);
+      return function off() {
+        var index = listeners.indexOf(callback);
+        if (index >= 0) listeners.splice(index, 1);
+      };
+    };
+    recorder.summary = function () {
+      return summarize(list);
+    };
+    recorder.stop = function () {
+      if (!recorder.active) return;
+      recorder.active = false;
+      if (typeof recorder._unsubscribe === 'function') {
+        try {
+          recorder._unsubscribe();
+        } catch (error) { /* 已销毁的 session 等，忽略 */ }
+        recorder._unsubscribe = null;
+      }
+      var index = recorders.indexOf(recorder);
+      if (index >= 0) recorders.splice(index, 1);
+      if (config.onFact != null && typeof config.onFact === 'function') {
+        /* 通过 listen 注册的回调由 listeners 管；结束不清空已收集事实。 */
+      }
+      if (!recorders.length) uninstall();
+    };
+
+    if (typeof config.onFact === 'function') recorder.onFact(config.onFact);
+    /* 先安装 scene 出口：旧构建不支持时在返回 recorder 前明确抛错，不注册半成品。 */
+    install();
+    recorders.push(recorder);
+    recorder.active = true;
+    return recorder;
+  }
+
+  function trackKey(track, group) {
+    return String(track || '') + '\u0000' + String(group || '');
+  }
+
+  /* 汇总：按 run（runId+目标/来源 Frame+motion）→ Binding → 轨道（track+group）聚合。
+   * 同一轨道多次出现时取第一次 startedAt/readyAt/finishedAt；时长只在两者都有时计算。 */
+  function summarize(facts) {
+    var runs = [];
+    var runMap = {};
+    for (var i = 0; i < facts.length; i += 1) {
+      var fact = facts[i];
+      var runKey = String(fact.runId) + '|' + String(fact.frameId) + '|' + String(fact.sourceFrameId) + '|' + fact.motion;
+      var run = runMap[runKey];
+      if (!run) {
+        run = {
+          runId: fact.runId,
+          frameId: fact.frameId,
+          sourceFrameId: fact.sourceFrameId,
+          motion: fact.motion,
+          firstAt: fact.at,
+          lastAt: fact.at,
+          bindings: {}
+        };
+        runMap[runKey] = run;
+        runs.push(run);
+      }
+      if (fact.at < run.firstAt) run.firstAt = fact.at;
+      if (fact.at > run.lastAt) run.lastAt = fact.at;
+      if (!fact.binding) continue;
+      var binding = run.bindings[fact.binding];
+      if (!binding) {
+        binding = { binding: fact.binding, focusArrivals: [], attentionReady: [], tracks: {} };
+        run.bindings[fact.binding] = binding;
+      }
+      if (fact.kind === 'focus-arrival') {
+        binding.focusArrivals.push({ at: fact.at, index: fact.index, groups: fact.groups ? fact.groups.slice() : null });
+        continue;
+      }
+      if (fact.kind === 'attention-ready') {
+        binding.attentionReady.push({ at: fact.at, index: fact.index });
+        continue;
+      }
+      if (!fact.track) continue;
+      var key = trackKey(fact.track, fact.group);
+      var track = binding.tracks[key];
+      if (!track) {
+        track = { track: fact.track, group: fact.group, startedAt: null, readyAt: null, finishedAt: null };
+        binding.tracks[key] = track;
+      }
+      if (fact.kind === 'effect-start' && track.startedAt == null) track.startedAt = fact.at;
+      else if (fact.kind === 'ready' && track.readyAt == null) track.readyAt = fact.at;
+      else if (fact.kind === 'finished' && track.finishedAt == null) track.finishedAt = fact.at;
+    }
+    for (var r = 0; r < runs.length; r += 1) {
+      var current = runs[r];
+      current.bindings = Object.keys(current.bindings).map(function (bindingId) {
+        var binding = current.bindings[bindingId];
+        binding.tracks = Object.keys(binding.tracks).map(function (key) {
+          var track = binding.tracks[key];
+          track.readyMs = track.startedAt != null && track.readyAt != null
+            ? Math.round((track.readyAt - track.startedAt) * 100) / 100
+            : null;
+          track.finishedMs = track.startedAt != null && track.finishedAt != null
+            ? Math.round((track.finishedAt - track.startedAt) * 100) / 100
+            : null;
+          return track;
+        });
+        return binding;
+      });
+    }
+    var firstAt = null;
+    var lastAt = null;
+    for (var f = 0; f < facts.length; f += 1) {
+      if (firstAt == null || facts[f].at < firstAt) firstAt = facts[f].at;
+      if (lastAt == null || facts[f].at > lastAt) lastAt = facts[f].at;
+    }
+    return {
+      count: facts.length,
+      firstAt: firstAt,
+      lastAt: lastAt,
+      runs: runs
+    };
+  }
+
+  /* 会话级窄订阅：只收集该 session 已知 Frame（当前/目标/历史停点）相关的 fact；
+   * 多会话并发且 Frame ID 相同时可能互相可见，观察工具不承担会话隔离判断。 */
+  function watch(session, options) {
+    if (!session || typeof session.getState !== 'function' || typeof session.subscribe !== 'function') {
+      fail('watch(session, options) 需要一个 NoteDemo 会话。');
+    }
+    var knownFrames = {};
+    function remember(state) {
+      if (!isObject(state)) return;
+      if (state.settledFrameId != null) knownFrames[state.settledFrameId] = true;
+      if (state.targetFrameId != null) knownFrames[state.targetFrameId] = true;
+    }
+    remember(session.getState());
+    var unsubscribe = session.subscribe(remember);
+    var recorder = createRecorder({
+      label: isObject(options) && options.label != null ? options.label : null,
+      onFact: isObject(options) && typeof options.onFact === 'function' ? options.onFact : null,
+      predicate: function (fact) {
+        var state = null;
+        try {
+          state = session.getState();
+        } catch (error) {
+          state = null;
+        }
+        if (isObject(state)) {
+          if (state.targetFrameId != null && fact.frameId === state.targetFrameId) return true;
+          if (state.settledFrameId != null &&
+              (fact.frameId === state.settledFrameId || fact.sourceFrameId === state.settledFrameId)) return true;
+        }
+        return (fact.frameId != null && knownFrames[fact.frameId] === true) ||
+          (fact.sourceFrameId != null && knownFrames[fact.sourceFrameId] === true);
+      }
+    });
+    recorder._unsubscribe = unsubscribe;
+    return recorder;
+  }
+
+  /* 全局收集：不绑定 session，用于单页调试或探针对照；默认仍然关闭。 */
+  function collect(options) {
+    var config = isObject(options) ? options : {};
+    return createRecorder({
+      label: config.label == null ? null : config.label,
+      onFact: typeof config.onFact === 'function' ? config.onFact : null,
+      predicate: typeof config.filter === 'function' ? config.filter : null
+    });
+  }
+
+  var api = {
+    version: VERSION,
+    supported: supported,
+    watch: watch,
+    collect: collect
+  };
+
+  Internals.timingFacts = api;
+  if (global.NoteDemo) global.NoteDemo.timingFacts = api;
+  if (global.NoteDemoAuthor) global.NoteDemoAuthor.timingFacts = api;
 })(window);
 
 /* ---- source: src/demo/runner.js ---- */
@@ -8487,6 +9469,11 @@
     }
   };
 
+  /* 作者侧接入辅助（scene-adapter.js / timing-facts.js 提供）：自定义图形接 scene 的
+   * 共享胶水与默认关闭的时序观察；未加载对应文件时不创建空入口。 */
+  if (Internals.sceneAdapter) NoteDemoAuthor.sceneAdapter = Internals.sceneAdapter;
+  if (Internals.timingFacts) NoteDemoAuthor.timingFacts = Internals.timingFacts;
+
   NoteDemoAuthor.collectSlots = collectSlots;
   NoteDemoAuthor.compile = compile;
   NoteDemoAuthor.version = '1.0.0';
@@ -8602,7 +9589,13 @@
     NoteDemo.compile = global.NoteDemoAuthor.compile;
     NoteDemo.author = global.NoteDemoAuthor;
     if (global.NoteDemoAuthor.effects) NoteDemo.effects = global.NoteDemoAuthor.effects;
+    if (global.NoteDemoAuthor.sceneAdapter) NoteDemo.sceneAdapter = global.NoteDemoAuthor.sceneAdapter;
+    if (global.NoteDemoAuthor.timingFacts) NoteDemo.timingFacts = global.NoteDemoAuthor.timingFacts;
   }
+  /* 加载顺序兜底：scene-adapter.js / timing-facts.js 若在 authoring/index 之后加载，
+   * 它们也会自挂到 NoteDemo；这里保证按清单顺序加载时同样可用。 */
+  if (!NoteDemo.sceneAdapter && Internals.sceneAdapter) NoteDemo.sceneAdapter = Internals.sceneAdapter;
+  if (!NoteDemo.timingFacts && Internals.timingFacts) NoteDemo.timingFacts = Internals.timingFacts;
   NoteDemo.version = VERSION;
 
   Internals.createSession = createSession;

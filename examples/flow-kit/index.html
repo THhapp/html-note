@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flow Kit · 独立图形模块中性演示</title>
+  <link rel="stylesheet" href="../../dist/note-library.css">
+  <link rel="stylesheet" href="flow-kit.css">
+</head>
+<body>
+  <main class="flow-kit">
+    <header class="flow-kit__head">
+      <p class="flow-kit__kicker">NOTE VIZ · FLOW KIT</p>
+      <h1 class="flow-kit__title">独立图形模块中性演示</h1>
+      <p class="flow-kit__lede">
+        四个图形各自 mount、各自 update、各自 getTarget，不依赖其他 NoteViz 组件，也不含课程规则或自动播放器。
+        稳定 ID 来自宿主数据；更新按 ID 复用 DOM。DeviceLinks 额外提供 link path 与 pointAt，供宿主做传播采样。
+      </p>
+    </header>
+
+    <section class="flow-kit__card" aria-labelledby="flow-kit-stagetrack-title">
+      <div class="flow-kit__card-head">
+        <h2 id="flow-kit-stagetrack-title">StageTrack · 阶段轨</h2>
+        <p>当前/完成/跳过/失败状态由宿主给出；旁路是显式 from → to 端点，不会自动推断。</p>
+      </div>
+      <div data-flow-host="stagetrack"></div>
+      <div class="flow-kit__actions">
+        <button type="button" data-flow-action="stage-next">推进当前阶段</button>
+        <button type="button" data-flow-action="stage-target">切换目标端点</button>
+        <button type="button" data-flow-action="stage-fail">标记失败</button>
+      </div>
+    </section>
+
+    <section class="flow-kit__card" aria-labelledby="flow-kit-packetflow-title">
+      <div class="flow-kit__card-head">
+        <h2 id="flow-kit-packetflow-title">PacketFlow · 消息流</h2>
+        <p>参与者与消息都有稳定 ID；方向由参与者顺序决定，逐步显现只读宿主给的 visibleCount / revealed，不嵌套播放器。</p>
+      </div>
+      <div data-flow-host="packetflow"></div>
+      <div class="flow-kit__actions">
+        <button type="button" data-flow-action="flow-reveal">多显示一条</button>
+        <button type="button" data-flow-action="flow-reset">重置显现</button>
+      </div>
+    </section>
+
+    <section class="flow-kit__card" aria-labelledby="flow-kit-segmentbar-title">
+      <div class="flow-kit__card-head">
+        <h2 id="flow-kit-segmentbar-title">SegmentBar · 段条</h2>
+        <p>真实值、显示尺度（scaleMax）与最小可读宽度分离；零长度仍显示为最小宽度标记，但 data-real-value 保持 0。</p>
+      </div>
+      <div data-flow-host="segmentbar"></div>
+      <div class="flow-kit__actions">
+        <button type="button" data-flow-action="seg-add">插入字段</button>
+        <button type="button" data-flow-action="seg-remove">移除字段</button>
+        <button type="button" data-flow-action="seg-scale">切换显示尺度</button>
+      </div>
+    </section>
+
+    <section class="flow-kit__card" aria-labelledby="flow-kit-devicelinks-title">
+      <div class="flow-kit__card-head">
+        <h2 id="flow-kit-devicelinks-title">DeviceLinks · 设备连接</h2>
+        <p>设备和命名端口、连接都有稳定 ID；状态由宿主给出。连接可查询 SVG path，并用 pointAt 采样路径上的点。</p>
+      </div>
+      <div data-flow-host="devicelinks"></div>
+      <div class="flow-kit__actions">
+        <button type="button" data-flow-action="link-active">切换连接状态</button>
+        <button type="button" data-flow-action="link-sample">沿 A→B 采样</button>
+      </div>
+      <p class="flow-kit__readout" data-flow-readout="devicelinks" aria-live="polite">采样：—</p>
+    </section>
+
+    <footer class="flow-kit__foot">
+      <p>源码：<code>src/viz/flow.js</code> + <code>src/viz/flow.css</code>；本页只是中性演示，不依赖未集的 manifest，也不写课程规则。</p>
+      <p>加载顺序：整库 <code>dist/note-library.js/css</code> → 本页演示脚本。</p>
+    </footer>
+  </main>
+
+  <script src="../../dist/note-library.js"></script>
+  <script src="flow-kit.js"></script>
+</body>
+</html>

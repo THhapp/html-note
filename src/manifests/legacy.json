@@ -251,8 +251,8 @@
       "preview": "gallery/index.html#R04",
       "limitations": [
         "常驻说明不是 Tooltip，不负责悬停触发或自动消失",
-        "content 只接受文本或单个 DOM 节点：DOM 节点会被移入、不克隆；数组与普通对象抛带 NoteUI.Notice 前缀的 TypeError",
-        "不内置关闭按钮或自动隐藏"
+        "不内置关闭按钮或自动隐藏",
+        "content 接受文本、单个 DOM 节点或节点数组；普通对象/函数等非法输入抛 TypeError，mount/update 先校验再改旧内容。"
       ],
       "userReview": "not-reviewed",
       "reviewScope": "未获具体视觉评价",
@@ -264,7 +264,7 @@
         "K16"
       ],
       "docs": "docs/legacy.md#R04",
-      "notes": "V05 收紧 content 契约：只接受文本或单个 DOM 节点；数组/普通对象抛 TypeError，update 同样校验。"
+      "notes": "数组按顺序插入为兄弟节点，null 项跳过；数组中的非法项会在写入前失败，不破坏旧内容。"
     },
     {
       "id": "R05",

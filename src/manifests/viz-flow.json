@@ -1,0 +1,217 @@
+{
+  "module": "viz-flow",
+  "title": "流程与连接图形",
+  "js": [
+    "src/viz/flow.js"
+  ],
+  "css": [
+    "src/viz/flow.css"
+  ],
+  "demos": [
+    "gallery/demos/viz-flow.js"
+  ],
+  "dependencies": [
+    "core"
+  ],
+  "entries": [
+    {
+      "id": "D07",
+      "name": "NoteViz.Flow.StageTrack",
+      "cn": "阶段轨",
+      "category": "图形与数据对象",
+      "purpose": "按宿主阶段顺序呈现当前、完成、跳过与失败状态，并显示作者显式声明的旁路端点；不自动播放，也不推断分支剧情。",
+      "inputs": [
+        "stages",
+        "current",
+        "target",
+        "skipped",
+        "failed",
+        "bypass",
+        "statusLabels",
+        "label"
+      ],
+      "customizable": [
+        "阶段 ID 与标签",
+        "当前/目标阶段",
+        "跳过/失败集合",
+        "显式旁路 from→to 与标签",
+        "状态文案",
+        "可访问名称"
+      ],
+      "states": [
+        "待处理",
+        "当前",
+        "完成",
+        "跳过",
+        "失败",
+        "目标阶段",
+        "显式旁路",
+        "更新后节点复用"
+      ],
+      "usage": "NoteViz.Flow.StageTrack.mount(host, { stages: [{ id: 's1', label: '准备' }, { id: 's2', label: '执行' }], current: 's2', bypass: [{ from: 's1', to: 's2' }] })",
+      "dependencies": [
+        "core"
+      ],
+      "limitations": [
+        "阶段状态由宿主传入，不根据步骤推进自动推断完成或跳过。",
+        "旁路只接受已存在的阶段端点，不自动生成分支剧情或网络配置语义。",
+        "不提供播放按钮、计时器、展开/收起或步骤内容面板。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "新增候选，未获用户评价",
+      "consensus": [
+        "K06",
+        "K07",
+        "K12"
+      ],
+      "docs": "docs/viz-flow.md#D07",
+      "preview": "examples/flow-kit/index.html",
+      "notes": "getTarget(id) 返回阶段行；'track'/'bypasses' 返回轨道容器；更新按阶段 ID 复用节点。"
+    },
+    {
+      "id": "D08",
+      "name": "NoteViz.Flow.PacketFlow",
+      "cn": "消息流图",
+      "category": "图形与数据对象",
+      "purpose": "以参与者、方向和稳定消息 ID 呈现报文/消息交换，由宿主控制可见条数或显现集合，不内置播放器。",
+      "inputs": [
+        "participants",
+        "messages",
+        "revealed",
+        "visibleCount",
+        "focus",
+        "label"
+      ],
+      "customizable": [
+        "参与者 ID/标签",
+        "消息 from/to/标签",
+        "逐步显现条数或 id 集合",
+        "当前关注消息",
+        "可访问名称"
+      ],
+      "states": [
+        "参与者与生命线",
+        "按序消息方向",
+        "部分显现",
+        "全部显现",
+        "关注消息",
+        "更新复用"
+      ],
+      "usage": "NoteViz.Flow.PacketFlow.mount(host, { participants: [{ id: 'a', label: '客户端' }, { id: 'b', label: '服务端' }], messages: [{ id: 'm1', from: 'a', to: 'b', label: '请求' }], visibleCount: 1 })",
+      "dependencies": [
+        "core"
+      ],
+      "limitations": [
+        "方向由消息 from/to 与参与者顺序表达，不推断请求/响应或协议语义。",
+        "逐步显现只读取 visibleCount/revealed，不创建计时器、自动下一帧或播放器。",
+        "消息过多时在局部视口滚动，不做自动避让或复杂序列图排版。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "新增候选，未获用户评价",
+      "consensus": [
+        "K06",
+        "K07",
+        "K12"
+      ],
+      "docs": "docs/viz-flow.md#D08",
+      "preview": "examples/flow-kit/index.html",
+      "notes": "getTarget(messageId) 返回消息组；参与者与消息均按 id 复用 DOM。"
+    },
+    {
+      "id": "D09",
+      "name": "NoteViz.Flow.SegmentBar",
+      "cn": "分段长度条",
+      "category": "图形与数据对象",
+      "purpose": "把真实数值、显示尺度和最小可读宽度分开表达，支持零长度、字段插入/移除、标签和范围目标。",
+      "inputs": [
+        "segments",
+        "scaleMax",
+        "minWidth",
+        "ranges",
+        "label"
+      ],
+      "customizable": [
+        "字段 ID/标签/数值",
+        "显示尺度",
+        "最小可读宽度",
+        "可见字段集合",
+        "范围目标"
+      ],
+      "states": [
+        "按数值比例",
+        "零长度最小标记",
+        "显示尺度切换",
+        "字段插入",
+        "字段移除",
+        "范围边界",
+        "空段"
+      ],
+      "usage": "NoteViz.Flow.SegmentBar.mount(host, { segments: [{ id: 'head', label: '首部', value: 14 }, { id: 'data', label: '数据', value: 1500 }], scaleMax: 1518 })",
+      "dependencies": [
+        "core"
+      ],
+      "limitations": [
+        "最小可读宽度会让显示长度偏离严格比例；真实值仍保留在 data-real-value 与读回中。",
+        "不计算协议字段、填充量或帧长；数值、单位和比例说明由作者提供。",
+        "范围只组织已存在的连续字段边界，不替代 Range 的多层括线能力。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "新增候选，未获用户评价",
+      "consensus": [
+        "K06",
+        "K07",
+        "K12"
+      ],
+      "docs": "docs/viz-flow.md#D09",
+      "preview": "examples/flow-kit/index.html",
+      "notes": "getTarget(fieldId) 返回字段节点；'track' 返回整条；范围 id 返回边界/区域节点（如有）。"
+    },
+    {
+      "id": "D10",
+      "name": "NoteViz.Flow.DeviceLinks",
+      "cn": "设备连接图",
+      "category": "图形与数据对象",
+      "purpose": "以稳定 ID 呈现设备、命名端口和连接关系，支持状态、目标查询、连接路径和路径点采样。",
+      "inputs": [
+        "devices",
+        "links",
+        "width",
+        "height",
+        "label"
+      ],
+      "customizable": [
+        "设备与端口 ID/标签",
+        "设备位置",
+        "连接端点/标签/状态",
+        "画布尺寸",
+        "可访问名称"
+      ],
+      "states": [
+        "默认/手动排布",
+        "端口标记",
+        "连接状态",
+        "路径采样",
+        "更新复用"
+      ],
+      "usage": "NoteViz.Flow.DeviceLinks.mount(host, { devices: [{ id: 'a', label: 'A', ports: [{ id: 'out', label: 'OUT' }] }, { id: 'b', label: 'B', ports: [{ id: 'in', label: 'IN' }] }], links: [{ id: 'ab', from: { device: 'a', port: 'out' }, to: { device: 'b', port: 'in' }, status: 'active' }] })",
+      "dependencies": [
+        "core"
+      ],
+      "limitations": [
+        "只做有限的默认/手动排布，不做自动避障、自动路由或图编辑器。",
+        "连接路径是端点之间的有限曲线路径，不代表网络协议或接受规则。",
+        "pointAt 返回 SVG 局部坐标和角度，供宿主做传播采样；不自动创建移动副本或播放器。"
+      ],
+      "userReview": "not-reviewed",
+      "reviewScope": "新增候选，未获用户评价",
+      "consensus": [
+        "K06",
+        "K07",
+        "K12"
+      ],
+      "docs": "docs/viz-flow.md#D10",
+      "preview": "examples/flow-kit/index.html",
+      "notes": "getTarget(id) 支持设备/端口/连接；getLinkPath(id) 返回 SVG path；pointAt(id, ratio) 返回 {x,y,angle,length,total}（SVG 用户坐标与弧度）。"
+    }
+  ]
+}

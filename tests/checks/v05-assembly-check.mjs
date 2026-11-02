@@ -189,17 +189,43 @@ function report(rows, label) {
     node.textContent = '单节点内容';
     const nodeNotice = NoteUI.Notice.mount(document.createElement('div'), { title: '说明', content: node });
     check('Notice 单个 DOM 节点被移入', nodeNotice.el.contains(node) && nodeNotice.el.textContent.includes('单节点内容'));
-    let arrayError = null;
-    try { NoteUI.Notice.mount(document.createElement('div'), { title: '说明', content: [node] }); } catch (error) { arrayError = { name: error.name, message: String(error.message) }; }
-    check('Notice 数组内容抛 TypeError', !!arrayError && arrayError.name === 'TypeError' &&
-      /NoteUI\.Notice/.test(arrayError.message) && /content/.test(arrayError.message), JSON.stringify(arrayError));
+    // 设计 6.8：content 数组可插入；数组在写入前整体校验，非法项抛 TypeError。
+    const nodeA = document.createElement('strong');
+    nodeA.textContent = '数组节点一';
+    const nodeB = document.createElement('em');
+    nodeB.textContent = '数组节点二';
+    const arrayHost = document.createElement('div');
+    rootEl.appendChild(arrayHost);
+    const arrayNotice = NoteUI.Notice.mount(arrayHost, { title: '数组说明', content: [nodeA, '文本间隔', nodeB] });
+    const arrayContent = arrayNotice.el.querySelector('.nui-notice__content');
+    check('Notice 数组内容按顺序挂载', !!arrayContent && arrayContent.contains(nodeA) && arrayContent.contains(nodeB) &&
+      arrayContent.textContent.indexOf('数组节点一') < arrayContent.textContent.indexOf('文本间隔') &&
+      arrayContent.textContent.indexOf('文本间隔') < arrayContent.textContent.indexOf('数组节点二'),
+      JSON.stringify({ text: arrayContent && arrayContent.textContent }));
+    const nodeC = document.createElement('b');
+    nodeC.textContent = '更新节点';
+    arrayNotice.update({ title: '数组更新', content: [nodeC, '更新文本'] });
+    check('Notice 数组内容可更新', arrayNotice.el.textContent.indexOf('数组更新') >= 0 && arrayContent.contains(nodeC) &&
+      arrayContent.textContent.indexOf('更新节点') >= 0 && arrayContent.textContent.indexOf('数组节点一') < 0,
+      JSON.stringify({ text: arrayNotice.el.textContent }));
+    let invalidArrayMount = null;
+    const invalidHost = document.createElement('div');
+    rootEl.appendChild(invalidHost);
+    try { NoteUI.Notice.mount(invalidHost, { title: '坏数组', content: [nodeA, { bad: true }] }); } catch (error) { invalidArrayMount = { name: error.name, message: String(error.message), hostChildren: invalidHost.childElementCount }; }
+    check('Notice 数组含普通对象时 mount 抛 TypeError 且不写入宿主', !!invalidArrayMount && invalidArrayMount.name === 'TypeError' &&
+      /NoteUI\.Notice/.test(invalidArrayMount.message) && /第 2 项/.test(invalidArrayMount.message) && invalidArrayMount.hostChildren === 0,
+      JSON.stringify(invalidArrayMount));
+    let invalidArrayUpdate = null;
+    const beforeTitle = arrayContent.closest('.nui-notice').textContent;
+    try { arrayNotice.update({ title: '不应生效', content: [nodeA, { bad: true }] }); } catch (error) { invalidArrayUpdate = { name: error.name, message: String(error.message) }; }
+    check('Notice update 非法数组抛 TypeError 且旧标题/内容不变', !!invalidArrayUpdate && invalidArrayUpdate.name === 'TypeError' &&
+      /NoteUI\.Notice/.test(invalidArrayUpdate.message) && arrayNotice.el.textContent === beforeTitle &&
+      arrayNotice.el.textContent.indexOf('不应生效') < 0,
+      JSON.stringify({ error: invalidArrayUpdate, text: arrayNotice.el.textContent }));
     let objectError = null;
     try { NoteUI.Notice.mount(document.createElement('div'), { title: '说明', content: { text: 'x' } }); } catch (error) { objectError = { name: error.name, message: String(error.message) }; }
     check('Notice 普通对象内容抛 TypeError', !!objectError && objectError.name === 'TypeError' &&
       /NoteUI\.Notice/.test(objectError.message), JSON.stringify(objectError));
-    let updateError = null;
-    try { textNotice.update({ content: ['x'] }); } catch (error) { updateError = { name: error.name, message: String(error.message) }; }
-    check('Notice update 同样校验内容契约', !!updateError && updateError.name === 'TypeError' && /NoteUI\.Notice/.test(updateError.message), JSON.stringify(updateError));
     const replacement = document.createElement('em');
     replacement.textContent = '更新后的节点';
     textNotice.update({ content: replacement });

@@ -285,10 +285,12 @@ var graph = NoteViz.Graph.mount(host, {
     { id: 'out', label: '输出', group: '流程' }
   ],
   edges: [
-    { from: 'in', to: 'out', label: '进入', directed: true }
+    { id: 'e1', from: 'in', to: 'out', label: '进入', directed: true }
   ],
   focus: ['out'],
   changed: ['in'],
+  edgeFocus: ['e1'],
+  edgeChanged: [],
   label: '处理流程',
   onSelect: function (id, event) { console.log(id, event); }
 });
@@ -297,12 +299,14 @@ var graph = NoteViz.Graph.mount(host, {
 | option | 类型 | 默认 | 说明 |
 | --- | --- | --- | --- |
 | `nodes` | `Array<{id,label,x,y,group}>` | `[]` | 节点。ID 必须唯一；label 缺省为 id。图层坐标 `x/y` 是节点中心，manual 布局使用；group 是可选分组名。 |
-| `edges` | `Array<{from,to,label,directed}>` | `[]` | 端点必须引用存在的节点。`directed` 严格为 true 时才画箭头；label 可为空；不存在的边被忽略。 |
+| `edges` | `Array<{id?,from,to,label,directed}>` | `[]` | 端点必须引用存在的节点。`id` 可选稳定 ID，缺省按 `from -> to` 生成，平行同向边追加 ` #2`…；重复显式 id 也补后缀。`directed` 严格为 true 时才画箭头；label 可为空；不存在的边被忽略。 |
 | `layout` | `'manual' \| 'layered'` | `'layered'` | layered 按有向/无向边的 from→to 做基础分层；manual 使用节点坐标，个别节点缺少有效 x/y 时该节点回退为网格位置，其余节点仍使用给定坐标。 |
 | `width` | number \| null | `null` | 最小画布宽（SVG 像素/坐标系）。画布会扩展到容纳所有节点。 |
 | `height` | number \| null | `null` | 最小画布高。 |
 | `focus` | id \| id[] | 无 | 关注节点 ID。 |
 | `changed` | id \| id[] | 无 | 变化节点 ID。 |
+| `edgeFocus` | id \| id[] | 无 | 关注边 ID；与节点 focus 分开。 |
+| `edgeChanged` | id \| id[] | 无 | 变化边 ID；与节点 changed 分开。 |
 | `label` | string | `'节点关系图'` | 根与 SVG 名称。 |
 | `onSelect` | function \| null | `null` | 可选；用户点击节点或聚焦后按 Enter/空格触发 `onSelect(id, event)`。程序 update 不触发。 |
 
@@ -312,8 +316,24 @@ var graph = NoteViz.Graph.mount(host, {
 | --- | --- |
 | `update(patch)` | 可换全部 options；按节点 ID 复用节点 `<g>`。 |
 | `destroy()` | 移除 SVG、滚动监听、节点事件与尺寸观察。 |
-| `getTarget(id)` | 返回该节点的 SVG `<g>`；更新后仍指向同一节点对象；找不到返回 `null`。 |
+| `getTarget(id)` | 返回该节点的 SVG `<g>`；更新后仍指向同一节点对象；找不到返回 `null`。节点查询不解析边 ID。 |
+| `getEdgeTarget(id)` | 返回该边的 SVG `<g>`；找不到返回 `null`。 |
+| `getEdgePath(id)` | 返回该边的 SVG `<path>`（`.nviz-graph__edgeline`）；找不到返回 `null`。 |
+| `getEdgeLength(id)` | 返回路径真实长度（SVG 局部用户单位）；找不到返回 `null`。 |
+| `getEdgePoint(id,ratio)` | 按比例 0–1 返回路径上的 `{x,y}`（SVG 局部坐标）；找不到返回 `null`。 |
+| `getEdgePointAt(id,distance)` | 按距起点距离返回 `{x,y,distance,ratio}`；距离夹紧到 0–length。 |
+| `getEdgePointClient(id,ratio)` | 返回同一路径点的 DOM client 坐标 `{x,y}`（通过路径 screen CTM 转换）。 |
+| `getEdgeEndpoints(id)` | 返回 `{start:{x,y}, end:{x,y}}`（SVG 局部坐标）。 |
+| `getEdgeInfo(id)` | 返回 `{id,from,to,label,directed,mark,length,endpoints}`。 |
 | `onSelect(id,event)` | 仅由用户操作触发；事件参数是原始 DOM 事件。节点没有 onSelect 时不可聚焦。 |
+
+### 边身份、目标与路径查询
+
+- 边在更新时按稳定 id 复用 `<g>`；边渲染为真实 SVG `<path>`（不是 `<line>`），因此可直接使用 `getTotalLength()`/`getPointAtLength()` 等原生路径能力。
+- 边查询 API 与节点查询分开：`getTarget` 永远只返回节点 `<g>`；边使用 `getEdgeTarget/getEdgePath/getEdgeLength/getEdgePoint/getEdgePointAt/getEdgePointClient/getEdgeEndpoints/getEdgeInfo`。
+- 所有点/端点坐标均为 SVG 局部用户坐标（与 viewBox 同坐标系）；`getEdgePointClient` 用路径的 `getScreenCTM()` 转成 DOM 视口 client 坐标。
+- `edgeFocus`/`edgeChanged` 是独立的边状态选项，与节点 `focus`/`changed` 互不替代；边状态写入边的 data 标记与可访问 title，视觉与节点状态分开。
+- 边是作者声明的 from/to 直连锚点路径，查询返回真实路径几何，不把“元素中心连线”当作所有布局的语义；不自动路由或避障。
 
 ### 布局与视觉
 
@@ -354,7 +374,7 @@ var graph = NoteViz.Graph.mount(host, {
 - 环图只做基础处理，不保证层级最优。
 - 分组用图例/编号，不画分组包围框。
 - manual 坐标与画布尺寸的语义是“节点中心 + 最小画布”，不是屏幕缩放比例。
-- 边没有独立稳定 ID，只用节点做关注/变化。
+- 边有可选稳定 ID（缺省按 from→to 生成），可独立查询目标/路径/端点并参与 edgeFocus/edgeChanged；不提供自动路由、任意路径编辑或完整图算法。
 - 没有 onSelect 时节点不可点击，不支持目录式选择。
 
 ---

@@ -10,7 +10,7 @@
 export const MODULE_ORDER = [
   'core', 'legacy', 'ui-layout', 'ui-content', 'ui-actions', 'ui-navigation',
   'ui-forms-basic', 'ui-forms-advanced', 'ui-overlay', 'ui-feedback',
-  'ui-extended', 'viz-objects', 'viz-mechanisms', 'viz-chart', 'blocks',
+  'ui-extended', 'viz-objects', 'viz-flow', 'viz-mechanisms', 'viz-chart', 'blocks',
   'demo-runtime', 'demo-ui'
 ];
 

@@ -19,16 +19,50 @@
     return !!value && typeof value === 'object' && [1, 3, 11].indexOf(value.nodeType) !== -1;
   }
 
-  /* Notice 公开契约：content 为文本或单个 DOM 节点。数组/普通对象不被静默字符串化，
-     直接给出可定位的错误；多节点必须先由宿主包进一个容器元素。 */
-  function noticeContent(value) {
+  function isTextScalar(value) {
+    return typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean';
+  }
+
+  /* Notice 公开契约：content 为文本、单个 DOM 节点，或由这些值组成的数组。
+     数组在写入前整体校验；任一项非法就在替换内容之前抛错，不先破坏旧内容。 */
+  function normalizeNoticeContent(value) {
     if (value == null) return '';
     if (isDomNode(value)) return value;
     if (Array.isArray(value)) {
-      throw new TypeError('NoteUI.Notice: content 只接受文本或单个 DOM 节点；多个节点请先用一个容器元素包裹。');
+      var core = global.NoteCore;
+      if (!core || typeof core.setContent !== 'function') {
+        throw new TypeError('NoteUI.Notice: content 数组需要 core 模块的 NoteCore.setContent。');
+      }
+      var items = [];
+      for (var i = 0; i < value.length; i += 1) {
+        var item = value[i];
+        if (item == null) continue;
+        if (isDomNode(item) || isTextScalar(item)) {
+          items.push(item);
+          continue;
+        }
+        throw new TypeError('NoteUI.Notice: content 数组第 ' + (i + 1) + ' 项不是文本或 DOM 节点；收到 ' +
+          Object.prototype.toString.call(item) + '。');
+      }
+      return items;
     }
-    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return value;
-    throw new TypeError('NoteUI.Notice: content 只接受文本或单个 DOM 节点；收到 ' + Object.prototype.toString.call(value) + '，多节点/对象请先用一个容器元素包裹。');
+    if (isTextScalar(value)) return value;
+    throw new TypeError('NoteUI.Notice: content 必须是文本、单个 DOM 节点，或由两者组成的数组；收到 ' +
+      Object.prototype.toString.call(value) + '。');
+  }
+
+  function applyNoticeContent(target, value) {
+    var nodes = Array.isArray(value);
+    var core = global.NoteCore;
+    if (nodes) {
+      /* normalizeNoticeContent 已确认 core 可用；数组统一走内容插入工具。 */
+      core.setContent(target, value);
+    } else if (core && typeof core.setContent === 'function') {
+      core.setContent(target, value);
+    } else {
+      setContent(target, value); /* 兼容：仅加载 legacy 内部 helper 时支持文本/单节点 */
+    }
+    target.classList.toggle('nui-notice__content--nodes', nodes);
   }
 
   function staticHandle(root, options, render, cleanup) {
@@ -68,13 +102,15 @@
     mount: function (host, input) {
       validateHost(host);
       var options = Object.assign({ title: '', content: '', tone: 'neutral' }, input);
-      noticeContent(options.content); /* 挂载时先校验，避免无效输入等到首次 render 才失败 */
+      /* 先整体校验/归一化，再创建 DOM；无效输入不会写入宿主容器。 */
+      options.content = normalizeNoticeContent(options.content);
       var root = element('div', 'nui-notice');
       var marker = element('span', 'nui-notice__marker');
       marker.setAttribute('aria-hidden', 'true');
       var body = element('div', 'nui-notice__body');
       var heading = element('div', 'nui-notice__title');
       var content = element('div', 'nui-notice__content');
+      var alive = true;
       root.setAttribute('role', 'note');
       body.append(heading, content);
       root.append(marker, body);
@@ -85,11 +121,27 @@
         marker.textContent = currentTone === 'warning' ? '!' : currentTone === 'accent' ? 'i' : '·';
         heading.textContent = text(options.title);
         heading.hidden = !text(options.title);
-        if (!patch || own(patch, 'content')) setContent(content, noticeContent(options.content));
+        if (!patch || own(patch, 'content')) applyNoticeContent(content, options.content);
       }
       render();
       host.appendChild(root);
-      return staticHandle(root, options, render);
+      return {
+        el: root,
+        update: function (patch) {
+          if (!alive || !patch || typeof patch !== 'object') return;
+          /* 内容校验先于任何状态写入：坏数组/对象不会先改掉标题、语气或旧内容。 */
+          var hasContent = own(patch, 'content');
+          var nextContent = hasContent ? normalizeNoticeContent(patch.content) : null;
+          Object.assign(options, patch);
+          if (hasContent) options.content = nextContent;
+          render(patch);
+        },
+        destroy: function () {
+          if (!alive) return;
+          alive = false;
+          root.remove();
+        }
+      };
     }
   };
 

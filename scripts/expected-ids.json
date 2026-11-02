@@ -123,7 +123,11 @@
         "D03",
         "D04",
         "D05",
-        "D06"
+        "D06",
+        "D07",
+        "D08",
+        "D09",
+        "D10"
       ],
       "category": "图形与数据对象"
     },
@@ -189,9 +193,9 @@
   ],
   "counts": {
     "reuse": 10,
-    "newComponents": 74,
+    "newComponents": 78,
     "blocks": 10,
     "foundations": 7,
-    "total": 101
+    "total": 105
   }
 }

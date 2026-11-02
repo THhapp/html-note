@@ -32,6 +32,9 @@ node <Skill目录>/scripts/query.mjs show public:progress --json
 node <Skill目录>/scripts/query.mjs read public:progress api --json
 node <Skill目录>/scripts/query.mjs show public:attention --json
 node <Skill目录>/scripts/query.mjs show example:continuous-scene --json
+node <Skill目录>/scripts/query.mjs show example:flow-kit --json
+node <Skill目录>/scripts/query.mjs show public:continuous-adapter --json
+node <Skill目录>/scripts/query.mjs show public:timing-facts --json
 node <Skill目录>/scripts/query.mjs show tool:inspect-note --json
 node <Skill目录>/scripts/query.mjs read D01 api --json
 ```
@@ -40,7 +43,7 @@ node <Skill目录>/scripts/query.mjs read D01 api --json
 
 查询不会启动浏览器。
 
-公共 scene 的受控画面由 Binding 容器统一接管：提交前暂停受控内容 CSS transition，效果组只推进自己的视觉，收束/恢复后释放；自定义 Adapter 不需要自己写 `setSceneActive`。接法与生命周期见 [受控画面的视觉接管](docs/公共编排层.md#author-scene-control)（相对实际库根）。
+公共 scene 的受控画面由 Binding 容器统一接管：提交前暂停受控内容 CSS transition，效果组只推进自己的视觉，收束/恢复后释放；自定义 Adapter 不需要自己写 `setSceneActive`。连续 Adapter 可用 `NoteDemo.sceneAdapter.define` 减少胶水，`NoteDemo.timingFacts.watch` 默认关闭、按需观察时序。接法与生命周期见 [受控画面的视觉接管](docs/公共编排层.md#author-scene-control)、[Adapter 辅助](docs/公共编排层.md#author-scene-adapter)（相对实际库根）。
 
 ## 本地观察与量测
 
@@ -50,11 +53,12 @@ node <Skill目录>/scripts/query.mjs read D01 api --json
 node <Skill目录>/scripts/inspect-note.mjs "<成品HTML绝对路径>" --json
 node <Skill目录>/scripts/inspect-note.mjs "<成品HTML绝对路径>" --screenshot "<输出PNG绝对路径>" --width 860 --height 1000
 node <Skill目录>/scripts/inspect-note.mjs "<成品HTML绝对路径>" --probe "<probe模块绝对路径>" --json
+node <Skill目录>/scripts/inspect-note.mjs "<成品HTML绝对路径>" --session "window.Example.session" --probe "<probe模块绝对路径>" --json
 ```
 
 观察工具默认无头、执行后退出；它复用工程现有 `playwright-core` 和本机浏览器。这里的依赖是 **Node 工具运行条件**，不是浏览器组件模块依赖：页面仍需按实际场景加载 `dist/` 或模块，工具本身不加载 demo-runtime。缺浏览器或依赖时按诊断指定 `--browser`/准备工程依赖，不自动安装或轮换通道。
 
-`--probe` 复用同一个已打开页面，模块导出 `default async ({ page }) => ...`。只检查静态状态时可以直接打开；要证明动画、焦点到达、内容放行、取消恢复，用 `next()/replay()` 真实推进，`go()` 不能证明过程。时序疑点用 probe 采样，不用批量静态截图猜。参数以 `--help` 和实际返回为准。
+`--probe` 复用同一个已打开页面，模块导出 `default async ({ page }) => ...`；probe 上下文还提供 `inspect.state/read/start/step/waitIdle/waitFor/sample/box/screenshot/observe`，可在同一页面完成推进、等待、读取和少量截图。`--session` 指定页面内 session 表达式；不传时工具尝试常见入口。只检查静态状态时可以直接打开；要证明动画、焦点到达、内容放行、取消恢复，用 `next()/replay()` 真实推进，`go()` 不能证明过程。时序疑点用 probe 采样，不用批量静态截图猜。参数以 `--help` 和实际返回为准。
 
 ## 取用时要分清的事情
 

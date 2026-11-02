@@ -73,6 +73,7 @@ const expectGalleryScripts = [
   'demos/ui-feedback.js',
   'demos/ui-extended.js',
   'demos/viz-objects.js',
+  'demos/viz-flow.js',
   'demos/viz-mechanisms.js',
   'demos/viz-chart.js',
   'demos/blocks-stage.js',

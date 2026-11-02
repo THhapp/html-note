@@ -202,27 +202,31 @@ var table = NoteUI.Table.mount(host, {
     { key: 'note', label: '说明', sortable: false }
   ],
   rows: [
-    { key: 'a', name: 'Alpha', score: 12, note: '一' },
-    { key: 'b', name: 'Beta', score: 5, note: '二' }
+    { key: 'a', name: 'Alpha', score: 12, note: '一', state: 'current' },
+    { key: 'b', name: 'Beta', score: 5, note: '二', cellStates: { score: { type: 'changed', label: '已更新' } } }
   ],
   rowKey: 'key',
   caption: '示例数据',
   empty: '暂无记录',
   sort: true,
   emphasis: { row: 'a', column: 'score' },
+  rowState: function (row, index, rowKey) { /* 可选：覆盖 row.state */ },
+  cellState: function (row, column, rowKey, index) { /* 可选：覆盖 row.cellStates */ },
   onSort: function (info, event) {
     // info = { key, direction, column, rows }
     // direction: 'asc' | 'desc' | null
   }
 });
-table.getTarget('a'); // <tr> 或 null
+table.getTarget('a');                          // <tr>
+table.getTarget({ row: 'a', column: 'score' }); // <td>
+table.getState();                             // 当前列/行/排序/强调/状态快照
 table.update({ rows: [] });
 ```
 
 | option | 类型 | 默认 | 说明 |
 | --- | --- | --- | --- |
 | `columns` | Array<{key,label,align,width,sortable?}> | `[]` | align 支持 start/center/end（也接受 left/right）；width 数字按 px，或 CSS 长度。`sortable:false` 可关闭某列排序。 |
-| `rows` | Array<Object> | `[]` | 单元格值可为字符串或 DOM；行可带 key。 |
+| `rows` | Array<Object> | `[]` | 单元格值可为字符串或 DOM；行可带 key。行数据中的 `state`/`cellStates` 是作者声明的状态字段，不要用作列键。 |
 | `rowKey` | string \| function | `null` | 字符串取该字段；函数接收 `(row,index)`。未给时依次用 row.key 与索引。 |
 | `caption` | string | `''` | 可见 caption；只按文本处理。 |
 | `empty` | string \| Node | `'暂无数据'` | 无行时的跨列提示；DOM 会移入。 |
@@ -231,6 +235,8 @@ table.update({ rows: [] });
 | `emphasis` | {row,column} | `null` | 行按解析后的行键，列按列 key；支持数组匹配（扩展）。 |
 | `maxHeight` | number \| CSS 长度 | `null` | 滚动区最大高度；数字按 px。 |
 | `dense` | boolean | `false` | 紧凑单元格间距。 |
+| `rowState` | function | `null` | 可选 `(row,index,rowKey) -> 状态`；声明后优先于 `row.state`。 |
+| `cellState` | function | `null` | 可选 `(row,column,rowKey,index) -> 状态`；声明后优先于 `row.cellStates`。 |
 
 排序与空态：
 
@@ -241,12 +247,24 @@ table.update({ rows: [] });
 - `update({sort})` 只应用配置，不叫回调；`update({rows})` 保留当前用户排序状态。
 - `getTarget(rowKey)` 返回当前 `<tr>`；行键建议唯一，重复键只保留最后一个映射。销毁后返回 null。
 
+### 行/单元状态与目标
+
+- 稳定身份：每行 `<tr>` 带 `data-row-key`（解析后的行键字符串），每个单元格 `<td>` 带 `data-col-key`（列 key）。行键不变时更新值、强调、状态或排序只更新对应行/单元；只有列键、列顺序、对齐、可排序列等结构变化才重建该行单元或表头。
+- 行状态：`row.state` 接受字符串/数字、字符串数组、`{type|name,label?}` 或它们的数组；值为 `false`/空字符串/null 时忽略。
+- 单元状态：`row.cellStates` 是 `{ [columnKey]: 同状态值 }`，按列替换；整行替换后旧状态自然消失。
+- 计算状态：`options.rowState(row,index,rowKey)` / `options.cellState(row,column,rowKey,index)` 优先于行字段；声明函数后不再读取 `row.state`/`row.cellStates`。
+- 状态输出：`data-row-state` / `data-cell-state` 写空格分隔的 type，类名为 `nui-table__row--state-<type>` / `nui-table__cell--state-<type>`；只有状态带 `label` 时才渲染可见的 `.nui-table__state` 标签，不自动补“关注/变化”等文字。type 建议使用不含空白的单 token；含空白时 data 属性按空格拆分，类名换成连字符。
+- `getTarget(query)` 扩展：`getTarget(rowKey)` / `getTarget({row|rowKey|key})` 返回 `<tr>`；`getTarget({row, column|col})` 返回 `<td>`；`part:'row'` 强制行，`part:'cell'` 需要列键；找不到返回 null。
+- `getState()` 返回 `{columns, rows:[{key,keyString,index,row,states,cells:[{key,column,value,states}]}], sort:{enabled,key,direction}, emphasis, caption, empty, dense, maxHeight}`；销毁后返回 null。
+- 空行会清除行节点缓存，恢复数据时按新行创建；重复行键仍按旧兼容语义渲染两行，`getTarget` 返回最后一个映射。
+
 可访问性：
 
 - 使用原生 `<table>`、`<thead>`、`<th scope="col">` 与 `<caption>`；当前排序列带 `aria-sort="ascending|descending"`，未排序列不强行添加。
 - 表头排序用原生 button，带列名与“当前升序/降序、点击如何变化”的 aria-label；Enter/Space 可用，重绘后焦点回到同一表头按钮。
 - 宽表/高表使用 `tabindex="0"` 的局部滚动区，带 `role="region"`、`aria-label` 和可见滚动提示；不会劫持整页方向键。
 - 行列强调同时使用背景、边框或字重，不只依赖颜色；强调不是业务状态，必要时宿主应在表注中说明。
+- 作者声明的行/单元状态只作为附加语义与视觉标记，不自动推断教学重点或变化含义；状态标签的文字由作者提供。
 
 限制：不支持列筛选、分页、远程加载、合并单元格、树形行或自定义排序函数；宽表滚动是局部而非响应式缩列。
 

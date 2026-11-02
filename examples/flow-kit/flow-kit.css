@@ -1,0 +1,132 @@
+/* examples/flow-kit — neutral demo shell only. Component visuals live in src/viz/flow.css. */
+
+.flow-kit {
+  box-sizing: border-box;
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 36px 0 56px;
+  color: var(--hnv-color-ink, #202938);
+  font-family: var(--hnv-font-family, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif);
+  font-size: var(--hnv-font-size-label, 14px);
+  line-height: 1.6;
+}
+
+.flow-kit *,
+.flow-kit *::before,
+.flow-kit *::after {
+  box-sizing: border-box;
+}
+
+.flow-kit__head {
+  margin-bottom: 20px;
+}
+
+.flow-kit__kicker {
+  margin: 0 0 6px;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+  font-weight: 700;
+  letter-spacing: .08em;
+}
+
+.flow-kit__title {
+  margin: 0 0 10px;
+  font-size: clamp(26px, 3.6vw, 38px);
+  line-height: 1.2;
+}
+
+.flow-kit__lede {
+  max-width: 860px;
+  margin: 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-body, 15px);
+}
+
+.flow-kit__card {
+  margin: 18px 0;
+  padding: 18px;
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-stage, 14px);
+  background: var(--hnv-color-surface, #ffffff);
+  box-shadow: 0 12px 32px rgba(32, 41, 56, .05);
+}
+
+.flow-kit__card-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.flow-kit__card-head h2 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.35;
+}
+
+.flow-kit__card-head p {
+  margin: 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 13px);
+}
+
+.flow-kit__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.flow-kit__actions button {
+  padding: 7px 12px;
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-control, 8px);
+  background: var(--hnv-color-page, #f4f6f9);
+  color: var(--hnv-color-ink, #202938);
+  font: inherit;
+  font-size: var(--hnv-font-size-caption, 13px);
+  cursor: pointer;
+}
+
+.flow-kit__actions button:hover {
+  border-color: var(--hnv-color-accent, #315cda);
+}
+
+.flow-kit__actions button:focus-visible {
+  outline: var(--hnv-focus-ring-width, 3px) solid var(--hnv-color-focus, #315cda);
+  outline-offset: 2px;
+}
+
+.flow-kit__readout {
+  margin: 10px 0 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+  overflow-wrap: anywhere;
+}
+
+.flow-kit__foot {
+  margin-top: 26px;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+}
+
+.flow-kit__foot p {
+  margin: 4px 0;
+}
+
+.flow-kit__packet-dot {
+  fill: var(--hnv-color-accent, #315cda);
+  stroke: var(--hnv-color-surface, #ffffff);
+  stroke-width: 2;
+}
+
+@media (max-width: 720px) {
+  .flow-kit {
+    width: calc(100% - 20px);
+    padding-top: 22px;
+  }
+
+  .flow-kit__card {
+    padding: 12px;
+  }
+}

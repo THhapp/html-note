@@ -1,0 +1,475 @@
+/*! NoteViz Flow — independent flow graphics kit.
+ *  Scope: .nviz-flow-* only. Depends on core tokens (--hnv-*) with fallbacks.
+ *  JS: src/viz/flow.js exports window.NoteViz.Flow.{StageTrack,PacketFlow,SegmentBar,DeviceLinks}.
+ *  No external images/fonts, no decorative motion, no third-party player. */
+
+.nviz-flow-stagetrack,
+.nviz-flow-packetflow,
+.nviz-flow-segmentbar,
+.nviz-flow-devicelinks {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  color: var(--hnv-color-ink, #202938);
+  font-family: var(--hnv-font-family, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif);
+  font-size: var(--hnv-font-size-label, 14px);
+  line-height: 1.55;
+  text-align: left;
+}
+
+.nviz-flow-stagetrack *,
+.nviz-flow-stagetrack *::before,
+.nviz-flow-stagetrack *::after,
+.nviz-flow-packetflow *,
+.nviz-flow-packetflow *::before,
+.nviz-flow-packetflow *::after,
+.nviz-flow-segmentbar *,
+.nviz-flow-segmentbar *::before,
+.nviz-flow-segmentbar *::after,
+.nviz-flow-devicelinks *,
+.nviz-flow-devicelinks *::before,
+.nviz-flow-devicelinks *::after {
+  box-sizing: border-box;
+}
+
+.nviz-flow-stagetrack [hidden],
+.nviz-flow-packetflow [hidden],
+.nviz-flow-segmentbar [hidden],
+.nviz-flow-devicelinks [hidden] {
+  display: none !important;
+}
+
+.nviz-flow-stagetrack__viewport:focus-visible,
+.nviz-flow-packetflow__viewport:focus-visible,
+.nviz-flow-segmentbar__viewport:focus-visible,
+.nviz-flow-devicelinks__viewport:focus-visible {
+  outline: var(--hnv-focus-ring-width, 3px) solid var(--hnv-color-focus, #315cda);
+  outline-offset: 2px;
+}
+
+.nviz-flow-stagetrack__note,
+.nviz-flow-packetflow__note,
+.nviz-flow-segmentbar__note,
+.nviz-flow-devicelinks__note,
+.nviz-flow-segmentbar__empty {
+  margin: var(--hnv-space-2, 8px) 0 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+/* ---------------- StageTrack ---------------- */
+
+.nviz-flow-stagetrack {
+  --nviz-flow-stagetrack-count: 1;
+  padding: var(--hnv-space-3, 12px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-object, 10px);
+  background: var(--hnv-color-surface, #ffffff);
+}
+
+.nviz-flow-stagetrack__list {
+  display: grid;
+  grid-template-columns: repeat(var(--nviz-flow-stagetrack-count), minmax(0, 1fr));
+  gap: var(--hnv-space-2, 8px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nviz-flow-stagetrack__stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 6px 4px 8px;
+  border-radius: var(--hnv-radius-object, 10px);
+  text-align: center;
+}
+
+.nviz-flow-stagetrack__stage::before {
+  content: '';
+  position: absolute;
+  top: 16px;
+  left: -50%;
+  right: 50%;
+  height: 2px;
+  background: var(--hnv-color-border, #dce2ea);
+}
+
+.nviz-flow-stagetrack__stage:first-child::before {
+  display: none;
+}
+
+.nviz-flow-stagetrack__node {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--hnv-color-border, #dce2ea);
+  border-radius: 50%;
+  background: var(--hnv-color-surface, #ffffff);
+}
+
+.nviz-flow-stagetrack__stage[data-status="done"]::before,
+.nviz-flow-stagetrack__stage[data-status="current"]::before {
+  background: var(--hnv-color-accent, #315cda);
+}
+
+.nviz-flow-stagetrack__stage[data-status="done"] .nviz-flow-stagetrack__node {
+  border-color: var(--hnv-color-accent, #315cda);
+  background: var(--hnv-color-accent, #315cda);
+}
+
+.nviz-flow-stagetrack__stage[data-status="current"] .nviz-flow-stagetrack__node {
+  border-color: var(--hnv-color-accent, #315cda);
+  box-shadow: 0 0 0 4px var(--hnv-color-accent-soft, #eef2ff);
+}
+
+.nviz-flow-stagetrack__stage[data-status="skipped"] .nviz-flow-stagetrack__node {
+  border-style: dashed;
+  border-color: var(--hnv-color-muted, #5c6879);
+}
+
+.nviz-flow-stagetrack__stage[data-status="failed"] .nviz-flow-stagetrack__node {
+  border-color: var(--hnv-color-danger, #b23a45);
+  background: var(--hnv-color-danger-soft, #fbeef0);
+}
+
+.nviz-flow-stagetrack__stage[data-target="true"] .nviz-flow-stagetrack__node {
+  border-color: var(--hnv-color-attention, #6f82b7);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--hnv-color-attention, #6f82b7) 18%, transparent);
+}
+
+.nviz-flow-stagetrack__label {
+  max-width: 100%;
+  color: var(--hnv-color-ink, #202938);
+  font-size: var(--hnv-font-size-label, 14px);
+  font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.nviz-flow-stagetrack__status {
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+  line-height: 1.4;
+}
+
+.nviz-flow-stagetrack__stage[data-status="current"] .nviz-flow-stagetrack__status {
+  color: var(--hnv-color-accent, #315cda);
+  font-weight: 600;
+}
+
+.nviz-flow-stagetrack__stage[data-status="failed"] .nviz-flow-stagetrack__status {
+  color: var(--hnv-color-danger, #b23a45);
+}
+
+.nviz-flow-stagetrack__badge {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--hnv-color-attention, #6f82b7);
+  color: var(--hnv-color-surface, #ffffff);
+  font-size: var(--hnv-font-size-caption, 12px);
+  line-height: 1.6;
+}
+
+.nviz-flow-stagetrack__bypasses {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: var(--hnv-space-2, 8px);
+}
+
+.nviz-flow-stagetrack__bypass {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nviz-flow-stagetrack__bypass-svg {
+  display: block;
+  width: 100%;
+  height: 20px;
+  overflow: visible;
+}
+
+.nviz-flow-stagetrack__bypass-path {
+  fill: none;
+  stroke: var(--hnv-color-attention, #6f82b7);
+  stroke-width: 1.6;
+  stroke-dasharray: 5 4;
+  vector-effect: non-scaling-stroke;
+}
+
+.nviz-flow-stagetrack__bypass-arrow {
+  fill: var(--hnv-color-attention, #6f82b7);
+}
+
+.nviz-flow-stagetrack__bypass-endpoint {
+  fill: var(--hnv-color-attention, #6f82b7);
+}
+
+.nviz-flow-stagetrack__bypass-label {
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+/* ---------------- PacketFlow ---------------- */
+
+.nviz-flow-packetflow {
+  padding: var(--hnv-space-3, 12px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-object, 10px);
+  background: var(--hnv-color-surface, #ffffff);
+}
+
+.nviz-flow-packetflow__viewport,
+.nviz-flow-segmentbar__viewport,
+.nviz-flow-devicelinks__viewport {
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+}
+
+.nviz-flow-packetflow__svg,
+.nviz-flow-devicelinks__svg,
+.nviz-flow-segmentbar__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-width: 520px;
+  overflow: visible;
+}
+
+.nviz-flow-packetflow__participant-box {
+  fill: var(--hnv-color-page, #f4f6f9);
+  stroke: var(--hnv-color-border, #dce2ea);
+  stroke-width: 1;
+}
+
+.nviz-flow-packetflow__participant[data-status="active"] .nviz-flow-packetflow__participant-box {
+  stroke: var(--hnv-color-accent, #315cda);
+  fill: var(--hnv-color-accent-soft, #eef2ff);
+}
+
+.nviz-flow-packetflow__participant-label {
+  fill: var(--hnv-color-ink, #202938);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.nviz-flow-packetflow__lifeline {
+  stroke: var(--hnv-color-border, #dce2ea);
+  stroke-width: 1;
+  stroke-dasharray: 3 5;
+}
+
+.nviz-flow-packetflow__message-line {
+  stroke: var(--hnv-color-muted, #5c6879);
+  stroke-width: 1.6;
+}
+
+.nviz-flow-packetflow__message-arrow {
+  fill: var(--hnv-color-muted, #5c6879);
+}
+
+.nviz-flow-packetflow__message-label {
+  fill: var(--hnv-color-ink, #202938);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.nviz-flow-packetflow__message[data-hidden="true"] {
+  display: none;
+}
+
+.nviz-flow-packetflow__message[data-focus="true"] .nviz-flow-packetflow__message-line {
+  stroke: var(--hnv-color-accent, #315cda);
+  stroke-width: 2.4;
+}
+
+.nviz-flow-packetflow__message[data-focus="true"] .nviz-flow-packetflow__message-arrow {
+  fill: var(--hnv-color-accent, #315cda);
+}
+
+.nviz-flow-packetflow__message[data-focus="true"] .nviz-flow-packetflow__message-label {
+  fill: var(--hnv-color-accent, #315cda);
+}
+
+.nviz-flow-packetflow__message[data-status="error"] .nviz-flow-packetflow__message-line,
+.nviz-flow-packetflow__message[data-status="failed"] .nviz-flow-packetflow__message-line {
+  stroke: var(--hnv-color-danger, #b23a45);
+}
+
+.nviz-flow-packetflow__message[data-status="error"] .nviz-flow-packetflow__message-arrow,
+.nviz-flow-packetflow__message[data-status="failed"] .nviz-flow-packetflow__message-arrow {
+  fill: var(--hnv-color-danger, #b23a45);
+}
+
+/* ---------------- SegmentBar ---------------- */
+
+.nviz-flow-segmentbar {
+  padding: var(--hnv-space-3, 12px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-object, 10px);
+  background: var(--hnv-color-surface, #ffffff);
+}
+
+.nviz-flow-segmentbar__svg {
+  min-width: 360px;
+}
+
+.nviz-flow-segmentbar__track-bg {
+  fill: var(--hnv-color-page, #f4f6f9);
+  stroke: var(--hnv-color-border, #dce2ea);
+  stroke-width: 1;
+}
+
+.nviz-flow-segmentbar__segment-rect {
+  fill: var(--nviz-flow-segmentbar-segment-color, var(--hnv-color-accent, #315cda));
+  fill-opacity: 0.82;
+  stroke: var(--hnv-color-surface, #ffffff);
+  stroke-width: 1;
+}
+
+.nviz-flow-segmentbar__segment[data-zero="true"] .nviz-flow-segmentbar__segment-rect {
+  fill: transparent;
+  stroke: var(--hnv-color-muted, #5c6879);
+  stroke-dasharray: 3 2;
+  fill-opacity: 1;
+}
+
+.nviz-flow-segmentbar__label {
+  fill: var(--hnv-color-ink, #202938);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.nviz-flow-segmentbar__value {
+  fill: var(--hnv-color-surface, #ffffff);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.nviz-flow-segmentbar__segment[data-zero="true"] .nviz-flow-segmentbar__value {
+  fill: var(--hnv-color-muted, #5c6879);
+}
+
+.nviz-flow-segmentbar__scale {
+  fill: var(--hnv-color-muted, #5c6879);
+  font-size: 11px;
+}
+
+.nviz-flow-segmentbar__range-bracket {
+  fill: none;
+  stroke: var(--hnv-color-attention, #6f82b7);
+  stroke-width: 1.4;
+}
+
+.nviz-flow-segmentbar__range-label {
+  fill: var(--hnv-color-muted, #5c6879);
+  font-size: 11px;
+}
+
+/* ---------------- DeviceLinks ---------------- */
+
+.nviz-flow-devicelinks {
+  padding: var(--hnv-space-3, 12px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-object, 10px);
+  background: var(--hnv-color-surface, #ffffff);
+}
+
+.nviz-flow-devicelinks__device-box {
+  fill: var(--hnv-color-page, #f4f6f9);
+  stroke: var(--hnv-color-border, #dce2ea);
+  stroke-width: 1.4;
+}
+
+.nviz-flow-devicelinks__device[data-status="active"] .nviz-flow-devicelinks__device-box {
+  stroke: var(--hnv-color-accent, #315cda);
+  fill: var(--hnv-color-accent-soft, #eef2ff);
+}
+
+.nviz-flow-devicelinks__device[data-status="error"] .nviz-flow-devicelinks__device-box,
+.nviz-flow-devicelinks__device[data-status="failed"] .nviz-flow-devicelinks__device-box {
+  stroke: var(--hnv-color-danger, #b23a45);
+}
+
+.nviz-flow-devicelinks__device-label {
+  fill: var(--hnv-color-ink, #202938);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.nviz-flow-devicelinks__device-status {
+  fill: var(--hnv-color-muted, #5c6879);
+  font-size: 11px;
+}
+
+.nviz-flow-devicelinks__port-dot {
+  fill: var(--hnv-color-surface, #ffffff);
+  stroke: var(--hnv-color-attention, #6f82b7);
+  stroke-width: 1.6;
+}
+
+.nviz-flow-devicelinks__port-label {
+  fill: var(--hnv-color-muted, #5c6879);
+  font-size: 10px;
+}
+
+.nviz-flow-devicelinks__link-path {
+  fill: none;
+  stroke: var(--hnv-color-muted, #5c6879);
+  stroke-width: 1.6;
+}
+
+.nviz-flow-devicelinks__link-arrow {
+  fill: var(--hnv-color-muted, #5c6879);
+}
+
+.nviz-flow-devicelinks__link-label {
+  fill: var(--hnv-color-muted, #5c6879);
+  font-size: 11px;
+}
+
+.nviz-flow-devicelinks__link[data-status="active"] .nviz-flow-devicelinks__link-path {
+  stroke: var(--hnv-color-accent, #315cda);
+  stroke-width: 2.4;
+}
+
+.nviz-flow-devicelinks__link[data-status="active"] .nviz-flow-devicelinks__link-arrow {
+  fill: var(--hnv-color-accent, #315cda);
+}
+
+.nviz-flow-devicelinks__link[data-status="error"] .nviz-flow-devicelinks__link-path,
+.nviz-flow-devicelinks__link[data-status="failed"] .nviz-flow-devicelinks__link-path {
+  stroke: var(--hnv-color-danger, #b23a45);
+}
+
+.nviz-flow-devicelinks__link[data-status="error"] .nviz-flow-devicelinks__link-arrow,
+.nviz-flow-devicelinks__link[data-status="failed"] .nviz-flow-devicelinks__link-arrow {
+  fill: var(--hnv-color-danger, #b23a45);
+}
+
+@media (max-width: 720px) {
+  .nviz-flow-stagetrack,
+  .nviz-flow-packetflow,
+  .nviz-flow-segmentbar,
+  .nviz-flow-devicelinks {
+    padding: var(--hnv-space-2, 8px);
+  }
+
+  .nviz-flow-stagetrack__label {
+    font-size: var(--hnv-font-size-caption, 12px);
+  }
+}

@@ -141,54 +141,37 @@
     scroll-behavior: auto !important;
   }
 }
-/* attention：公共层唯一的关注框。保留局部性，不做遮罩或全局变色；
- * 内层细描边负责精确框选，外层柔光负责从静止画面中浮出。 */
+/* attention：公共层唯一的关注框。清楚描边、连续迁移、停稳虚线弱化；
+ * 不铺半透明填充、不加内外辉光、不做循环呼吸，也不靠整体降低透明度削弱框线辨认。 */
 .note-demo-attention {
   --nx-accent: var(--hnv-color-accent, #315cda);
 }
 
 .note-demo-attention .nx-focus__box {
-  border: 2px solid color-mix(in srgb, var(--nx-accent) 78%, white);
-  border-radius: 15px;
-  background: color-mix(in srgb, var(--nx-accent) 4.5%, transparent);
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--nx-accent) 14%, transparent),
-    0 10px 28px color-mix(in srgb, var(--nx-accent) 18%, transparent),
-    inset 0 0 20px color-mix(in srgb, var(--nx-accent) 6%, transparent);
+  border: 2px solid var(--nx-accent);
+  border-radius: 10px;
+  background: transparent;
+  box-shadow: none;
   will-change: left, top, width, height;
   /* weak/restore 只改强调；≤160ms 过渡由这里承载，不新增循环。 */
-  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+  transition: border-color 160ms ease;
 }
 
+/* 公共皮肤不再生成装饰层伪元素（原柔和辉光/呼吸环）。 */
 .note-demo-attention .nx-focus__box::before {
-  content: '';
-  position: absolute;
-  inset: -12px;
-  border-radius: 24px;
-  background: radial-gradient(ellipse at center, transparent 48%, color-mix(in srgb, var(--nx-accent) 8%, transparent) 78%, transparent 100%);
-  box-shadow: 0 0 26px color-mix(in srgb, var(--nx-accent) 20%, transparent);
-  pointer-events: none;
-  animation: note-demo-attention-breathe 3.2s cubic-bezier(.37, 0, .63, 1) infinite;
+  content: none;
 }
 
-/* weak：停稳后的低强调线索。Focus 组件负责虚线/低强调基础视觉；
- * 这里只关闭 attention 专属呼吸光晕，避免弱化后仍有循环动画。 */
-.note-demo-attention[data-nx-emphasis="weak"] .nx-focus__box::before {
-  animation: none;
-  opacity: .55;
+/* weak：保留虚线低强调，但注意力框仍应可辨认（不整体降到看不清）。 */
+.note-demo-attention[data-nx-emphasis="weak"] .nx-focus__box {
+  border-style: dashed;
+  opacity: .8;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .note-demo-attention[data-nx-emphasis="weak"] .nx-focus__box::before { animation: none; }
-}
-
-@keyframes note-demo-attention-breathe {
-  0%, 100% { opacity: .55; transform: scale(.995); }
-  50% { opacity: 1; transform: scale(1.005); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .note-demo-attention .nx-focus__box::before { animation: none; opacity: .8; }
+  .note-demo-attention .nx-focus__box {
+    transition: none;
+  }
 }
 
 /* ---- source: src/demo/recipes.css ---- */

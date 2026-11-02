@@ -313,6 +313,52 @@
   background: var(--hnv-color-accent, #315cda);
 }
 
+/* F10 可选刻度：默认隐藏，只有传 ticks 时才渲染；标签不拦截指针拖动。 */
+.nui-slider__ticks {
+  position: relative;
+  height: 18px;
+  margin: 0 10px;
+}
+
+.nui-slider__tick {
+  position: absolute;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: max-content;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.nui-slider__tick--start {
+  transform: none;
+  align-items: flex-start;
+}
+
+.nui-slider__tick--end {
+  transform: translateX(-100%);
+  align-items: flex-end;
+}
+
+.nui-slider__tick-mark {
+  width: 1px;
+  height: 5px;
+  background: var(--hnv-color-border, #dce2ea);
+}
+
+.nui-slider__tick-label {
+  margin-top: 2px;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.nui-slider--disabled .nui-slider__tick-label {
+  color: var(--hnv-color-muted, #5c6879);
+}
+
 .nui-slider__controls {
   display: flex;
   flex-direction: column;

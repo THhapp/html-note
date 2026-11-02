@@ -8,6 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { openNotePage, resolveBrowserExecutable, loadPlaywright, LIBRARY_ROOT } from './lib/note-browser.mjs';
+import { createInspectSession } from './lib/inspect-session.mjs';
 
 const DEFAULTS = { width: 1440, height: 1000 };
 const HELP = `本地观察入口 · inspect-note
@@ -16,21 +17,37 @@ const HELP = `本地观察入口 · inspect-note
   node scripts/inspect-note.mjs <成品HTML绝对路径> [--json]
       [--screenshot <输出PNG绝对路径>]
       [--probe <probe模块绝对路径>]
+      [--session <页面内会话表达式>]
       [--width <像素>] [--height <像素>]
       [--browser <浏览器可执行文件绝对路径>]
 
 说明:
   - 默认无头运行，直接打开本地 HTML；一次调用后关闭浏览器，无常驻服务。
   - 默认不写截图、报告或日志；--screenshot 由调用方明确指定输出。
-  - --probe 模块导出 default async ({ page, context, browser, observations }) => JSON 值；
+  - --probe 模块导出 default async ({ page, context, browser, observations, entry, inspect }) => JSON 值；
     它复用同一个已打开页面，不另起浏览器。
+  - --session 指定会话表达式（如 "window.PropagationExample.session"）；
+    不传时 inspect 会尝试 window.__inspectSession / PropagationExample.session / AuthoringSessions[0] / NoteDemoSessions[0]。
+  - inspect（scripts/lib/inspect-session.mjs）提供同一页内的组合观察辅助：
+      state()                     读取 phase/settledFrameId/targetFrameId/replaying/error
+      read(表达式)                在页面内读取任意只读值（session 可用）
+      start(action, params?)      开始推进（next/prev/replay/reset/go），返回 { done, ... } 便于运行中采样
+      step(action, params?, opts) start + 等待完成（默认再等 idle）
+      waitIdle(opts)              等待 phase === 'idle'
+      waitFor(表达式, opts)       等待任意页面条件
+      sample({ read?, until?, args? }, opts)  过程采样（返回 { samples: [{t,value}], stopReason }）
+      box(选择器)                 读取元素 rect/opacity/visibility
+      screenshot(绝对路径)        仅在显式调用时写文件
+      observe()                   读取本次 page/console 错误与外部请求（不写文件）
   - 默认浏览器为本机 Edge；找不到时用 --browser 显式指定，不自动安装或轮换通道。
+  - 退出码：0 = 工具执行成功（不代表作品验收通过）；1 = 打开/probe/截图失败；2 = 用法错误。
   - 输出区分工具执行成功、观察事实与 probe 结果；打开成功不等于作品验收通过。
 
 示例:
   node scripts/inspect-note.mjs "D:/path/to/成品.html" --json
   node scripts/inspect-note.mjs "D:/path/to/成品.html" --screenshot "D:/path/out.png" --width 860 --height 1000
   node scripts/inspect-note.mjs "D:/path/to/成品.html" --probe "D:/path/probe.mjs" --json
+  node scripts/inspect-note.mjs "D:/path/to/成品.html" --session "window.AuthoringSessions[0]" --probe "D:/path/probe.mjs" --json
 `;
 
 function coded(code, message, extra) {
@@ -41,8 +58,8 @@ function coded(code, message, extra) {
 }
 
 function parseArgs(argv) {
-  const options = { json: false, help: false, screenshot: null, probe: null, width: null, height: null, browser: null };
-  const allowed = new Set(['json', 'help', 'screenshot', 'probe', 'width', 'height', 'browser']);
+  const options = { json: false, help: false, screenshot: null, probe: null, session: null, width: null, height: null, browser: null };
+  const allowed = new Set(['json', 'help', 'screenshot', 'probe', 'session', 'width', 'height', 'browser']);
   const positional = [];
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -96,6 +113,7 @@ async function run() {
   if (options.help) { console.log(HELP); return; }
   if (!positional.length) throw coded('usage', '需要一个本地成品 HTML 路径；使用 --help 查看用法。');
   const entry = path.resolve(positional[0]);
+  if (options.session != null && !String(options.session).trim()) throw coded('usage', '--session 需要一个页面内表达式。');
   const screenshot = absoluteRequested(options.screenshot, '--screenshot');
   const probePath = absoluteRequested(options.probe, '--probe');
   if (screenshot) checkOutputPath(screenshot, '--screenshot');
@@ -132,6 +150,11 @@ async function run() {
         failures.push(coded('screenshot_failed', '截图失败：' + error.message));
       }
     }
+    const inspect = createInspectSession(session.page, {
+      session: options.session || null,
+      observations: session.observations,
+      label: positional[0]
+    });
     if (probePath) {
       let probe = null;
       try {
@@ -148,7 +171,8 @@ async function run() {
             context: session.context,
             browser: session.browser,
             observations: session.observations,
-            entry: session.entry
+            entry: session.entry,
+            inspect: inspect
           });
           data.probe = value === undefined ? null : value;
         } catch (error) {

@@ -455,6 +455,32 @@
   font-weight: 600;
 }
 
+/* C06 作者状态：只提供可读标签与稳定槽位，不预设“当前/新增/刷新”的颜色含义。
+   宿主可用 [data-row-state] / [data-cell-state] 或
+   .nui-table__row--state-<type> / .nui-table__cell--state-<type> 自行上色。 */
+.nui-table__state {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  margin-inline-start: 6px;
+  padding: 1px 7px;
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: 999px;
+  background: var(--hnv-color-page, #f4f6f9);
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+  font-weight: 500;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  vertical-align: middle;
+  white-space: normal;
+}
+
+.nui-table--dense .nui-table__state {
+  margin-inline-start: 4px;
+  padding: 0 6px;
+}
+
 .nui-table__head-cell.nui-table__cell--emphasis {
   color: var(--hnv-color-accent, #315cda);
   border-bottom-color: var(--hnv-color-accent, #315cda);

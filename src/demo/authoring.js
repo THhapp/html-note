@@ -319,6 +319,11 @@
     }
   };
 
+  /* 作者侧接入辅助（scene-adapter.js / timing-facts.js 提供）：自定义图形接 scene 的
+   * 共享胶水与默认关闭的时序观察；未加载对应文件时不创建空入口。 */
+  if (Internals.sceneAdapter) NoteDemoAuthor.sceneAdapter = Internals.sceneAdapter;
+  if (Internals.timingFacts) NoteDemoAuthor.timingFacts = Internals.timingFacts;
+
   NoteDemoAuthor.collectSlots = collectSlots;
   NoteDemoAuthor.compile = compile;
   NoteDemoAuthor.version = '1.0.0';

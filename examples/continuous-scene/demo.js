@@ -75,10 +75,19 @@
       label: '连续画面局部变化与观察接法',
       captionLabel: '字幕'
     });
+    /* 按需时序观察：默认不启用；调用后返回 recorder（onFact/snapshot/summary/stop）。
+     * 事实只在内存，不写文件、不参与运行决策。 */
+    function observeTiming(options) {
+      if (!NoteDemo.timingFacts) {
+        throw new Error('continuous-scene：当前构建没有 NoteDemo.timingFacts（需要新版 scene.js 与 timing-facts.js）。');
+      }
+      return NoteDemo.timingFacts.watch(session, options);
+    }
     global.ContinuousExample = {
       session: session,
       frames: FRAMES.map(function (frame) { return frame.id; }),
-      stages: Scene.STAGES.length - 1
+      stages: Scene.STAGES.length - 1,
+      observeTiming: observeTiming
     };
   }
 

@@ -11,6 +11,8 @@
     "src/demo/scene-effects.js",
     "src/demo/scene-attention.js",
     "src/demo/scene.js",
+    "src/demo/scene-adapter.js",
+    "src/demo/timing-facts.js",
     "src/demo/runner.js",
     "src/demo/bindings.js",
     "src/demo/controller.js",

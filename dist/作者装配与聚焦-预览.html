@@ -6,7 +6,7 @@
   <title>作者装配与聚焦 · NoteDemo</title>
   <style>
 /*! note-library full bundle (CSS)
- * modules: core, legacy, ui-layout, ui-content, ui-actions, ui-navigation, ui-forms-basic, ui-forms-advanced, ui-overlay, ui-feedback, ui-extended, viz-objects, viz-mechanisms, viz-chart, blocks, demo-runtime, demo-ui
+ * modules: core, legacy, ui-layout, ui-content, ui-actions, ui-navigation, ui-forms-basic, ui-forms-advanced, ui-overlay, ui-feedback, ui-extended, viz-objects, viz-flow, viz-mechanisms, viz-chart, blocks, demo-runtime, demo-ui
  * vendor: KaTeX 0.19.1 CSS with embedded woff2 at ui-content
  * generated-by: scripts/build.mjs; do-not-edit.
  */
@@ -364,6 +364,12 @@
   font-size: var(--hnv-font-size-reading, 16px);
   line-height: var(--hnv-font-line-reading, 1.65);
   overflow-wrap: anywhere;
+}
+
+/* 数组内容：节点成为兄弟项；给相邻块级项留出与正文一致的段间距。
+   字符串/单节点路径不添加该类，保持原有外观。 */
+.nui-notice__content--nodes > * + * {
+  margin-block-start: var(--hnv-space-1, 4px);
 }
 
 .nui-notice__content > :first-child,
@@ -2051,6 +2057,32 @@
 .nui-table__cell--emphasis {
   background: color-mix(in srgb, var(--hnv-color-accent-soft, #eef2ff) 70%, transparent);
   font-weight: 600;
+}
+
+/* C06 作者状态：只提供可读标签与稳定槽位，不预设“当前/新增/刷新”的颜色含义。
+   宿主可用 [data-row-state] / [data-cell-state] 或
+   .nui-table__row--state-<type> / .nui-table__cell--state-<type> 自行上色。 */
+.nui-table__state {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  margin-inline-start: 6px;
+  padding: 1px 7px;
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: 999px;
+  background: var(--hnv-color-page, #f4f6f9);
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+  font-weight: 500;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  vertical-align: middle;
+  white-space: normal;
+}
+
+.nui-table--dense .nui-table__state {
+  margin-inline-start: 4px;
+  padding: 0 6px;
 }
 
 .nui-table__head-cell.nui-table__cell--emphasis {
@@ -5829,6 +5861,52 @@
   bottom: 0;
   border-radius: inherit;
   background: var(--hnv-color-accent, #315cda);
+}
+
+/* F10 可选刻度：默认隐藏，只有传 ticks 时才渲染；标签不拦截指针拖动。 */
+.nui-slider__ticks {
+  position: relative;
+  height: 18px;
+  margin: 0 10px;
+}
+
+.nui-slider__tick {
+  position: absolute;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: max-content;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.nui-slider__tick--start {
+  transform: none;
+  align-items: flex-start;
+}
+
+.nui-slider__tick--end {
+  transform: translateX(-100%);
+  align-items: flex-end;
+}
+
+.nui-slider__tick-mark {
+  width: 1px;
+  height: 5px;
+  background: var(--hnv-color-border, #dce2ea);
+}
+
+.nui-slider__tick-label {
+  margin-top: 2px;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.nui-slider--disabled .nui-slider__tick-label {
+  color: var(--hnv-color-muted, #5c6879);
 }
 
 .nui-slider__controls {
@@ -10297,6 +10375,9 @@
   stroke-width: 1.5;
   stroke-linecap: round;
   opacity: .72;
+  transition: stroke var(--hnv-motion-ui, 160ms) var(--hnv-motion-ease-ui, ease),
+    stroke-width var(--hnv-motion-ui, 160ms) var(--hnv-motion-ease-ui, ease),
+    opacity var(--hnv-motion-ui, 160ms) var(--hnv-motion-ease-ui, ease);
 }
 
 .nviz-graph__arrowhead {
@@ -10313,6 +10394,38 @@
   fill: var(--hnv-color-muted, #5c6879);
   font-size: 11.5px;
   line-height: 1.3;
+}
+
+/* 边关注/变化：虚线=关注，实线加粗=变化；兼具时按变化的实线状态表现。
+   与节点一样不依赖颜色单独表意：虚线/线宽/标签底色同时变化。 */
+.nviz-graph__edge[data-mark="focus"] .nviz-graph__edgeline {
+  stroke: var(--hnv-color-attention, #6f82b7);
+  stroke-width: 2;
+  stroke-dasharray: 5 3;
+  opacity: .95;
+}
+
+.nviz-graph__edge[data-mark="changed"] .nviz-graph__edgeline,
+.nviz-graph__edge[data-mark="both"] .nviz-graph__edgeline {
+  stroke: var(--hnv-color-accent, #315cda);
+  stroke-width: 2.6;
+  opacity: 1;
+}
+
+.nviz-graph__edge[data-mark="changed"] .nviz-graph__edgelabel,
+.nviz-graph__edge[data-mark="both"] .nviz-graph__edgelabel {
+  fill: var(--hnv-color-accent, #315cda);
+  font-weight: 600;
+}
+
+.nviz-graph__edge[data-mark="changed"] .nviz-graph__edgelabel-bg,
+.nviz-graph__edge[data-mark="both"] .nviz-graph__edgelabel-bg {
+  fill: var(--hnv-color-accent-soft, #eef2ff);
+  stroke: var(--hnv-color-accent, #315cda);
+}
+
+.nviz-graph__edge[data-mark="focus"] .nviz-graph__edgelabel-bg {
+  stroke: var(--hnv-color-attention, #6f82b7);
 }
 
 .nviz-graph__node {
@@ -10964,6 +11077,7 @@
   .nviz-matrix__headmark,
   .nviz-graph__box,
   .nviz-graph__node,
+  .nviz-graph__edgeline,
   .nviz-timeline__marker,
   .nviz-timeline__card,
   .nviz-tree__box,
@@ -11243,6 +11357,483 @@
 
 .nviz-sequence[data-stable="true"][data-summary="true"] .nviz-sequence__note {
   min-height: 1.35em;
+}
+
+/* ---- source: src/viz/flow.css ---- */
+/*! NoteViz Flow — independent flow graphics kit.
+ *  Scope: .nviz-flow-* only. Depends on core tokens (--hnv-*) with fallbacks.
+ *  JS: src/viz/flow.js exports window.NoteViz.Flow.{StageTrack,PacketFlow,SegmentBar,DeviceLinks}.
+ *  No external images/fonts, no decorative motion, no third-party player. */
+
+.nviz-flow-stagetrack,
+.nviz-flow-packetflow,
+.nviz-flow-segmentbar,
+.nviz-flow-devicelinks {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  color: var(--hnv-color-ink, #202938);
+  font-family: var(--hnv-font-family, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif);
+  font-size: var(--hnv-font-size-label, 14px);
+  line-height: 1.55;
+  text-align: left;
+}
+
+.nviz-flow-stagetrack *,
+.nviz-flow-stagetrack *::before,
+.nviz-flow-stagetrack *::after,
+.nviz-flow-packetflow *,
+.nviz-flow-packetflow *::before,
+.nviz-flow-packetflow *::after,
+.nviz-flow-segmentbar *,
+.nviz-flow-segmentbar *::before,
+.nviz-flow-segmentbar *::after,
+.nviz-flow-devicelinks *,
+.nviz-flow-devicelinks *::before,
+.nviz-flow-devicelinks *::after {
+  box-sizing: border-box;
+}
+
+.nviz-flow-stagetrack [hidden],
+.nviz-flow-packetflow [hidden],
+.nviz-flow-segmentbar [hidden],
+.nviz-flow-devicelinks [hidden] {
+  display: none !important;
+}
+
+.nviz-flow-stagetrack__viewport:focus-visible,
+.nviz-flow-packetflow__viewport:focus-visible,
+.nviz-flow-segmentbar__viewport:focus-visible,
+.nviz-flow-devicelinks__viewport:focus-visible {
+  outline: var(--hnv-focus-ring-width, 3px) solid var(--hnv-color-focus, #315cda);
+  outline-offset: 2px;
+}
+
+.nviz-flow-stagetrack__note,
+.nviz-flow-packetflow__note,
+.nviz-flow-segmentbar__note,
+.nviz-flow-devicelinks__note,
+.nviz-flow-segmentbar__empty {
+  margin: var(--hnv-space-2, 8px) 0 0;
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+/* ---------------- StageTrack ---------------- */
+
+.nviz-flow-stagetrack {
+  --nviz-flow-stagetrack-count: 1;
+  padding: var(--hnv-space-3, 12px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-object, 10px);
+  background: var(--hnv-color-surface, #ffffff);
+}
+
+.nviz-flow-stagetrack__list {
+  display: grid;
+  grid-template-columns: repeat(var(--nviz-flow-stagetrack-count), minmax(0, 1fr));
+  gap: var(--hnv-space-2, 8px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nviz-flow-stagetrack__stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 6px 4px 8px;
+  border-radius: var(--hnv-radius-object, 10px);
+  text-align: center;
+}
+
+.nviz-flow-stagetrack__stage::before {
+  content: '';
+  position: absolute;
+  top: 16px;
+  left: -50%;
+  right: 50%;
+  height: 2px;
+  background: var(--hnv-color-border, #dce2ea);
+}
+
+.nviz-flow-stagetrack__stage:first-child::before {
+  display: none;
+}
+
+.nviz-flow-stagetrack__node {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--hnv-color-border, #dce2ea);
+  border-radius: 50%;
+  background: var(--hnv-color-surface, #ffffff);
+}
+
+.nviz-flow-stagetrack__stage[data-status="done"]::before,
+.nviz-flow-stagetrack__stage[data-status="current"]::before {
+  background: var(--hnv-color-accent, #315cda);
+}
+
+.nviz-flow-stagetrack__stage[data-status="done"] .nviz-flow-stagetrack__node {
+  border-color: var(--hnv-color-accent, #315cda);
+  background: var(--hnv-color-accent, #315cda);
+}
+
+.nviz-flow-stagetrack__stage[data-status="current"] .nviz-flow-stagetrack__node {
+  border-color: var(--hnv-color-accent, #315cda);
+  box-shadow: 0 0 0 4px var(--hnv-color-accent-soft, #eef2ff);
+}
+
+.nviz-flow-stagetrack__stage[data-status="skipped"] .nviz-flow-stagetrack__node {
+  border-style: dashed;
+  border-color: var(--hnv-color-muted, #5c6879);
+}
+
+.nviz-flow-stagetrack__stage[data-status="failed"] .nviz-flow-stagetrack__node {
+  border-color: var(--hnv-color-danger, #b23a45);
+  background: var(--hnv-color-danger-soft, #fbeef0);
+}
+
+.nviz-flow-stagetrack__stage[data-target="true"] .nviz-flow-stagetrack__node {
+  border-color: var(--hnv-color-attention, #6f82b7);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--hnv-color-attention, #6f82b7) 18%, transparent);
+}
+
+.nviz-flow-stagetrack__label {
+  max-width: 100%;
+  color: var(--hnv-color-ink, #202938);
+  font-size: var(--hnv-font-size-label, 14px);
+  font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.nviz-flow-stagetrack__status {
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+  line-height: 1.4;
+}
+
+.nviz-flow-stagetrack__stage[data-status="current"] .nviz-flow-stagetrack__status {
+  color: var(--hnv-color-accent, #315cda);
+  font-weight: 600;
+}
+
+.nviz-flow-stagetrack__stage[data-status="failed"] .nviz-flow-stagetrack__status {
+  color: var(--hnv-color-danger, #b23a45);
+}
+
+.nviz-flow-stagetrack__badge {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--hnv-color-attention, #6f82b7);
+  color: var(--hnv-color-surface, #ffffff);
+  font-size: var(--hnv-font-size-caption, 12px);
+  line-height: 1.6;
+}
+
+.nviz-flow-stagetrack__bypasses {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: var(--hnv-space-2, 8px);
+}
+
+.nviz-flow-stagetrack__bypass {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nviz-flow-stagetrack__bypass-svg {
+  display: block;
+  width: 100%;
+  height: 20px;
+  overflow: visible;
+}
+
+.nviz-flow-stagetrack__bypass-path {
+  fill: none;
+  stroke: var(--hnv-color-attention, #6f82b7);
+  stroke-width: 1.6;
+  stroke-dasharray: 5 4;
+  vector-effect: non-scaling-stroke;
+}
+
+.nviz-flow-stagetrack__bypass-arrow {
+  fill: var(--hnv-color-attention, #6f82b7);
+}
+
+.nviz-flow-stagetrack__bypass-endpoint {
+  fill: var(--hnv-color-attention, #6f82b7);
+}
+
+.nviz-flow-stagetrack__bypass-label {
+  color: var(--hnv-color-muted, #5c6879);
+  font-size: var(--hnv-font-size-caption, 12px);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+/* ---------------- PacketFlow ---------------- */
+
+.nviz-flow-packetflow {
+  padding: var(--hnv-space-3, 12px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-object, 10px);
+  background: var(--hnv-color-surface, #ffffff);
+}
+
+.nviz-flow-packetflow__viewport,
+.nviz-flow-segmentbar__viewport,
+.nviz-flow-devicelinks__viewport {
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+}
+
+.nviz-flow-packetflow__svg,
+.nviz-flow-devicelinks__svg,
+.nviz-flow-segmentbar__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-width: 520px;
+  overflow: visible;
+}
+
+.nviz-flow-packetflow__participant-box {
+  fill: var(--hnv-color-page, #f4f6f9);
+  stroke: var(--hnv-color-border, #dce2ea);
+  stroke-width: 1;
+}
+
+.nviz-flow-packetflow__participant[data-status="active"] .nviz-flow-packetflow__participant-box {
+  stroke: var(--hnv-color-accent, #315cda);
+  fill: var(--hnv-color-accent-soft, #eef2ff);
+}
+
+.nviz-flow-packetflow__participant-label {
+  fill: var(--hnv-color-ink, #202938);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.nviz-flow-packetflow__lifeline {
+  stroke: var(--hnv-color-border, #dce2ea);
+  stroke-width: 1;
+  stroke-dasharray: 3 5;
+}
+
+.nviz-flow-packetflow__message-line {
+  stroke: var(--hnv-color-muted, #5c6879);
+  stroke-width: 1.6;
+}
+
+.nviz-flow-packetflow__message-arrow {
+  fill: var(--hnv-color-muted, #5c6879);
+}
+
+.nviz-flow-packetflow__message-label {
+  fill: var(--hnv-color-ink, #202938);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.nviz-flow-packetflow__message[data-hidden="true"] {
+  display: none;
+}
+
+.nviz-flow-packetflow__message[data-focus="true"] .nviz-flow-packetflow__message-line {
+  stroke: var(--hnv-color-accent, #315cda);
+  stroke-width: 2.4;
+}
+
+.nviz-flow-packetflow__message[data-focus="true"] .nviz-flow-packetflow__message-arrow {
+  fill: var(--hnv-color-accent, #315cda);
+}
+
+.nviz-flow-packetflow__message[data-focus="true"] .nviz-flow-packetflow__message-label {
+  fill: var(--hnv-color-accent, #315cda);
+}
+
+.nviz-flow-packetflow__message[data-status="error"] .nviz-flow-packetflow__message-line,
+.nviz-flow-packetflow__message[data-status="failed"] .nviz-flow-packetflow__message-line {
+  stroke: var(--hnv-color-danger, #b23a45);
+}
+
+.nviz-flow-packetflow__message[data-status="error"] .nviz-flow-packetflow__message-arrow,
+.nviz-flow-packetflow__message[data-status="failed"] .nviz-flow-packetflow__message-arrow {
+  fill: var(--hnv-color-danger, #b23a45);
+}
+
+/* ---------------- SegmentBar ---------------- */
+
+.nviz-flow-segmentbar {
+  padding: var(--hnv-space-3, 12px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-object, 10px);
+  background: var(--hnv-color-surface, #ffffff);
+}
+
+.nviz-flow-segmentbar__svg {
+  min-width: 360px;
+}
+
+.nviz-flow-segmentbar__track-bg {
+  fill: var(--hnv-color-page, #f4f6f9);
+  stroke: var(--hnv-color-border, #dce2ea);
+  stroke-width: 1;
+}
+
+.nviz-flow-segmentbar__segment-rect {
+  fill: var(--nviz-flow-segmentbar-segment-color, var(--hnv-color-accent, #315cda));
+  fill-opacity: 0.82;
+  stroke: var(--hnv-color-surface, #ffffff);
+  stroke-width: 1;
+}
+
+.nviz-flow-segmentbar__segment[data-zero="true"] .nviz-flow-segmentbar__segment-rect {
+  fill: transparent;
+  stroke: var(--hnv-color-muted, #5c6879);
+  stroke-dasharray: 3 2;
+  fill-opacity: 1;
+}
+
+.nviz-flow-segmentbar__label {
+  fill: var(--hnv-color-ink, #202938);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.nviz-flow-segmentbar__value {
+  fill: var(--hnv-color-surface, #ffffff);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.nviz-flow-segmentbar__segment[data-zero="true"] .nviz-flow-segmentbar__value {
+  fill: var(--hnv-color-muted, #5c6879);
+}
+
+.nviz-flow-segmentbar__scale {
+  fill: var(--hnv-color-muted, #5c6879);
+  font-size: 11px;
+}
+
+.nviz-flow-segmentbar__range-bracket {
+  fill: none;
+  stroke: var(--hnv-color-attention, #6f82b7);
+  stroke-width: 1.4;
+}
+
+.nviz-flow-segmentbar__range-label {
+  fill: var(--hnv-color-muted, #5c6879);
+  font-size: 11px;
+}
+
+/* ---------------- DeviceLinks ---------------- */
+
+.nviz-flow-devicelinks {
+  padding: var(--hnv-space-3, 12px);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-object, 10px);
+  background: var(--hnv-color-surface, #ffffff);
+}
+
+.nviz-flow-devicelinks__device-box {
+  fill: var(--hnv-color-page, #f4f6f9);
+  stroke: var(--hnv-color-border, #dce2ea);
+  stroke-width: 1.4;
+}
+
+.nviz-flow-devicelinks__device[data-status="active"] .nviz-flow-devicelinks__device-box {
+  stroke: var(--hnv-color-accent, #315cda);
+  fill: var(--hnv-color-accent-soft, #eef2ff);
+}
+
+.nviz-flow-devicelinks__device[data-status="error"] .nviz-flow-devicelinks__device-box,
+.nviz-flow-devicelinks__device[data-status="failed"] .nviz-flow-devicelinks__device-box {
+  stroke: var(--hnv-color-danger, #b23a45);
+}
+
+.nviz-flow-devicelinks__device-label {
+  fill: var(--hnv-color-ink, #202938);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.nviz-flow-devicelinks__device-status {
+  fill: var(--hnv-color-muted, #5c6879);
+  font-size: 11px;
+}
+
+.nviz-flow-devicelinks__port-dot {
+  fill: var(--hnv-color-surface, #ffffff);
+  stroke: var(--hnv-color-attention, #6f82b7);
+  stroke-width: 1.6;
+}
+
+.nviz-flow-devicelinks__port-label {
+  fill: var(--hnv-color-muted, #5c6879);
+  font-size: 10px;
+}
+
+.nviz-flow-devicelinks__link-path {
+  fill: none;
+  stroke: var(--hnv-color-muted, #5c6879);
+  stroke-width: 1.6;
+}
+
+.nviz-flow-devicelinks__link-arrow {
+  fill: var(--hnv-color-muted, #5c6879);
+}
+
+.nviz-flow-devicelinks__link-label {
+  fill: var(--hnv-color-muted, #5c6879);
+  font-size: 11px;
+}
+
+.nviz-flow-devicelinks__link[data-status="active"] .nviz-flow-devicelinks__link-path {
+  stroke: var(--hnv-color-accent, #315cda);
+  stroke-width: 2.4;
+}
+
+.nviz-flow-devicelinks__link[data-status="active"] .nviz-flow-devicelinks__link-arrow {
+  fill: var(--hnv-color-accent, #315cda);
+}
+
+.nviz-flow-devicelinks__link[data-status="error"] .nviz-flow-devicelinks__link-path,
+.nviz-flow-devicelinks__link[data-status="failed"] .nviz-flow-devicelinks__link-path {
+  stroke: var(--hnv-color-danger, #b23a45);
+}
+
+.nviz-flow-devicelinks__link[data-status="error"] .nviz-flow-devicelinks__link-arrow,
+.nviz-flow-devicelinks__link[data-status="failed"] .nviz-flow-devicelinks__link-arrow {
+  fill: var(--hnv-color-danger, #b23a45);
+}
+
+@media (max-width: 720px) {
+  .nviz-flow-stagetrack,
+  .nviz-flow-packetflow,
+  .nviz-flow-segmentbar,
+  .nviz-flow-devicelinks {
+    padding: var(--hnv-space-2, 8px);
+  }
+
+  .nviz-flow-stagetrack__label {
+    font-size: var(--hnv-font-size-caption, 12px);
+  }
 }
 
 /* ---- source: src/viz/mechanisms.css ---- */
@@ -14528,54 +15119,37 @@
     scroll-behavior: auto !important;
   }
 }
-/* attention：公共层唯一的关注框。保留局部性，不做遮罩或全局变色；
- * 内层细描边负责精确框选，外层柔光负责从静止画面中浮出。 */
+/* attention：公共层唯一的关注框。清楚描边、连续迁移、停稳虚线弱化；
+ * 不铺半透明填充、不加内外辉光、不做循环呼吸，也不靠整体降低透明度削弱框线辨认。 */
 .note-demo-attention {
   --nx-accent: var(--hnv-color-accent, #315cda);
 }
 
 .note-demo-attention .nx-focus__box {
-  border: 2px solid color-mix(in srgb, var(--nx-accent) 78%, white);
-  border-radius: 15px;
-  background: color-mix(in srgb, var(--nx-accent) 4.5%, transparent);
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--nx-accent) 14%, transparent),
-    0 10px 28px color-mix(in srgb, var(--nx-accent) 18%, transparent),
-    inset 0 0 20px color-mix(in srgb, var(--nx-accent) 6%, transparent);
+  border: 2px solid var(--nx-accent);
+  border-radius: 10px;
+  background: transparent;
+  box-shadow: none;
   will-change: left, top, width, height;
   /* weak/restore 只改强调；≤160ms 过渡由这里承载，不新增循环。 */
-  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+  transition: border-color 160ms ease;
 }
 
+/* 公共皮肤不再生成装饰层伪元素（原柔和辉光/呼吸环）。 */
 .note-demo-attention .nx-focus__box::before {
-  content: '';
-  position: absolute;
-  inset: -12px;
-  border-radius: 24px;
-  background: radial-gradient(ellipse at center, transparent 48%, color-mix(in srgb, var(--nx-accent) 8%, transparent) 78%, transparent 100%);
-  box-shadow: 0 0 26px color-mix(in srgb, var(--nx-accent) 20%, transparent);
-  pointer-events: none;
-  animation: note-demo-attention-breathe 3.2s cubic-bezier(.37, 0, .63, 1) infinite;
+  content: none;
 }
 
-/* weak：停稳后的低强调线索。Focus 组件负责虚线/低强调基础视觉；
- * 这里只关闭 attention 专属呼吸光晕，避免弱化后仍有循环动画。 */
-.note-demo-attention[data-nx-emphasis="weak"] .nx-focus__box::before {
-  animation: none;
-  opacity: .55;
+/* weak：保留虚线低强调，但注意力框仍应可辨认（不整体降到看不清）。 */
+.note-demo-attention[data-nx-emphasis="weak"] .nx-focus__box {
+  border-style: dashed;
+  opacity: .8;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .note-demo-attention[data-nx-emphasis="weak"] .nx-focus__box::before { animation: none; }
-}
-
-@keyframes note-demo-attention-breathe {
-  0%, 100% { opacity: .55; transform: scale(.995); }
-  50% { opacity: 1; transform: scale(1.005); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .note-demo-attention .nx-focus__box::before { animation: none; opacity: .8; }
+  .note-demo-attention .nx-focus__box {
+    transition: none;
+  }
 }
 
 /* ---- source: src/demo/recipes.css ---- */
@@ -15092,7 +15666,7 @@ body {
 
   <script>
 /*! note-library full bundle (JavaScript)
- * modules: core, legacy, ui-layout, ui-content, ui-actions, ui-navigation, ui-forms-basic, ui-forms-advanced, ui-overlay, ui-feedback, ui-extended, viz-objects, viz-mechanisms, viz-chart, blocks, demo-runtime, demo-ui
+ * modules: core, legacy, ui-layout, ui-content, ui-actions, ui-navigation, ui-forms-basic, ui-forms-advanced, ui-overlay, ui-feedback, ui-extended, viz-objects, viz-flow, viz-mechanisms, viz-chart, blocks, demo-runtime, demo-ui
  * vendor: marked 18.1.2 + KaTeX 0.19.1 embedded once at ui-content
  * generated-by: scripts/build.mjs; do-not-edit.
  */
@@ -18429,16 +19003,50 @@ body {
     return !!value && typeof value === 'object' && [1, 3, 11].indexOf(value.nodeType) !== -1;
   }
 
-  /* Notice 公开契约：content 为文本或单个 DOM 节点。数组/普通对象不被静默字符串化，
-     直接给出可定位的错误；多节点必须先由宿主包进一个容器元素。 */
-  function noticeContent(value) {
+  function isTextScalar(value) {
+    return typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean';
+  }
+
+  /* Notice 公开契约：content 为文本、单个 DOM 节点，或由这些值组成的数组。
+     数组在写入前整体校验；任一项非法就在替换内容之前抛错，不先破坏旧内容。 */
+  function normalizeNoticeContent(value) {
     if (value == null) return '';
     if (isDomNode(value)) return value;
     if (Array.isArray(value)) {
-      throw new TypeError('NoteUI.Notice: content 只接受文本或单个 DOM 节点；多个节点请先用一个容器元素包裹。');
+      var core = global.NoteCore;
+      if (!core || typeof core.setContent !== 'function') {
+        throw new TypeError('NoteUI.Notice: content 数组需要 core 模块的 NoteCore.setContent。');
+      }
+      var items = [];
+      for (var i = 0; i < value.length; i += 1) {
+        var item = value[i];
+        if (item == null) continue;
+        if (isDomNode(item) || isTextScalar(item)) {
+          items.push(item);
+          continue;
+        }
+        throw new TypeError('NoteUI.Notice: content 数组第 ' + (i + 1) + ' 项不是文本或 DOM 节点；收到 ' +
+          Object.prototype.toString.call(item) + '。');
+      }
+      return items;
     }
-    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return value;
-    throw new TypeError('NoteUI.Notice: content 只接受文本或单个 DOM 节点；收到 ' + Object.prototype.toString.call(value) + '，多节点/对象请先用一个容器元素包裹。');
+    if (isTextScalar(value)) return value;
+    throw new TypeError('NoteUI.Notice: content 必须是文本、单个 DOM 节点，或由两者组成的数组；收到 ' +
+      Object.prototype.toString.call(value) + '。');
+  }
+
+  function applyNoticeContent(target, value) {
+    var nodes = Array.isArray(value);
+    var core = global.NoteCore;
+    if (nodes) {
+      /* normalizeNoticeContent 已确认 core 可用；数组统一走内容插入工具。 */
+      core.setContent(target, value);
+    } else if (core && typeof core.setContent === 'function') {
+      core.setContent(target, value);
+    } else {
+      setContent(target, value); /* 兼容：仅加载 legacy 内部 helper 时支持文本/单节点 */
+    }
+    target.classList.toggle('nui-notice__content--nodes', nodes);
   }
 
   function staticHandle(root, options, render, cleanup) {
@@ -18478,13 +19086,15 @@ body {
     mount: function (host, input) {
       validateHost(host);
       var options = Object.assign({ title: '', content: '', tone: 'neutral' }, input);
-      noticeContent(options.content); /* 挂载时先校验，避免无效输入等到首次 render 才失败 */
+      /* 先整体校验/归一化，再创建 DOM；无效输入不会写入宿主容器。 */
+      options.content = normalizeNoticeContent(options.content);
       var root = element('div', 'nui-notice');
       var marker = element('span', 'nui-notice__marker');
       marker.setAttribute('aria-hidden', 'true');
       var body = element('div', 'nui-notice__body');
       var heading = element('div', 'nui-notice__title');
       var content = element('div', 'nui-notice__content');
+      var alive = true;
       root.setAttribute('role', 'note');
       body.append(heading, content);
       root.append(marker, body);
@@ -18495,11 +19105,27 @@ body {
         marker.textContent = currentTone === 'warning' ? '!' : currentTone === 'accent' ? 'i' : '·';
         heading.textContent = text(options.title);
         heading.hidden = !text(options.title);
-        if (!patch || own(patch, 'content')) setContent(content, noticeContent(options.content));
+        if (!patch || own(patch, 'content')) applyNoticeContent(content, options.content);
       }
       render();
       host.appendChild(root);
-      return staticHandle(root, options, render);
+      return {
+        el: root,
+        update: function (patch) {
+          if (!alive || !patch || typeof patch !== 'object') return;
+          /* 内容校验先于任何状态写入：坏数组/对象不会先改掉标题、语气或旧内容。 */
+          var hasContent = own(patch, 'content');
+          var nextContent = hasContent ? normalizeNoticeContent(patch.content) : null;
+          Object.assign(options, patch);
+          if (hasContent) options.content = nextContent;
+          render(patch);
+        },
+        destroy: function () {
+          if (!alive) return;
+          alive = false;
+          root.remove();
+        }
+      };
     }
   };
 
@@ -24639,6 +25265,34 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 
   /* ------------------------------------------------------------------ *
    * C06 Table
+   *
+   * 兼容边界（旧输入全部保持）：
+   * - columns/rows/rowKey/caption/empty/sort/onSort/emphasis/maxHeight/dense 语义不变；
+   * - getTarget(rowKey) 仍返回当前 <tr>，行键重复时仍只保留最后一个映射；
+   * - 表头排序、稳定排序、空态、滚动区与既有类名/aria 保持不变。
+   *
+   * 本轮新增（设计 6.1）：
+   * - 稳定行/单元身份：<tr data-row-key>、<td data-col-key>；同键/同列局部更新不再重建整表。
+   * - 作者声明状态（不内置课程规则；state/cellStates 是行数据保留字段，不要再用作列键）：
+   *     row.state        string | number | string[] | { type|name, label? } | 上述数组
+   *     row.cellStates   { [columnKey]: 同上 }（按列替换；整行替换后旧状态自然消失）
+   *     也可以不给行数据，改用 options.rowState(row,index,rowKey) 或
+   *     options.cellState(row,column,rowKey,index) 计算状态；声明了对应函数时以函数为准，
+   *     不再读取 row.state / row.cellStates。
+   *   状态渲染为 data-row-state / data-cell-state（空格分隔类型）和
+   *   nui-table__row--state-<type> / nui-table__cell--state-<type> 类；
+   *   只有状态带 label 时才渲染可见的 .nui-table__state 标签，不自动补“关注/变化”文字。
+   *   type 建议用不含空白的单 token；带空白时 data 属性按空格拆分，类名会换成连字符。
+   * - getTarget(query) 扩展：
+   *     getTarget(rowKey)                          -> <tr>（兼容）
+   *     getTarget({ row|rowKey|key: rowKey })      -> <tr>
+   *     getTarget({ row, column|col: columnKey })  -> <td>
+   *     part:'row' 强制返回行；part:'cell' 需要列键。
+   * - getState() 返回当前列/行/排序/强调/状态快照（见实例方法注释；销毁后为 null）。
+   * - 值、强调、状态或排序方向变化只更新对应行/单元；只有列键/顺序/对齐/可排序列
+   *   等结构变化才重建该行单元或表头。行键不变时 <tr> 身份保留；排序只移动现有节点。
+   *   空行（rows 为空）会清除行节点缓存，恢复数据时按新行创建。
+   *   重复行键仍按旧兼容语义：两行都渲染，getTarget 返回最后一个映射。
    * ------------------------------------------------------------------ */
 
   var TABLE_DEFAULTS = {
@@ -24651,8 +25305,11 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     onSort: null,
     emphasis: null,
     maxHeight: null,
-    dense: false
+    dense: false,
+    rowState: null,
+    cellState: null
   };
+  var TABLE_NO_VALUE = {};
   var tableCollator = null;
 
   function sameKey(left, right) {
@@ -24683,7 +25340,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     return value == null ? '' : String(value);
   }
 
-  function TableSort(sort) {
+  function tableSort(sort) {
     if (!sort) return { enabled: false, key: null, direction: null };
     if (sort === true) return { enabled: true, key: null, direction: null };
     if (typeof sort === 'object') {
@@ -24692,6 +25349,83 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       return { enabled: true, key: key, direction: direction };
     }
     return { enabled: true, key: null, direction: null };
+  }
+
+  /* 状态值归一：字符串/数字、数组、{type|name,label} 与它们的数组。无效项忽略。 */
+  function tableStateItems(value) {
+    var items = [];
+    var seen = {};
+    function add(item) {
+      if (item == null || item === false || item === '') return;
+      if (Array.isArray(item)) {
+        item.forEach(add);
+        return;
+      }
+      if (typeof item === 'string' || typeof item === 'number') {
+        var type = text(item).trim();
+        if (!type || own(seen, '$' + type)) return;
+        seen['$' + type] = true;
+        items.push({ type: type, label: '' });
+        return;
+      }
+      if (typeof item === 'object') {
+        var rawType = item.type != null ? item.type : item.name;
+        var typeText = rawType == null ? '' : text(rawType).trim();
+        if (!typeText || own(seen, '$' + typeText)) return;
+        seen['$' + typeText] = true;
+        items.push({ type: typeText, label: item.label == null ? '' : text(item.label).trim() });
+      }
+    }
+    add(value);
+    return items;
+  }
+
+  function tableStateToken(type) {
+    return String(type).trim().replace(/\s+/g, '-');
+  }
+
+  /* 只写 data 属性与服务端声明状态的类；不解释状态含义，也不自动生成文案。 */
+  function setTableState(node, attr, classPrefix, items, previousTokens) {
+    var names = [];
+    var tokens = [];
+    var seen = {};
+    items.forEach(function (item) {
+      if (!own(seen, '$' + item.type)) {
+        seen['$' + item.type] = true;
+        names.push(item.type);
+        var token = tableStateToken(item.type);
+        if (token && tokens.indexOf(token) < 0) tokens.push(token);
+      }
+    });
+    if (names.length) node.setAttribute(attr, names.join(' '));
+    else node.removeAttribute(attr);
+    var previous = Array.isArray(previousTokens) ? previousTokens : [];
+    previous.forEach(function (token) {
+      if (tokens.indexOf(token) < 0) node.classList.remove(classPrefix + token);
+    });
+    tokens.forEach(function (token) {
+      if (previous.indexOf(token) < 0) node.classList.add(classPrefix + token);
+    });
+    return tokens;
+  }
+
+  /* 状态可见标签：仅作者显式给 label 时出现；内容替换会清掉子节点，所以调用方在 setContent 之后调用。 */
+  function setTableStateLabel(host, items, box) {
+    if (!box) return;
+    var labels = [];
+    items.forEach(function (item) {
+      if (item.label && labels.indexOf(item.label) < 0) labels.push(item.label);
+    });
+    var label = labels.join(' ');
+    if (!label) {
+      if (box.el && box.el.parentNode === host) host.removeChild(box.el);
+      return;
+    }
+    if (!box.el) box.el = create('span', 'nui-table__state');
+    if (box.el.textContent !== label) box.el.textContent = label;
+    if (items.length && items[0].type) box.el.setAttribute('data-state', items[0].type);
+    else box.el.removeAttribute('data-state');
+    if (box.el.parentNode !== host) host.appendChild(box.el);
   }
 
   NoteUI.Table = {
@@ -24719,6 +25453,13 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       root.append(scroll, hint);
 
       var rowMap = Object.create(null);
+      var rowRecordByKey = Object.create(null);
+      var rowRecords = Object.create(null);
+      var rowOrder = [];
+      var renderedRows = [];
+      var columnsSignature = '';
+      var headerSignature = null;
+      var headRow = null;
       var sortEnabled = false;
       var activeSort = { key: null, direction: null };
       var captionBase = '数据表格。';
@@ -24729,6 +25470,16 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 
       function currentColumns() {
         return Array.isArray(state.columns) ? state.columns : [];
+      }
+
+      function columnKeyString(column) {
+        return column && column.key != null ? String(column.key) : '';
+      }
+
+      function columnSignature(columns) {
+        return columns.map(function (column) {
+          return columnKeyString(column) + '\u0001' + tableAlignment(column.align);
+        }).join('\u0002');
       }
 
       function createSortRows(columns) {
@@ -24813,22 +25564,203 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         if (!disconnectResize) disconnectResize = C.onResize(scroll, updateScrollState);
       }
 
-      function render() {
-        /* Sorting controls are controlled by state.sort; the active
-           direction is internal after the first user click. */
-        var columns = currentColumns();
-        if (activeSort.key != null) {
-          var hasActive = columns.some(function (column) { return sameKey(column.key, activeSort.key); });
-          if (!hasActive) activeSort = { key: null, direction: null };
+      /* ---------------- 状态来源 ---------------- */
+
+      function rowStatesOf(row, index, key) {
+        var value = null;
+        if (typeof state.rowState === 'function') value = state.rowState(row, index, key);
+        else if (row && own(row, 'state')) value = row.state;
+        return tableStateItems(value);
+      }
+
+      function cellStatesOf(row, column, key, index) {
+        var value = null;
+        if (typeof state.cellState === 'function') value = state.cellState(row, column, key, index);
+        else if (row && row.cellStates && own(row.cellStates, column.key)) value = row.cellStates[column.key];
+        return tableStateItems(value);
+      }
+
+      /* ---------------- 行/单元增量渲染 ---------------- */
+
+      function createCellRecord(column) {
+        var td = create('td', [
+          'nui-table__cell',
+          'nui-table__cell--' + tableAlignment(column.align)
+        ].join(' '));
+        if (column.key != null) td.setAttribute('data-col-key', String(column.key));
+        return {
+          td: td,
+          columnKey: columnKeyString(column),
+          value: TABLE_NO_VALUE,
+          stateTokens: [],
+          stateItems: [],
+          label: { el: null }
+        };
+      }
+
+      function createRowRecord(entry, columns) {
+        var tr = create('tr', 'nui-table__row');
+        var record = {
+          tr: tr,
+          keyString: String(entry.key),
+          row: entry.row,
+          index: entry.index,
+          cells: [],
+          rowStateTokens: [],
+          rowStates: [],
+          rowLabel: { el: null }
+        };
+        tr.setAttribute('data-row-key', record.keyString);
+        columns.forEach(function (column) {
+          var cell = createCellRecord(column);
+          record.cells.push(cell);
+          tr.appendChild(cell.td);
+        });
+        return record;
+      }
+
+      function rebuildRowCells(record, columns) {
+        clear(record.tr);
+        record.cells = columns.map(function (column) {
+          var cell = createCellRecord(column);
+          record.tr.appendChild(cell.td);
+          return cell;
+        });
+        record.rowLabel = { el: null };
+      }
+
+      function updateCell(cell, row, column, key, index) {
+        var alignment = tableAlignment(column.align);
+        ['start', 'center', 'end'].forEach(function (name) {
+          cell.td.classList.toggle('nui-table__cell--' + name, name === alignment);
+        });
+        var emphasisOn = Boolean(state.emphasis && state.emphasis.column != null &&
+          anyKeyMatch(state.emphasis.column, column.key));
+        cell.td.classList.toggle('nui-table__cell--emphasis', emphasisOn);
+        var items = cellStatesOf(row, column, key, index);
+        cell.stateItems = items;
+        cell.stateTokens = setTableState(cell.td, 'data-cell-state', 'nui-table__cell--state-', items, cell.stateTokens);
+        var value = tableCellValue(row, column);
+        if (cell.value === TABLE_NO_VALUE || cell.value !== value) {
+          setContent(cell.td, value);
+          cell.value = value;
         }
-        var rows = createSortRows(columns);
-        var captionText = text(state.caption).trim();
-        captionBase = captionText ? '表格：' + captionText + '。' : '数据表格。';
+        setTableStateLabel(cell.td, items, cell.label);
+      }
 
-        hidden(caption, !captionText);
-        clear(caption);
-        if (captionText) caption.textContent = captionText;
+      function updateRowRecord(record, entry, columns) {
+        record.row = entry.row;
+        record.index = entry.index;
+        record.keyString = String(entry.key);
+        record.tr.setAttribute('data-row-key', record.keyString);
+        var emphasisOn = Boolean(state.emphasis && state.emphasis.row != null &&
+          anyKeyMatch(state.emphasis.row, entry.key));
+        record.tr.classList.toggle('nui-table__row--emphasis', emphasisOn);
+        columns.forEach(function (column, index) {
+          updateCell(record.cells[index], entry.row, column, entry.key, entry.index);
+        });
+        var items = rowStatesOf(entry.row, entry.index, entry.key);
+        record.rowStates = items;
+        record.rowStateTokens = setTableState(record.tr, 'data-row-state', 'nui-table__row--state-', items, record.rowStateTokens);
+        if (record.cells.length) setTableStateLabel(record.cells[0].td, items, record.rowLabel);
+      }
 
+      function removeRowRecord(record) {
+        if (!record) return;
+        if (record.tr.parentNode) record.tr.parentNode.removeChild(record.tr);
+      }
+
+      function nextRowElement(node) {
+        var current = node;
+        while (current) {
+          if (current.nodeType === 1 && current.classList && current.classList.contains('nui-table__row')) return current;
+          current = current.nextSibling;
+        }
+        return null;
+      }
+
+      function renderEmptyRows(columns) {
+        Array.prototype.slice.call(tbody.querySelectorAll('.nui-table__row')).forEach(function (tr) {
+          if (tr.parentNode) tr.parentNode.removeChild(tr);
+        });
+        rowOrder.forEach(function (id) { removeRowRecord(rowRecords[id]); delete rowRecords[id]; });
+        rowOrder = [];
+        renderedRows = [];
+        clear(tbody);
+        var count = columns.length;
+        var emptyRow = create('tr', 'nui-table__empty-row');
+        var emptyCell = create('td', 'nui-table__empty-cell');
+        emptyCell.colSpan = count || 1;
+        setContent(emptyCell, state.empty == null ? '暂无数据' : state.empty);
+        emptyRow.appendChild(emptyCell);
+        tbody.appendChild(emptyRow);
+        rowMap = Object.create(null);
+        rowRecordByKey = Object.create(null);
+      }
+
+      function renderRows(columns) {
+        var entries = createSortRows(columns);
+        if (!columns.length || !entries.length) {
+          renderEmptyRows(columns);
+          return;
+        }
+        /* 空态行先移除；行记录继续复用。 */
+        Array.prototype.slice.call(tbody.querySelectorAll('.nui-table__empty-row')).forEach(function (tr) {
+          if (tr.parentNode) tr.parentNode.removeChild(tr);
+        });
+        var counts = Object.create(null);
+        entries.forEach(function (entry) {
+          var keyString = String(entry.key);
+          counts[keyString] = (counts[keyString] || 0) + 1;
+        });
+        var seen = Object.create(null);
+        var desired = [];
+        entries.forEach(function (entry) {
+          var keyString = String(entry.key);
+          seen[keyString] = (seen[keyString] || 0) + 1;
+          var id = keyString + '\u0000' + (counts[keyString] > 1 ? seen[keyString] : '');
+          desired.push({ entry: entry, id: id, record: null });
+        });
+        var used = Object.create(null);
+        desired.forEach(function (slot) {
+          var record = rowRecords[slot.id];
+          if (!record) {
+            record = createRowRecord(slot.entry, columns);
+            rowRecords[slot.id] = record;
+            tbody.appendChild(record.tr);
+          }
+          updateRowRecord(record, slot.entry, columns);
+          used[slot.id] = true;
+          slot.record = record;
+        });
+        rowOrder.forEach(function (id) {
+          if (used[id]) return;
+          removeRowRecord(rowRecords[id]);
+          delete rowRecords[id];
+        });
+        rowOrder = desired.map(function (slot) { return slot.id; });
+        /* 最小移动：已按目标顺序的节点不重复插入。 */
+        var cursor = nextRowElement(tbody.firstChild);
+        desired.forEach(function (slot) {
+          if (slot.record.tr === cursor) {
+            cursor = nextRowElement(slot.record.tr.nextSibling);
+            return;
+          }
+          tbody.insertBefore(slot.record.tr, cursor);
+        });
+        rowMap = Object.create(null);
+        rowRecordByKey = Object.create(null);
+        renderedRows = desired.map(function (slot) {
+          var record = slot.record;
+          rowMap['$' + record.keyString] = record.tr;
+          rowRecordByKey['$' + record.keyString] = record;
+          return { entry: slot.entry, record: record };
+        });
+      }
+
+      /* ---------------- 表头与整体 ---------------- */
+
+      function renderColgroup(columns) {
         clear(colgroup);
         columns.forEach(function (column) {
           var col = create('col');
@@ -24837,101 +25769,125 @@ if(__exports != exports)module.exports = exports;return module.exports}));
           }
           colgroup.appendChild(col);
         });
+      }
 
-        clear(thead);
-        var headRow = create('tr', 'nui-table__head-row');
+      /* 列键/顺序/对齐/可排序列与排序开关决定表头结构；标签、强调、排序方向可原地更新。 */
+      function headerSignatureOf(columns) {
+        return (sortEnabled ? '1' : '0') + '\u0003' + columns.map(function (column) {
+          return columnKeyString(column) + '\u0001' + tableAlignment(column.align) +
+            '\u0001' + (column.sortable === false ? '0' : '1');
+        }).join('\u0002');
+      }
+
+      function sortButtonLabel(column) {
+        var labelText = column.label && column.label.nodeType
+          ? C.text(column.label.textContent).trim()
+          : C.text(column.label).trim();
+        var sortName = labelText || '此列';
+        var sortHint = '按“' + sortName + '”排序';
+        if (activeSort.key != null && sameKey(activeSort.key, column.key)) {
+          sortHint += activeSort.direction === 'desc'
+            ? '，当前降序，点击取消排序'
+            : '，当前升序，点击切换为降序';
+        }
+        return sortHint;
+      }
+
+      function updateHeaderCell(th, column, index) {
+        var alignment = tableAlignment(column.align);
+        ['start', 'center', 'end'].forEach(function (name) {
+          th.classList.toggle('nui-table__cell--' + name, name === alignment);
+        });
+        if (activeSort.key != null && sameKey(activeSort.key, column.key)) {
+          th.setAttribute('aria-sort', activeSort.direction === 'desc' ? 'descending' : 'ascending');
+        } else {
+          th.removeAttribute('aria-sort');
+        }
+        var emphasisOn = Boolean(state.emphasis && state.emphasis.column != null &&
+          anyKeyMatch(state.emphasis.column, column.key));
+        th.classList.toggle('nui-table__cell--emphasis', emphasisOn);
+        var sortable = sortEnabled && column.sortable !== false;
+        var labelEl = th.querySelector('.nui-table__sort-label');
+        if (labelEl) setContent(labelEl, column.label);
+        if (!sortable) return;
+        var button = th.querySelector('.nui-table__sort');
+        if (!button) return;
+        button.setAttribute('data-col-index', String(index));
+        button.setAttribute('aria-label', sortButtonLabel(column));
+        var indicator = button.querySelector('.nui-table__sort-indicator');
+        if (indicator) {
+          indicator.textContent = activeSort.key != null && sameKey(activeSort.key, column.key)
+            ? (activeSort.direction === 'desc' ? '↓' : '↑')
+            : '↕';
+        }
+      }
+
+      function syncHeader(columns) {
+        if (!headRow) return;
+        var cells = headRow.children;
         columns.forEach(function (column, index) {
-          var alignment = tableAlignment(column.align);
+          if (cells[index]) updateHeaderCell(cells[index], column, index);
+        });
+      }
+
+      function rebuildHeader(columns) {
+        clear(thead);
+        headRow = create('tr', 'nui-table__head-row');
+        columns.forEach(function (column, index) {
           var th = create('th', [
             'nui-table__cell',
             'nui-table__head-cell',
-            'nui-table__cell--' + alignment
+            'nui-table__cell--' + tableAlignment(column.align)
           ].join(' '));
           th.scope = 'col';
-          if (activeSort.key != null && sameKey(activeSort.key, column.key)) {
-            th.setAttribute('aria-sort', activeSort.direction === 'desc' ? 'descending' : 'ascending');
-          }
-          if (state.emphasis && state.emphasis.column != null &&
-              anyKeyMatch(state.emphasis.column, column.key)) {
-            th.classList.add('nui-table__cell--emphasis');
-          }
           var sortable = sortEnabled && column.sortable !== false;
           if (sortable) {
             var button = create('button', 'nui-table__sort');
             button.type = 'button';
-            button.setAttribute('data-col-index', String(index));
             var label = create('span', 'nui-table__sort-label');
-            var labelText = column.label && column.label.nodeType
-              ? C.text(column.label.textContent).trim()
-              : C.text(column.label).trim();
-            setContent(label, column.label);
-            var sortName = labelText || '此列';
-            var sortHint = '按“' + sortName + '”排序';
-            if (activeSort.key != null && sameKey(activeSort.key, column.key)) {
-              sortHint += activeSort.direction === 'desc'
-                ? '，当前降序，点击取消排序'
-                : '，当前升序，点击切换为降序';
-            }
-            button.setAttribute('aria-label', sortHint);
             var indicator = create('span', 'nui-table__sort-indicator');
             indicator.setAttribute('aria-hidden', 'true');
-            indicator.textContent = activeSort.key != null && sameKey(activeSort.key, column.key)
-              ? (activeSort.direction === 'desc' ? '↓' : '↑')
-              : '↕';
             button.append(label, indicator);
             th.appendChild(button);
           } else {
-            var plainLabel = create('span', 'nui-table__sort-label');
-            setContent(plainLabel, column.label);
-            th.appendChild(plainLabel);
+            th.appendChild(create('span', 'nui-table__sort-label'));
           }
+          updateHeaderCell(th, column, index);
           headRow.appendChild(th);
         });
         if (columns.length) thead.appendChild(headRow);
+        headerSignature = headerSignatureOf(columns);
+      }
 
-        clear(tbody);
-        rowMap = Object.create(null);
-        if (!columns.length) {
-          var noColumns = create('tr', 'nui-table__empty-row');
-          var noColumnsCell = create('td', 'nui-table__empty-cell');
-          noColumnsCell.colSpan = 1;
-          setContent(noColumnsCell, state.empty == null ? '暂无数据' : state.empty);
-          noColumns.appendChild(noColumnsCell);
-          tbody.appendChild(noColumns);
-        } else if (!rows.length) {
-          var emptyRow = create('tr', 'nui-table__empty-row');
-          var emptyCell = create('td', 'nui-table__empty-cell');
-          emptyCell.colSpan = columns.length;
-          setContent(emptyCell, state.empty == null ? '暂无数据' : state.empty);
-          emptyRow.appendChild(emptyCell);
-          tbody.appendChild(emptyRow);
+      function render() {
+        var columns = currentColumns();
+        if (activeSort.key != null) {
+          var hasActive = columns.some(function (column) { return sameKey(column.key, activeSort.key); });
+          if (!hasActive) activeSort = { key: null, direction: null };
+        }
+        var signature = columnSignature(columns);
+        var structureChanged = signature !== columnsSignature;
+        columnsSignature = signature;
+
+        var captionText = text(state.caption).trim();
+        captionBase = captionText ? '表格：' + captionText + '。' : '数据表格。';
+        hidden(caption, !captionText);
+        if (caption.textContent !== captionText) caption.textContent = captionText;
+
+        renderColgroup(columns);
+        var nextHeaderSignature = headerSignatureOf(columns);
+        if (headerSignature === null || headerSignature !== nextHeaderSignature) {
+          rebuildHeader(columns);
         } else {
-          rows.forEach(function (entry) {
-            var row = entry.row || {};
-            var keyString = String(entry.key);
-            var tr = create('tr', 'nui-table__row');
-            tr.setAttribute('data-row-key', keyString);
-            if (state.emphasis && state.emphasis.row != null &&
-                anyKeyMatch(state.emphasis.row, entry.key)) {
-              tr.classList.add('nui-table__row--emphasis');
-            }
-            rowMap['$' + keyString] = tr;
-            columns.forEach(function (column) {
-              var alignment = tableAlignment(column.align);
-              var td = create('td', [
-                'nui-table__cell',
-                'nui-table__cell--' + alignment
-              ].join(' '));
-              if (state.emphasis && state.emphasis.column != null &&
-                  anyKeyMatch(state.emphasis.column, column.key)) {
-                td.classList.add('nui-table__cell--emphasis');
-              }
-              setContent(td, tableCellValue(row, column));
-              tr.appendChild(td);
-            });
-            tbody.appendChild(tr);
+          syncHeader(columns);
+        }
+        if (structureChanged) {
+          /* 列键/顺序/对齐变化：仅重建每行的单元，保留行节点身份。 */
+          Object.keys(rowRecords).forEach(function (id) {
+            rebuildRowCells(rowRecords[id], columns);
           });
         }
+        renderRows(columns);
 
         var width = columns.length ? columns.length * 128 : 0;
         table.style.minWidth = width ? Math.min(width, 4096) + 'px' : '';
@@ -24946,7 +25902,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 
       function syncSort(patch) {
         if (patch === null || (patch && own(patch, 'sort'))) {
-          var next = TableSort(state.sort);
+          var next = tableSort(state.sort);
           sortEnabled = next.enabled;
           activeSort = { key: sortEnabled ? next.key : null, direction: sortEnabled ? next.direction : null };
         }
@@ -24998,16 +25954,92 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         syncSort(patch);
         render();
       }, cleanup);
-      /* state.sort defaults false, but TableSort(false) disables controls. */
       render();
       host.appendChild(root);
       bindOverflow();
       updateScrollState();
       measure();
-      instance.getTarget = function (rowKey) {
+
+      function findCell(record, columnKey) {
+        if (!record || !record.cells) return null;
+        var wanted = String(columnKey);
+        for (var i = 0; i < record.cells.length; i += 1) {
+          if (record.cells[i].columnKey === wanted) return record.cells[i].td;
+        }
+        return null;
+      }
+
+      function getTarget(query) {
+        if (!alive || query == null) return null;
+        var rowKey = null;
+        var columnKey = null;
+        var hasColumn = false;
+        if (typeof query === 'object' && query.nodeType == null) {
+          if (own(query, 'row')) rowKey = query.row;
+          else if (own(query, 'rowKey')) rowKey = query.rowKey;
+          else if (own(query, 'key')) rowKey = query.key;
+          if (own(query, 'column')) {
+            columnKey = query.column;
+            hasColumn = true;
+          } else if (own(query, 'col')) {
+            columnKey = query.col;
+            hasColumn = true;
+          }
+          if (query.part === 'row') hasColumn = false;
+          else if (query.part === 'cell' && !hasColumn) return null;
+        } else {
+          rowKey = query;
+        }
+        if (rowKey == null) return null;
+        var keyString = String(rowKey);
+        var tr = rowMap['$' + keyString];
+        if (!tr) return null;
+        if (!hasColumn) return tr;
+        var record = rowRecordByKey['$' + keyString];
+        return record ? findCell(record, columnKey) : null;
+      }
+
+      function copyStateItems(items) {
+        return (items || []).map(function (item) { return { type: item.type, label: item.label }; });
+      }
+
+      function getState() {
         if (!alive) return null;
-        return rowMap['$' + String(rowKey)] || null;
-      };
+        var columns = currentColumns();
+        var rows = renderedRows.map(function (rendered) {
+          var record = rendered.record;
+          return {
+            key: rendered.entry.key,
+            keyString: record.keyString,
+            index: rendered.entry.index,
+            row: rendered.entry.row,
+            states: copyStateItems(record.rowStates),
+            cells: columns.map(function (column, index) {
+              var cell = record.cells[index];
+              var value = cell && cell.value !== TABLE_NO_VALUE ? cell.value : undefined;
+              return {
+                key: column.key,
+                column: column,
+                value: value,
+                states: cell ? copyStateItems(cell.stateItems) : []
+              };
+            })
+          };
+        });
+        return {
+          columns: columns.slice(),
+          rows: rows,
+          sort: { enabled: sortEnabled, key: activeSort.key, direction: activeSort.direction },
+          emphasis: state.emphasis,
+          caption: text(state.caption).trim(),
+          empty: !rows.length,
+          dense: Boolean(state.dense),
+          maxHeight: state.maxHeight
+        };
+      }
+
+      instance.getTarget = getTarget;
+      instance.getState = getState;
       return instance;
     }
   };
@@ -32352,12 +33384,15 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         required: false,
         error: '',
         ariaLabel: '',
-        onChange: null
+        onChange: null,
+        ticks: null,
+        segments: null
       });
       state.range = Boolean(state.range);
       state.showValue = state.showValue !== false;
       state.disabled = Boolean(state.disabled);
       state.required = Boolean(state.required);
+      validateSliderOptions({}); /* 坏 segments/ticks 在创建 DOM 前失败 */
 
       var base = uid('nui-slider');
       var labelId = base + '-label';
@@ -32378,6 +33413,11 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       var highInput = null;
       var singleInput = null;
       var geometry = { min: 0, max: 100, step: 1 };
+      var mapping = null;
+      var tickList = [];
+      var ticksEl = make('div', 'nui-slider__ticks');
+      ticksEl.setAttribute('aria-hidden', 'true');
+      ticksEl.hidden = true;
 
       head = labelRow('nui-slider', state.label, state.required, labelId);
       readout.id = valueId;
@@ -32387,13 +33427,15 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       track.appendChild(fill);
       root.appendChild(head);
       root.appendChild(track);
+      root.appendChild(ticksEl);
       root.appendChild(inputWrap);
       root.appendChild(hintEl);
       root.appendChild(errorEl);
 
-      function readGeometry() {
-        var min = Number(state.min);
-        var max = Number(state.max);
+      function readGeometry(source) {
+        source = source || state;
+        var min = Number(source.min);
+        var max = Number(source.max);
         if (!isFinite(min)) min = 0;
         if (!isFinite(max)) max = min + 100;
         if (max < min) {
@@ -32402,7 +33444,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
           max = swap;
         }
         if (max === min) max = min + 1;
-        var step = Number(state.step);
+        var step = Number(source.step);
         if (!isFinite(step) || step <= 0) step = 1;
         return { min: min, max: max, step: step };
       }
@@ -32419,6 +33461,178 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         var snapped = geometry.min + steps * geometry.step;
         snapped = Math.min(geometry.max, Math.max(geometry.min, snapped));
         return Number(snapped.toFixed(10));
+      }
+
+      /* ---------- 刻度与分段映射（F10 可选增强） ---------- */
+
+      function sliderOptionError(message) {
+        return new TypeError('NoteUI.Slider: ' + message);
+      }
+
+      function segmentNumber(segment, name, index) {
+        var value = Number(segment[name]);
+        if (!isFinite(value)) {
+          throw sliderOptionError('segments[' + index + '].' + name + ' 必须是有限数字。');
+        }
+        return value;
+      }
+
+      /* 分段描述：每个分段给出 valueStart/valueEnd/positionStart/positionEnd，
+         position 使用 0–100 的百分比；分段必须按顺序覆盖 min..max 和 0–100，
+         且 value/position 各自单调不减。线性模式不传 segments。 */
+      function readSegments(raw, geo) {
+        if (raw == null) return null;
+        if (!Array.isArray(raw) || raw.length === 0) {
+          throw sliderOptionError('segments 必须是非空数组。');
+        }
+        var segments = raw.map(function (entry, index) {
+          if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+            throw sliderOptionError('segments[' + index + '] 必须是对象。');
+          }
+          var valueStart = segmentNumber(entry, 'valueStart', index);
+          var valueEnd = segmentNumber(entry, 'valueEnd', index);
+          var positionStart = segmentNumber(entry, 'positionStart', index);
+          var positionEnd = segmentNumber(entry, 'positionEnd', index);
+          if (positionStart < 0 || positionEnd > 100) {
+            throw sliderOptionError('segments[' + index + '] 的 positionStart/positionEnd 必须在 0–100 内。');
+          }
+          if (!(positionEnd > positionStart)) {
+            throw sliderOptionError('segments[' + index + '].positionEnd 必须大于 positionStart（位置段不能为零宽）。');
+          }
+          if (valueEnd < valueStart) {
+            throw sliderOptionError('segments[' + index + '].valueEnd 必须不小于 valueStart。');
+          }
+          return {
+            valueStart: valueStart,
+            valueEnd: valueEnd,
+            positionStart: positionStart,
+            positionEnd: positionEnd
+          };
+        });
+        var epsilon = 1e-9;
+        function near(a, b) { return Math.abs(a - b) <= epsilon; }
+        if (!near(segments[0].valueStart, geo.min)) {
+          throw sliderOptionError('segments[0].valueStart 必须等于 min（' + geo.min + '）。');
+        }
+        if (!near(segments[segments.length - 1].valueEnd, geo.max)) {
+          throw sliderOptionError('最后一段的 valueEnd 必须等于 max（' + geo.max + '）。');
+        }
+        if (!near(segments[0].positionStart, 0)) {
+          throw sliderOptionError('segments[0].positionStart 必须等于 0。');
+        }
+        if (!near(segments[segments.length - 1].positionEnd, 100)) {
+          throw sliderOptionError('最后一段的 positionEnd 必须等于 100。');
+        }
+        for (var i = 1; i < segments.length; i += 1) {
+          if (!near(segments[i].valueStart, segments[i - 1].valueEnd)) {
+            throw sliderOptionError('segments[' + i + '].valueStart 必须等于上一段的 valueEnd（分段在值域上必须连续）。');
+          }
+          if (!near(segments[i].positionStart, segments[i - 1].positionEnd)) {
+            throw sliderOptionError('segments[' + i + '].positionStart 必须等于上一段的 positionEnd（位置必须连续）。');
+          }
+        }
+        return segments;
+      }
+
+      function snapTo(geo, value) {
+        var clamped = Number(value);
+        if (!isFinite(clamped)) clamped = geo.min;
+        clamped = Math.min(geo.max, Math.max(geo.min, clamped));
+        var steps = Math.round((clamped - geo.min) / geo.step);
+        var snapped = geo.min + steps * geo.step;
+        snapped = Math.min(geo.max, Math.max(geo.min, snapped));
+        return Number(snapped.toFixed(10));
+      }
+
+      function buildMapping(geo, rawSegments) {
+        var segments = readSegments(rawSegments, geo);
+        var span = geo.max - geo.min;
+
+        function positionOfValue(value) {
+          var number = Number(value);
+          if (!isFinite(number)) number = geo.min;
+          if (number <= geo.min) return 0;
+          if (number >= geo.max) return 100;
+          if (!segments) return span > 0 ? ((number - geo.min) / span) * 100 : 0;
+          for (var i = 0; i < segments.length; i += 1) {
+            var segment = segments[i];
+            if (number <= segment.valueEnd || i === segments.length - 1) {
+              var valueSpan = segment.valueEnd - segment.valueStart;
+              if (valueSpan <= 0) return segment.positionStart;
+              var t = (number - segment.valueStart) / valueSpan;
+              t = Math.min(1, Math.max(0, t));
+              return segment.positionStart + t * (segment.positionEnd - segment.positionStart);
+            }
+          }
+          return 100;
+        }
+
+        function rawValueAtPosition(position) {
+          var pos = Number(position);
+          if (!isFinite(pos)) pos = 0;
+          pos = Math.min(100, Math.max(0, pos));
+          if (!segments) return geo.min + (pos / 100) * span;
+          for (var i = 0; i < segments.length; i += 1) {
+            var segment = segments[i];
+            if (pos <= segment.positionEnd || i === segments.length - 1) {
+              var positionSpan = segment.positionEnd - segment.positionStart;
+              var t = (pos - segment.positionStart) / positionSpan;
+              t = Math.min(1, Math.max(0, t));
+              return segment.valueStart + t * (segment.valueEnd - segment.valueStart);
+            }
+          }
+          return geo.max;
+        }
+
+        function valueOfPosition(position) {
+          return snapTo(geo, rawValueAtPosition(position));
+        }
+
+        return {
+          segmented: Boolean(segments),
+          segments: segments,
+          positionOfValue: positionOfValue,
+          valueOfPosition: valueOfPosition,
+          /* 原生 input 的位置域是 0–1000 的整数，避免浮点 value 字符串与步进差异。 */
+          inputPositionOfValue: function (value) { return Math.round(positionOfValue(value) * 10); },
+          valueOfInputPosition: function (position) { return valueOfPosition(Number(position) / 10); }
+        };
+      }
+
+      /* ticks：数字或 { value, label }；label 省略时用 format，传空串则只画刻度不写字。 */
+      function normalizeTicks(raw, geo) {
+        if (raw == null) return [];
+        if (!Array.isArray(raw)) throw sliderOptionError('ticks 必须是数组。');
+        var epsilon = 1e-9;
+        return raw.map(function (entry, index) {
+          var value;
+          var label = null;
+          if (typeof entry === 'number') {
+            value = entry;
+          } else if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
+            value = Number(entry.value);
+            if (own(entry, 'label')) label = entry.label == null ? '' : String(entry.label);
+          } else {
+            throw sliderOptionError('ticks[' + index + '] 必须是数字或 { value, label } 对象。');
+          }
+          if (!isFinite(value)) throw sliderOptionError('ticks[' + index + '].value 必须是有限数字。');
+          if (value < geo.min - epsilon || value > geo.max + epsilon) {
+            throw sliderOptionError('ticks[' + index + '].value 超出 [' + geo.min + ', ' + geo.max + ']。');
+          }
+          value = Math.min(geo.max, Math.max(geo.min, value));
+          return { value: value, label: label };
+        }).sort(function (a, b) { return a.value - b.value; });
+      }
+
+      /* 在写入 state/DOM 之前验证一次，保证 update(坏 segments/ticks) 不先破坏旧组件。 */
+      function validateSliderOptions(patch) {
+        var geo = readGeometry({
+          min: own(patch, 'min') ? patch.min : state.min,
+          max: own(patch, 'max') ? patch.max : state.max,
+          step: own(patch, 'step') ? patch.step : state.step
+        });
+        buildMapping(geo, own(patch, 'segments') ? patch.segments : state.segments);
+        normalizeTicks(own(patch, 'ticks') ? patch.ticks : state.ticks, geo);
       }
 
       function normalizeValue(raw) {
@@ -32489,9 +33703,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         head.hidden = !text(state.label) && !state.required && !state.showValue;
         track.hidden = !state.range;
         if (state.range) {
-          var span = geometry.max - geometry.min;
-          var start = span > 0 ? ((state.value[0] - geometry.min) / span) * 100 : 0;
-          var end = span > 0 ? ((state.value[1] - geometry.min) / span) * 100 : 100;
+          var start = mapping ? mapping.positionOfValue(state.value[0]) : 0;
+          var end = mapping ? mapping.positionOfValue(state.value[1]) : 100;
           fill.style.left = start + '%';
           fill.style.width = Math.max(0, end - start) + '%';
         }
@@ -32524,40 +33737,106 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       }
 
       function applyValuesToInputs() {
+        var segmented = Boolean(mapping && mapping.segmented);
         if (state.range) {
-          if (lowInput) lowInput.value = String(state.value[0]);
-          if (highInput) highInput.value = String(state.value[1]);
+          if (lowInput) lowInput.value = String(segmented ? mapping.inputPositionOfValue(state.value[0]) : state.value[0]);
+          if (highInput) highInput.value = String(segmented ? mapping.inputPositionOfValue(state.value[1]) : state.value[1]);
         } else if (singleInput) {
-          singleInput.value = String(state.value);
+          singleInput.value = String(segmented ? mapping.inputPositionOfValue(state.value) : state.value);
         }
+      }
+
+      function commitSingle(next, event) {
+        var previous = state.value;
+        state.value = next;
+        state.error = '';
+        applyValuesToInputs();
+        updateChrome();
+        if (previous !== next) call(state.onChange, next, event);
+      }
+
+      function commitRange(nextLow, nextHigh, event) {
+        var previousLow = state.value[0];
+        var previousHigh = state.value[1];
+        state.value = [nextLow, nextHigh];
+        state.error = '';
+        applyValuesToInputs();
+        updateChrome();
+        if (previousLow !== nextLow || previousHigh !== nextHigh) call(state.onChange, [nextLow, nextHigh], event);
       }
 
       function handleSingleInput(event) {
         if (destroyed || state.disabled) return;
-        var next = snapNumber(singleInput.value);
-        var previous = state.value;
-        state.value = next;
-        if (singleInput.value !== String(next)) singleInput.value = String(next);
-        state.error = '';
-        updateChrome();
-        if (previous !== next) call(state.onChange, next, event);
+        var next = mapping && mapping.segmented
+          ? mapping.valueOfInputPosition(singleInput.value)
+          : snapNumber(singleInput.value);
+        commitSingle(next, event);
       }
 
       function handleRangeInput(event) {
         if (destroyed || state.disabled) return;
         var part = event.target === highInput ? 'high' : 'low';
-        var low = snapNumber(lowInput.value);
-        var high = snapNumber(highInput.value);
-        var previousLow = state.value[0];
-        var previousHigh = state.value[1];
+        var low = mapping && mapping.segmented
+          ? mapping.valueOfInputPosition(lowInput.value)
+          : snapNumber(lowInput.value);
+        var high = mapping && mapping.segmented
+          ? mapping.valueOfInputPosition(highInput.value)
+          : snapNumber(highInput.value);
         if (part === 'low' && low > high) low = high;
         if (part === 'high' && high < low) high = low;
-        state.value = [low, high];
-        lowInput.value = String(low);
-        highInput.value = String(high);
-        state.error = '';
-        updateChrome();
-        if (previousLow !== low || previousHigh !== high) call(state.onChange, [low, high], event);
+        commitRange(low, high, event);
+      }
+
+      /* 分段映射时原生 input 处在位置域；方向键、PageUp/Down、Home/End
+         一律按真实值与 step 计算，再换算回位置写回。线性默认不拦截，
+         保留原生 range 的既有键盘行为。 */
+      function handleKeydown(event) {
+        if (destroyed || state.disabled || !mapping || !mapping.segmented) return;
+        if (event.altKey || event.ctrlKey || event.metaKey || event.isComposing) return;
+        var node = event.target;
+        if (node !== singleInput && node !== lowInput && node !== highInput) return;
+        var key = event.key;
+        var direction = 0;
+        var multiplier = 1;
+        var absolute = null;
+        if (key === 'ArrowRight' || key === 'ArrowUp' || key === 'Right' || key === 'Up') direction = 1;
+        else if (key === 'ArrowLeft' || key === 'ArrowDown' || key === 'Left' || key === 'Down') direction = -1;
+        else if (key === 'PageUp') { direction = 1; multiplier = 10; }
+        else if (key === 'PageDown') { direction = -1; multiplier = 10; }
+        else if (key === 'Home') absolute = geometry.min;
+        else if (key === 'End') absolute = geometry.max;
+        else return;
+        event.preventDefault();
+        if (state.range) {
+          var low = state.value[0];
+          var high = state.value[1];
+          if (node === lowInput) {
+            low = absolute == null
+              ? Math.min(high, snapNumber(low + direction * geometry.step * multiplier))
+              : Math.min(absolute, high);
+          } else {
+            high = absolute == null
+              ? Math.max(low, snapNumber(high + direction * geometry.step * multiplier))
+              : Math.max(absolute, low);
+          }
+          commitRange(low, high, event);
+          return;
+        }
+        var next = absolute == null
+          ? snapNumber(state.value + direction * geometry.step * multiplier)
+          : (absolute === geometry.min ? geometry.min : geometry.max);
+        commitSingle(next, event);
+      }
+
+      function inputDomain() {
+        if (mapping && mapping.segmented) {
+          return { min: '0', max: '1000', step: '1', position: true };
+        }
+        return { min: String(geometry.min), max: String(geometry.max), step: String(geometry.step), position: false };
+      }
+
+      function inputValueOf(value, segmented) {
+        return String(segmented ? mapping.inputPositionOfValue(value) : value);
       }
 
       function buildInputs() {
@@ -32565,21 +33844,23 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         singleInput = null;
         lowInput = null;
         highInput = null;
+        var domain = inputDomain();
+        var segmented = domain.position;
         if (state.range) {
           lowInput = make('input', 'nui-slider__input');
           lowInput.type = 'range';
-          lowInput.min = String(geometry.min);
-          lowInput.max = String(geometry.max);
-          lowInput.step = String(geometry.step);
-          lowInput.value = String(state.value[0]);
+          lowInput.min = domain.min;
+          lowInput.max = domain.max;
+          lowInput.step = domain.step;
+          lowInput.value = inputValueOf(state.value[0], segmented);
           lowInput.dataset.part = 'low';
 
           highInput = make('input', 'nui-slider__input');
           highInput.type = 'range';
-          highInput.min = String(geometry.min);
-          highInput.max = String(geometry.max);
-          highInput.step = String(geometry.step);
-          highInput.value = String(state.value[1]);
+          highInput.min = domain.min;
+          highInput.max = domain.max;
+          highInput.step = domain.step;
+          highInput.value = inputValueOf(state.value[1], segmented);
           highInput.dataset.part = 'high';
 
           var lowRow = make('label', 'nui-slider__part');
@@ -32595,19 +33876,44 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         } else {
           singleInput = make('input', 'nui-slider__input');
           singleInput.type = 'range';
-          singleInput.min = String(geometry.min);
-          singleInput.max = String(geometry.max);
-          singleInput.step = String(geometry.step);
-          singleInput.value = String(state.value);
+          singleInput.min = domain.min;
+          singleInput.max = domain.max;
+          singleInput.step = domain.step;
+          singleInput.value = inputValueOf(state.value, segmented);
           inputWrap.appendChild(singleInput);
         }
         updateChrome();
       }
 
+      function renderTicks() {
+        ticksEl.replaceChildren();
+        if (!tickList.length) {
+          ticksEl.hidden = true;
+          return;
+        }
+        ticksEl.hidden = false;
+        tickList.forEach(function (tick) {
+          var percent = mapping.positionOfValue(tick.value);
+          var node = make('span', 'nui-slider__tick');
+          node.style.left = percent + '%';
+          if (percent <= 0.05) node.classList.add('nui-slider__tick--start');
+          else if (percent >= 99.95) node.classList.add('nui-slider__tick--end');
+          var mark = make('span', 'nui-slider__tick-mark');
+          mark.setAttribute('aria-hidden', 'true');
+          node.appendChild(mark);
+          var labelText = tick.label === null ? formatNumber(tick.value) : tick.label;
+          if (labelText !== '') node.appendChild(make('span', 'nui-slider__tick-label', labelText));
+          ticksEl.appendChild(node);
+        });
+      }
+
       function rebuild() {
         geometry = readGeometry();
+        mapping = buildMapping(geometry, state.segments);
+        tickList = normalizeTicks(state.ticks, geometry);
         state.value = normalizeValue(state.value);
         buildInputs();
+        renderTicks();
       }
 
       function handleChange(event) {
@@ -32616,11 +33922,13 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       }
 
       events.on('input', handleChange);
+      events.on('keydown', handleKeydown);
       rebuild();
       host.appendChild(root);
 
       var instance = component(root, state, function (patch) {
-        var geometryChanged = own(patch, 'min') || own(patch, 'max') || own(patch, 'step') || own(patch, 'range');
+        var geometryChanged = own(patch, 'min') || own(patch, 'max') || own(patch, 'step') ||
+          own(patch, 'range') || own(patch, 'segments') || own(patch, 'ticks') || own(patch, 'format');
         if (own(patch, 'showValue')) state.showValue = state.showValue !== false;
         if (own(patch, 'disabled')) state.disabled = Boolean(state.disabled);
         if (own(patch, 'required')) state.required = Boolean(state.required);
@@ -32642,6 +33950,14 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       }, function () {
         events.clear();
       });
+
+      var baseUpdate = instance.update;
+      instance.update = function (patch) {
+        if (!patch || typeof patch !== 'object' || instance.destroyed) return;
+        /* 先验证再合并：坏 segments/ticks 或与新 min/max 冲突时保持旧状态与旧 DOM。 */
+        validateSliderOptions(patch);
+        baseUpdate(patch);
+      };
 
       instance.getValue = function () {
         return state.range ? state.value.slice() : state.value;
@@ -42335,7 +43651,25 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 /*! NoteViz objects D01-D06 — D03 Graph.
  *  Classic script; load after src/viz/objects.js (internal shared helpers).
  *  Public entry: NoteViz.Graph.
- *  No network, no eval, no HTML parsing. */
+ *  No network, no eval, no HTML parsing.
+ *
+ *  Edge identity and targets (D03 extension):
+ *    edges[].id 可选稳定 ID；缺省按 from -> to 生成，平行同向边为 "from -> to #2"…
+ *    （与 NoteBlocks.ProcessFlow 的 edgeIds 解析约定一致；重复显式 id 也补后缀）。
+ *    edgeFocus / edgeChanged 是独立的边状态选项，节点 focus / changed 仍是节点专用。
+ *    边 <g>、path 在 update() 时按稳定 id 复用；节点 getTarget 不解析边 ID。
+ *
+ *  查询 API（实例方法）：
+ *    getEdgeTarget(id) -> <g> | null
+ *    getEdgePath(id) -> <path> | null
+ *    getEdgeLength(id) -> number(局部用户单位) | null
+ *    getEdgePoint(id, ratio) -> {x,y} 局部坐标 | null
+ *    getEdgePointAt(id, distance) -> {x,y,distance,ratio} 局部坐标 | null
+ *    getEdgePointClient(id, ratio) -> {x,y} DOM client 坐标（路径 screen CTM 转换）| null
+ *    getEdgeEndpoints(id) -> {start:{x,y}, end:{x,y}} 局部坐标 | null
+ *    getEdgeInfo(id) -> {id,from,to,label,directed,mark,length,endpoints} | null
+ *    局部坐标与 viewBox/节点坐标同一空间；边是作者声明的 from/to 直连锚点，
+ *    不做自动路由，查询返回路径真实几何而不是“元素中心连线”的语义。 */
 (function (global) {
   'use strict';
 
@@ -42363,6 +43697,10 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   var wrapText = shared.wrapText;
   var closestInside = shared.closestInside;
   var toIdSet = shared.toIdSet;
+
+  function removeNode(node) {
+    if (node && node.parentNode) node.parentNode.removeChild(node);
+  }
 
   /* =====================================================================
    * D03 — Graph
@@ -42392,14 +43730,36 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     var byId = new Map();
     nodes.forEach(function (node) { byId.set(node.id, node); });
     var list = Array.isArray(input) ? input : [];
+    var routeSeen = new Map();
+    var used = new Set();
     return list.map(function (edge) {
       if (!edge || typeof edge !== 'object') return null;
       var from = edge.from == null ? '' : text(edge.from);
       var to = edge.to == null ? '' : text(edge.to);
       if (!byId.has(from) || !byId.has(to)) return null;
+      var route = from + ' -> ' + to;
+      var routeCount = routeSeen.get(route) || 0;
+      routeSeen.set(route, routeCount + 1);
+      var base = edge.id == null ? '' : text(edge.id);
+      if (!base) {
+        /* 缺省稳定键与 NoteBlocks.ProcessFlow 的 edgeIds 解析约定一致：
+           route 第一次出现为 "from -> to"，之后为 "from -> to #2"…；
+           显式 id 的边也占用 route 序号。 */
+        base = routeCount === 0 ? route : route + ' #' + (routeCount + 1);
+      }
+      /* 作者提供重复 id 时也补后缀，保证每条边的 DOM 目标/路径句柄唯一。 */
+      var id = base;
+      var suffix = 1;
+      while (used.has(id)) {
+        suffix += 1;
+        id = base + ' #' + suffix;
+      }
+      used.add(id);
       return {
+        id: id,
         from: from,
         to: to,
+        route: route,
         label: edge.label == null ? '' : text(edge.label),
         directed: edge.directed === true
       };
@@ -42478,6 +43838,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       var scroll = null;
       var svgBag = null;
       var nodeEls = new Map();
+      var edgeEls = new Map();     // 边稳定 id → <g>，更新时复用
+      var edgeState = new Map();   // 当前渲染边记录：path/group/端点/mark，供查询 API
       var markerId = uniqueId('nviz-graph-arrow');
       var titleId = uniqueId('nviz-graph-title');
       var descId = uniqueId('nviz-graph-desc');
@@ -42519,6 +43881,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         height: null,
         focus: null,
         changed: null,
+        edgeFocus: null,
+        edgeChanged: null,
         label: '节点关系图',
         onSelect: null
       }, options || {});
@@ -42730,12 +44094,78 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         parent.appendChild(label);
       }
 
+      /* 边 <g> 在更新时复用：title/path/label 容器各自保持同一节点；
+         path 始终是 <path>，可直接用原生 getTotalLength/getPointAtLength 查询。 */
+      function ensureEdgeStructure(group) {
+        var title = null;
+        var path = null;
+        var labelWrap = null;
+        var child = group.firstChild;
+        while (child) {
+          if (child.nodeType === 1) {
+            if (child.tagName && child.tagName.toLowerCase() === 'title') title = child;
+            else if (child.getAttribute('class') === 'nviz-graph__edgeline') path = child;
+            else if (child.getAttribute('class') === 'nviz-graph__edgelabelwrap') labelWrap = child;
+          }
+          child = child.nextSibling;
+        }
+        if (!title) {
+          title = svgEl('title');
+          group.insertBefore(title, group.firstChild);
+        }
+        if (path && path.tagName && path.tagName.toLowerCase() !== 'path') {
+          removeNode(path);
+          path = null;
+        }
+        if (!path) {
+          path = svgEl('path', { class: 'nviz-graph__edgeline' });
+          group.appendChild(path);
+        }
+        if (!labelWrap) {
+          labelWrap = svgEl('g', { class: 'nviz-graph__edgelabelwrap' });
+          group.appendChild(labelWrap);
+        }
+        return { title: title, path: path, labelWrap: labelWrap };
+      }
+
+      /* 路径在 SVG 局部坐标（与节点 box 同在边/节点层的用户坐标系）生成；
+         自环沿用固定小回环，普通边为直线。端点/标签位置同时缓存供查询。 */
+      function edgePathGeometry(edge, from, to) {
+        if (edge.from === edge.to) {
+          var loopStart = { x: from.cx + from.width / 2, y: from.cy - 10 };
+          var loopEnd = { x: to.cx + to.width / 2, y: to.cy + 10 };
+          return {
+            d: 'M ' + loopStart.x + ' ' + loopStart.y +
+              ' C ' + (loopStart.x + 52) + ' ' + (loopStart.y - 38) + ' ' +
+              (loopEnd.x + 52) + ' ' + (loopEnd.y + 38) + ' ' +
+              loopEnd.x + ' ' + loopEnd.y,
+            start: loopStart,
+            end: loopEnd,
+            labelX: loopStart.x + 56,
+            labelY: from.cy
+          };
+        }
+        var dx = to.cx - from.cx;
+        var dy = to.cy - from.cy;
+        var start = rectEdgePoint(from.cx, from.cy, from.width, from.height, dx, dy);
+        var end = rectEdgePoint(to.cx, to.cy, to.width, to.height, -dx, -dy);
+        return {
+          d: 'M ' + start.x + ' ' + start.y + ' L ' + end.x + ' ' + end.y,
+          start: start,
+          end: end,
+          labelX: (start.x + end.x) / 2,
+          labelY: (start.y + end.y) / 2 - 7
+        };
+      }
+
       function render(patch) {
         var nodes = normalizeGraphNodes(model.nodes);
         var edges = normalizeGraphEdges(model.edges, nodes);
         var label = text(model.label) || '节点关系图';
         var focus = toIdSet(model.focus);
         var changed = toIdSet(model.changed);
+        var edgeFocus = toIdSet(model.edgeFocus);
+        var edgeChanged = toIdSet(model.edgeChanged);
         var interactive = typeof model.onSelect === 'function';
         var positions = new Map();
         var oldNodeEls = nodeEls;
@@ -42745,7 +44175,6 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         root.setAttribute('aria-label', label);
         root.setAttribute('data-layout', model.layout === 'manual' ? 'manual' : 'layered');
         viewport.setAttribute('aria-label', label + '，可滚动画布');
-        edgeLayer.replaceChildren();
         nodeLayer.replaceChildren();
         setText(svgTitle, label);
         setText(svgDesc, '');
@@ -42758,6 +44187,17 @@ if(__exports != exports)module.exports = exports;return module.exports}));
           groupMap.get(node.group).push(node);
         });
 
+        /* 先清理本次不存在的边，空节点早退时旧边目标也会立即失效。 */
+        var nextEdgeIds = new Set();
+        edges.forEach(function (edge) { nextEdgeIds.add(edge.id); });
+        edgeEls.forEach(function (group, id) {
+          if (!nextEdgeIds.has(id)) {
+            removeNode(group);
+            edgeEls.delete(id);
+          }
+        });
+        edgeState.clear();
+
         if (!nodes.length) {
           viewport.hidden = true;
           legend.hidden = true;
@@ -42765,6 +44205,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
           note.hidden = true;
           empty.hidden = false;
           nodeEls = newNodeEls;
+          edgeState.clear();
           if (scroll) scroll.schedule();
           return;
         }
@@ -42798,41 +44239,36 @@ if(__exports != exports)module.exports = exports;return module.exports}));
           var from = positions.get(edge.from);
           var to = positions.get(edge.to);
           if (!from || !to) return;
-          var group = svgEl('g', { class: 'nviz-graph__edge' });
-          var edgeTitle = svgEl('title');
-          edgeTitle.textContent = (edge.directed ? '方向 ' : '') + edge.from + ' 到 ' + edge.to +
-            (edge.label ? '：' + edge.label : '');
-          group.appendChild(edgeTitle);
-          if (edge.from === edge.to) {
-            var loopStart = { x: from.cx + from.width / 2, y: from.cy - 10 };
-            var loopEnd = { x: to.cx + to.width / 2, y: to.cy + 10 };
-            var loop = svgEl('path', {
-              class: 'nviz-graph__edgeline',
-              d: 'M ' + loopStart.x + ' ' + loopStart.y +
-                ' C ' + (loopStart.x + 52) + ' ' + (loopStart.y - 38) + ' ' +
-                (loopEnd.x + 52) + ' ' + (loopEnd.y + 38) + ' ' +
-                loopEnd.x + ' ' + loopEnd.y
-            });
-            if (edge.directed) loop.setAttribute('marker-end', 'url(#' + markerId + ')');
-            group.appendChild(loop);
-            edgeLabel(group, edge, loopStart.x + 56, from.cy);
-          } else {
-            var dx = to.cx - from.cx;
-            var dy = to.cy - from.cy;
-            var start = rectEdgePoint(from.cx, from.cy, from.width, from.height, dx, dy);
-            var end = rectEdgePoint(to.cx, to.cy, to.width, to.height, -dx, -dy);
-            var line = svgEl('line', {
-              class: 'nviz-graph__edgeline',
-              x1: String(start.x),
-              y1: String(start.y),
-              x2: String(end.x),
-              y2: String(end.y)
-            });
-            if (edge.directed) line.setAttribute('marker-end', 'url(#' + markerId + ')');
-            group.appendChild(line);
-            edgeLabel(group, edge, (start.x + end.x) / 2, (start.y + end.y) / 2 - 7);
-          }
+          var mark = markOf(edgeFocus.has(edge.id), edgeChanged.has(edge.id));
+          var geometry = edgePathGeometry(edge, from, to);
+          var group = edgeEls.get(edge.id) || svgEl('g');
+          var parts = ensureEdgeStructure(group);
+          group.setAttribute('class', 'nviz-graph__edge');
+          group.setAttribute('data-edge-id', edge.id);
+          group.setAttribute('data-from', edge.from);
+          group.setAttribute('data-to', edge.to);
+          group.setAttribute('data-mark', mark || 'none');
+          parts.title.textContent = (edge.directed ? '方向 ' : '') + edge.from + ' 到 ' + edge.to +
+            (edge.label ? '：' + edge.label : '') + markAria(mark);
+          parts.path.setAttribute('d', geometry.d);
+          if (edge.directed) parts.path.setAttribute('marker-end', 'url(#' + markerId + ')');
+          else parts.path.removeAttribute('marker-end');
+          parts.labelWrap.replaceChildren();
+          if (edge.label) edgeLabel(parts.labelWrap, edge, geometry.labelX, geometry.labelY);
           edgeLayer.appendChild(group);
+          edgeEls.set(edge.id, group);
+          edgeState.set(edge.id, {
+            id: edge.id,
+            from: edge.from,
+            to: edge.to,
+            label: edge.label,
+            directed: edge.directed,
+            mark: mark,
+            group: group,
+            path: parts.path,
+            start: { x: geometry.start.x, y: geometry.start.y },
+            end: { x: geometry.end.x, y: geometry.end.y }
+          });
         });
 
         var focusLabels = [];
@@ -42892,6 +44328,112 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       instance.getTarget = function (id) {
         if (instance.destroyed || id == null) return null;
         return nodeEls.get(String(id)) || null;
+      };
+
+      /* ---------- 边目标与路径查询 ----------
+       * 边 id：作者提供 edge.id；缺省为 "from -> to"，平行同向边追加 " #2"…
+       * 所有点/端点坐标均为 SVG 局部用户坐标（与 viewBox 同坐标系）；
+       * getEdgePointClient 用路径的 screen CTM 转成 DOM 视口 client 坐标。
+       * 边查询与节点 getTarget 分开：getTarget 永远只返回节点 <g>。 */
+      function liveEdge(id) {
+        if (instance.destroyed || id == null) return null;
+        var record = edgeState.get(String(id));
+        if (!record || !record.path) return null;
+        return record;
+      }
+
+      function edgeLengthOf(record) {
+        var length = 0;
+        try { length = record.path.getTotalLength(); } catch (err) { length = 0; }
+        return isFinite(length) ? length : 0;
+      }
+
+      function edgePointAtRatio(record, ratio) {
+        var value = Number(ratio);
+        if (!isFinite(value)) value = 0;
+        value = Math.min(1, Math.max(0, value));
+        var length = edgeLengthOf(record);
+        if (!length) return { x: record.start.x, y: record.start.y, ratio: value };
+        var point = record.path.getPointAtLength(length * value);
+        return { x: point.x, y: point.y, ratio: value };
+      }
+
+      function edgePointToClient(record, point) {
+        var ctm = null;
+        try { ctm = record.path.getScreenCTM(); } catch (err) { ctm = null; }
+        if (ctm) {
+          return {
+            x: ctm.a * point.x + ctm.c * point.y + ctm.e,
+            y: ctm.b * point.x + ctm.d * point.y + ctm.f
+          };
+        }
+        var rect = svg.getBoundingClientRect();
+        var view = svg.viewBox && svg.viewBox.baseVal;
+        if (!view || !view.width || !view.height) {
+          return { x: rect.left + point.x, y: rect.top + point.y };
+        }
+        return {
+          x: rect.left + (point.x - view.x) * rect.width / view.width,
+          y: rect.top + (point.y - view.y) * rect.height / view.height
+        };
+      }
+
+      instance.getEdgeTarget = function (id) {
+        var record = liveEdge(id);
+        return record ? record.group : null;
+      };
+      instance.getEdgePath = function (id) {
+        var record = liveEdge(id);
+        return record ? record.path : null;
+      };
+      instance.getEdgeLength = function (id) {
+        var record = liveEdge(id);
+        return record ? edgeLengthOf(record) : null;
+      };
+      instance.getEdgePoint = function (id, ratio) {
+        var record = liveEdge(id);
+        if (!record) return null;
+        var point = edgePointAtRatio(record, ratio);
+        return { x: point.x, y: point.y };
+      };
+      instance.getEdgePointClient = function (id, ratio) {
+        var record = liveEdge(id);
+        if (!record) return null;
+        var point = edgePointAtRatio(record, ratio);
+        return edgePointToClient(record, point);
+      };
+      instance.getEdgePointAt = function (id, distance) {
+        var record = liveEdge(id);
+        if (!record) return null;
+        var length = edgeLengthOf(record);
+        var offset = Number(distance);
+        if (!isFinite(offset)) offset = 0;
+        offset = Math.min(length, Math.max(0, offset));
+        if (!length) return { x: record.start.x, y: record.start.y, distance: 0, ratio: 0 };
+        var point = record.path.getPointAtLength(offset);
+        return { x: point.x, y: point.y, distance: offset, ratio: offset / length };
+      };
+      instance.getEdgeEndpoints = function (id) {
+        var record = liveEdge(id);
+        if (!record) return null;
+        return {
+          start: { x: record.start.x, y: record.start.y },
+          end: { x: record.end.x, y: record.end.y }
+        };
+      };
+      instance.getEdgeInfo = function (id) {
+        var record = liveEdge(id);
+        if (!record) return null;
+        return {
+          id: record.id,
+          from: record.from,
+          to: record.to,
+          label: record.label,
+          directed: record.directed,
+          mark: record.mark || 'none',
+          length: edgeLengthOf(record),
+          endpoints: instance.getEdgeEndpoints(id)
+        };
       };
       return instance;
     }
@@ -43739,6 +45281,1078 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       };
       return instance;
     }
+  };
+})(window);
+
+/* ---- source: src/viz/flow.js ---- */
+/*!
+ * NoteViz Flow — independent flow graphics kit (StageTrack / PacketFlow / SegmentBar / DeviceLinks).
+ * Scope: window.NoteViz.Flow only. Does not depend on any other NoteViz component, course rule,
+ * timer/player or third-party library. Optional dependency: window.NoteCore.component for
+ * update/destroy lifecycle (falls back to a local implementation when NoteCore is absent).
+ * Public contract (all four): mount(host, options) -> { el, update(patch), destroy(), getTarget(id) }.
+ * DeviceLinks additionally exposes getLinkPath(id) and pointAt(id, ratio).
+ * CSS scope: .nviz-flow-* in src/viz/flow.css.
+ * Stable IDs: every input id is preserved on data-id; update(patch) reconciles by id and reuses DOM.
+ * No network, no eval, no HTML parsing, no automatic playback.
+ */
+(function (global) {
+  'use strict';
+
+  var NoteViz = global.NoteViz = global.NoteViz || {};
+  var Core = global.NoteCore || null;
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+  var VERSION = '1.0.0';
+
+  /* ---------------- shared helpers ---------------- */
+
+  function text(value) {
+    return value == null ? '' : String(value);
+  }
+
+  function own(object, key) {
+    return object != null && Object.prototype.hasOwnProperty.call(object, key);
+  }
+
+  function array(value) {
+    return Array.isArray(value) ? value : [];
+  }
+
+  function isNode(value) {
+    return !!value && (value.nodeType === 1 || value.nodeType === 3 || value.nodeType === 11);
+  }
+
+  function el(tag, className, content) {
+    var node = document.createElement(tag);
+    if (className) node.className = className;
+    if (content != null) node.textContent = text(content);
+    return node;
+  }
+
+  function svgEl(tag, attrs) {
+    var node = document.createElementNS(SVG_NS, tag);
+    if (attrs) {
+      Object.keys(attrs).forEach(function (name) {
+        if (attrs[name] != null) node.setAttribute(name, String(attrs[name]));
+      });
+    }
+    return node;
+  }
+
+  function setAttrs(node, attrs) {
+    if (!node || !attrs) return node;
+    Object.keys(attrs).forEach(function (name) {
+      if (attrs[name] == null) node.removeAttribute(name);
+      else node.setAttribute(name, String(attrs[name]));
+    });
+    return node;
+  }
+
+  function setText(node, value) {
+    if (node) node.textContent = text(value);
+  }
+
+  function clear(node) {
+    if (!node) return node;
+    if (typeof node.replaceChildren === 'function') node.replaceChildren();
+    else node.textContent = '';
+    return node;
+  }
+
+  function numberOr(value, fallback) {
+    var number = typeof value === 'number' ? value : Number(value);
+    return isFinite(number) ? number : fallback;
+  }
+
+  function clamp(value, low, high) {
+    return Math.min(high, Math.max(low, value));
+  }
+
+  function textOrEmpty(value) {
+    return value == null ? '' : String(value).trim();
+  }
+
+  var uidCount = 0;
+  function uniqueId(prefix) {
+    var stem = prefix || 'nviz-flow';
+    var id;
+    do {
+      uidCount += 1;
+      id = stem + '-' + uidCount;
+    } while (document.getElementById(id));
+    return id;
+  }
+
+  function validateHost(host, name) {
+    if (!host || host.nodeType !== 1 || typeof host.appendChild !== 'function') {
+      throw new TypeError(name + ' 需要一个可追加的元素作为宿主。');
+    }
+  }
+
+  function defaultId(prefix, index) {
+    return prefix + '-' + (index + 1);
+  }
+
+  /* Local lifecycle fallback; NoteCore.component has the same contract when loaded. */
+  function component(root, model, render, cleanup) {
+    if (Core && typeof Core.component === 'function') {
+      return Core.component(root, model, render, cleanup);
+    }
+    var destroyed = false;
+    var instance = { el: root };
+    Object.defineProperty(instance, 'destroyed', { enumerable: true, get: function () { return destroyed; } });
+    instance.update = function (patch) {
+      if (destroyed || !patch || typeof patch !== 'object') return;
+      Object.keys(patch).forEach(function (key) {
+        if (own(patch, key)) model[key] = patch[key];
+      });
+      render(patch);
+    };
+    instance.destroy = function () {
+      if (destroyed) return;
+      destroyed = true;
+      try {
+        if (typeof cleanup === 'function') cleanup();
+      } finally {
+        if (root.parentNode) root.parentNode.removeChild(root);
+      }
+    };
+    return instance;
+  }
+
+  function makeSvgAccessible(svg, titleText, descText, prefix) {
+    var titleId = uniqueId((prefix || 'nviz-flow') + '-title');
+    var descId = uniqueId((prefix || 'nviz-flow') + '-desc');
+    var title = svgEl('title');
+    var desc = svgEl('desc');
+    title.id = titleId;
+    desc.id = descId;
+    title.textContent = text(titleText);
+    desc.textContent = text(descText);
+    svg.insertBefore(desc, svg.firstChild);
+    svg.insertBefore(title, svg.firstChild);
+    svg.setAttribute('aria-labelledby', titleId + ' ' + descId);
+    svg.setAttribute('role', 'img');
+    svg.setAttribute('focusable', 'false');
+    return { title: title, desc: desc, titleId: titleId, descId: descId };
+  }
+
+  function setViewportMessage(node, message) {
+    if (!node) return;
+    if (textOrEmpty(message)) {
+      node.textContent = text(message);
+      node.hidden = false;
+    } else {
+      node.textContent = '';
+      node.hidden = true;
+    }
+  }
+
+  function normalizeStatus(value) {
+    return textOrEmpty(value).toLowerCase().replace(/\s+/g, '-');
+  }
+
+  function statusList(value) {
+    var set = Object.create(null);
+    var list = Array.isArray(value) ? value : (value == null ? [] : [value]);
+    list.forEach(function (item) {
+      var key = textOrEmpty(item);
+      if (key) set[key] = true;
+    });
+    return set;
+  }
+
+  /* ---------------- StageTrack ---------------- */
+
+  var STAGE_STATUS_LABELS = {
+    pending: '待处理',
+    current: '当前',
+    done: '完成',
+    skipped: '跳过',
+    failed: '失败'
+  };
+
+  var StageTrack = {};
+  StageTrack.version = VERSION;
+  StageTrack.mount = function (host, options) {
+    validateHost(host, 'NoteViz.Flow.StageTrack');
+    var root = el('div', 'nviz-flow-stagetrack');
+    root.setAttribute('role', 'group');
+    var list = el('ol', 'nviz-flow-stagetrack__list');
+    var bypasses = el('div', 'nviz-flow-stagetrack__bypasses');
+    var note = el('p', 'nviz-flow-stagetrack__note');
+    note.hidden = true;
+    root.append(list, bypasses, note);
+    host.appendChild(root);
+
+    var model = Object.assign({
+      stages: [],
+      current: null,
+      target: null,
+      skipped: null,
+      failed: null,
+      bypass: [],
+      statusLabels: null,
+      label: '阶段轨'
+    }, options || {});
+
+    var stageNodes = new Map();
+    var bypassNodes = new Map();
+
+    function statusLabels() {
+      var labels = Object.assign({}, STAGE_STATUS_LABELS);
+      if (model.statusLabels && typeof model.statusLabels === 'object') {
+        Object.keys(model.statusLabels).forEach(function (key) {
+          var value = textOrEmpty(model.statusLabels[key]);
+          if (value) labels[normalizeStatus(key)] = value;
+        });
+      }
+      return labels;
+    }
+
+    function normalizeStages() {
+      return array(model.stages).map(function (source, index) {
+        var item = source && typeof source === 'object' && !isNode(source) ? source : {};
+        var id = textOrEmpty(item.id) || defaultId('stage', index);
+        var label = item.label == null ? id : text(item.label);
+        var status = textOrEmpty(item.status);
+        return { id: id, label: label, status: status || null, raw: item };
+      });
+    }
+
+    function normalizeBypasses(stageIndexById) {
+      var valid = [];
+      var invalid = 0;
+      array(model.bypass).forEach(function (source, index) {
+        var item = source && typeof source === 'object' ? source : {};
+        var from = textOrEmpty(item.from);
+        var to = textOrEmpty(item.to);
+        if (!from || !to || !own(stageIndexById, from) || !own(stageIndexById, to)) {
+          invalid += 1;
+          return;
+        }
+        valid.push({
+          from: from,
+          to: to,
+          label: item.label == null ? '' : text(item.label),
+          key: 'bypass:' + from + '>' + to,
+          index: index
+        });
+      });
+      return { valid: valid, invalid: invalid };
+    }
+
+    function deriveStatus(stage, index, currentIndex, skippedSet, failedSet) {
+      if (stage.status) return normalizeStatus(stage.status);
+      if (failedSet[stage.id]) return 'failed';
+      if (skippedSet[stage.id]) return 'skipped';
+      if (currentIndex >= 0 && index === currentIndex) return 'current';
+      if (currentIndex >= 0 && index < currentIndex) return 'done';
+      return 'pending';
+    }
+
+    function render() {
+      root.setAttribute('aria-label', textOrEmpty(model.label) || '阶段轨');
+      var labels = statusLabels();
+      var stages = normalizeStages();
+      var stageIndexById = Object.create(null);
+      stages.forEach(function (stage, index) { stageIndexById[stage.id] = index; });
+      var currentId = textOrEmpty(model.current);
+      var currentIndex = own(stageIndexById, currentId) ? stageIndexById[currentId] : -1;
+      var targetId = textOrEmpty(model.target);
+      var skippedSet = statusList(model.skipped);
+      var failedSet = statusList(model.failed);
+      list.style.setProperty('--nviz-flow-stagetrack-count', String(Math.max(1, stages.length)));
+
+      var seen = Object.create(null);
+      stages.forEach(function (stage, index) {
+        var node = stageNodes.get(stage.id);
+        if (!node) {
+          node = el('li', 'nviz-flow-stagetrack__stage');
+          node.setAttribute('data-id', stage.id);
+          node.appendChild(el('span', 'nviz-flow-stagetrack__node'));
+          node.appendChild(el('span', 'nviz-flow-stagetrack__label'));
+          node.appendChild(el('span', 'nviz-flow-stagetrack__status'));
+          node.appendChild(el('span', 'nviz-flow-stagetrack__badge'));
+          stageNodes.set(stage.id, node);
+        }
+        seen[stage.id] = true;
+        var status = deriveStatus(stage, index, currentIndex, skippedSet, failedSet);
+        node.setAttribute('data-status', status);
+        node.setAttribute('data-index', String(index));
+        if (status === 'current') node.setAttribute('aria-current', 'step');
+        else node.removeAttribute('aria-current');
+        if (targetId && stage.id === targetId) node.setAttribute('data-target', 'true');
+        else node.removeAttribute('data-target');
+        setText(node.querySelector('.nviz-flow-stagetrack__label'), stage.label || stage.id);
+        setText(node.querySelector('.nviz-flow-stagetrack__status'), labels[status] || status);
+        var badge = node.querySelector('.nviz-flow-stagetrack__badge');
+        var isTarget = targetId && stage.id === targetId;
+        badge.textContent = isTarget ? '目标' : '';
+        badge.hidden = !isTarget;
+        if (node.parentNode !== list) list.appendChild(node);
+      });
+      Array.from(stageNodes.keys()).forEach(function (id) {
+        if (seen[id]) return;
+        var node = stageNodes.get(id);
+        if (node && node.parentNode) node.parentNode.removeChild(node);
+        stageNodes.delete(id);
+      });
+      /* Keep visual order equal to the host array while reusing the same nodes. */
+      stages.forEach(function (stage) {
+        var node = stageNodes.get(stage.id);
+        if (node) list.appendChild(node);
+      });
+
+      var normalizedBypass = normalizeBypasses(stageIndexById);
+      var bypassSeen = Object.create(null);
+      var labelsById = Object.create(null);
+      stages.forEach(function (stage) { labelsById[stage.id] = stage.label || stage.id; });
+      normalizedBypass.valid.forEach(function (item) {
+        var row = bypassNodes.get(item.key);
+        if (!row) {
+          row = el('div', 'nviz-flow-stagetrack__bypass');
+          row.setAttribute('data-key', item.key);
+          row.setAttribute('role', 'group');
+          var svg = svgEl('svg', { class: 'nviz-flow-stagetrack__bypass-svg', viewBox: '0 0 1000 20', preserveAspectRatio: 'none' });
+          svg.appendChild(svgEl('path', { class: 'nviz-flow-stagetrack__bypass-path' }));
+          svg.appendChild(svgEl('path', { class: 'nviz-flow-stagetrack__bypass-arrow' }));
+          var sourceDot = svgEl('circle', { class: 'nviz-flow-stagetrack__bypass-endpoint is-from', r: '2.6' });
+          var targetDot = svgEl('circle', { class: 'nviz-flow-stagetrack__bypass-endpoint is-to', r: '2.6' });
+          svg.appendChild(sourceDot);
+          svg.appendChild(targetDot);
+          row.appendChild(svg);
+          row.appendChild(el('span', 'nviz-flow-stagetrack__bypass-label'));
+          bypasses.appendChild(row);
+          bypassNodes.set(item.key, row);
+        }
+        bypassSeen[item.key] = true;
+        row.setAttribute('data-from', item.from);
+        row.setAttribute('data-to', item.to);
+        var fromIndex = stageIndexById[item.from];
+        var toIndex = stageIndexById[item.to];
+        var total = Math.max(1, stages.length);
+        var fx = ((fromIndex + 0.5) / total) * 1000;
+        var tx = ((toIndex + 0.5) / total) * 1000;
+        var lift = clamp(Math.abs(tx - fx) / 8, 8, 44);
+        var path = row.querySelector('.nviz-flow-stagetrack__bypass-path');
+        path.setAttribute('d', 'M ' + fx.toFixed(1) + ' 3 C ' + fx.toFixed(1) + ' ' + (3 + lift).toFixed(1) +
+          ', ' + tx.toFixed(1) + ' ' + (17 - lift).toFixed(1) + ', ' + tx.toFixed(1) + ' 17');
+        var arrowX = tx;
+        row.querySelector('.nviz-flow-stagetrack__bypass-arrow').setAttribute('d',
+          'M ' + (arrowX - 4).toFixed(1) + ' 13 L ' + (arrowX + 4).toFixed(1) + ' 13 L ' + arrowX.toFixed(1) + ' 19 Z');
+        setAttrs(row.querySelector('.nviz-flow-stagetrack__bypass-endpoint.is-from'), { cx: fx.toFixed(1), cy: '3' });
+        setAttrs(row.querySelector('.nviz-flow-stagetrack__bypass-endpoint.is-to'), { cx: tx.toFixed(1), cy: '17' });
+        var bypassLabel = item.label || ('旁路：' + (labelsById[item.from] || item.from) + ' → ' + (labelsById[item.to] || item.to));
+        setText(row.querySelector('.nviz-flow-stagetrack__bypass-label'), bypassLabel);
+        row.setAttribute('aria-label', bypassLabel);
+      });
+      Array.from(bypassNodes.keys()).forEach(function (key) {
+        if (bypassSeen[key]) return;
+        var row = bypassNodes.get(key);
+        if (row && row.parentNode) row.parentNode.removeChild(row);
+        bypassNodes.delete(key);
+      });
+      setViewportMessage(note, normalizedBypass.invalid
+        ? '已跳过 ' + normalizedBypass.invalid + ' 条引用未知阶段的显式旁路。'
+        : '');
+    }
+
+    var instance = component(root, model, render, function () {
+      stageNodes.clear();
+      bypassNodes.clear();
+    });
+    instance.getTarget = function (id) {
+      if (instance.destroyed || id == null) return null;
+      var key = text(id);
+      if (stageNodes.has(key)) return stageNodes.get(key);
+      if (bypassNodes.has(key)) return bypassNodes.get(key);
+      if (key === 'track') return list;
+      if (key === 'bypasses') return bypasses;
+      return null;
+    };
+    render({});
+    return instance;
+  };
+
+  /* ---------------- PacketFlow ---------------- */
+
+  var PacketFlow = {};
+  PacketFlow.version = VERSION;
+  PacketFlow.mount = function (host, options) {
+    validateHost(host, 'NoteViz.Flow.PacketFlow');
+    var root = el('div', 'nviz-flow-packetflow');
+    root.setAttribute('role', 'group');
+    var viewport = el('div', 'nviz-flow-packetflow__viewport');
+    viewport.tabIndex = 0;
+    var svg = svgEl('svg', { class: 'nviz-flow-packetflow__svg', viewBox: '0 0 1000 220' });
+    var note = el('p', 'nviz-flow-packetflow__note');
+    note.hidden = true;
+    viewport.appendChild(svg);
+    root.append(viewport, note);
+    host.appendChild(root);
+
+    var accessible = makeSvgAccessible(svg, '消息流', '参与者与按顺序显现的消息方向；内容由宿主提供。', 'nviz-flow-packetflow');
+    var participantLayer = svgEl('g', { class: 'nviz-flow-packetflow__participants' });
+    var lifelineLayer = svgEl('g', { class: 'nviz-flow-packetflow__lifelines' });
+    var messageLayer = svgEl('g', { class: 'nviz-flow-packetflow__messages' });
+    svg.append(participantLayer, lifelineLayer, messageLayer);
+
+    var model = Object.assign({
+      participants: [],
+      messages: [],
+      revealed: null,
+      visibleCount: null,
+      focus: null,
+      label: '消息流'
+    }, options || {});
+
+    var participantNodes = new Map();
+    var lifelineNodes = new Map();
+    var messageNodes = new Map();
+
+    function normalizeParticipants() {
+      return array(model.participants).map(function (source, index) {
+        var item = source && typeof source === 'object' && !isNode(source) ? source : {};
+        var id = textOrEmpty(item.id) || defaultId('participant', index);
+        return { id: id, label: item.label == null ? id : text(item.label), status: normalizeStatus(item.status), raw: item };
+      });
+    }
+
+    function normalizeMessages(participantIndexById) {
+      return array(model.messages).map(function (source, index) {
+        var item = source && typeof source === 'object' && !isNode(source) ? source : {};
+        var id = textOrEmpty(item.id) || defaultId('message', index);
+        var from = textOrEmpty(item.from);
+        var to = textOrEmpty(item.to);
+        return {
+          id: id,
+          from: from,
+          to: to,
+          label: item.label == null ? '' : text(item.label),
+          status: normalizeStatus(item.status),
+          valid: own(participantIndexById, from) && own(participantIndexById, to),
+          raw: item
+        };
+      });
+    }
+
+    function revealedSet(messages) {
+      if (model.revealed != null) return statusList(model.revealed);
+      if (model.visibleCount != null) {
+        var count = clamp(Math.floor(numberOr(model.visibleCount, messages.length)), 0, messages.length);
+        var set = Object.create(null);
+        messages.slice(0, count).forEach(function (message) { set[message.id] = true; });
+        return set;
+      }
+      var all = Object.create(null);
+      messages.forEach(function (message) { all[message.id] = true; });
+      return all;
+    }
+
+    function render() {
+      root.setAttribute('aria-label', textOrEmpty(model.label) || '消息流');
+      setText(accessible.title, textOrEmpty(model.label) || '消息流');
+      var participants = normalizeParticipants();
+      var participantIndexById = Object.create(null);
+      participants.forEach(function (participant, index) { participantIndexById[participant.id] = index; });
+      var messages = normalizeMessages(participantIndexById);
+      var shown = revealedSet(messages);
+      var invalid = messages.filter(function (message) { return !message.valid; }).length;
+      var validMessages = messages.filter(function (message) { return message.valid; });
+      var shownValidMessages = validMessages.filter(function (message) { return !!shown[message.id]; });
+      var width = 1000;
+      var margin = 72;
+      var span = width - margin * 2;
+      var xs = participants.map(function (participant, index) {
+        if (participants.length <= 1) return { x: width / 2 };
+        return { x: margin + (span * index) / (participants.length - 1) };
+      });
+
+      var seenParticipants = Object.create(null);
+      participants.forEach(function (participant, index) {
+        var node = participantNodes.get(participant.id);
+        if (!node) {
+          node = svgEl('g', { class: 'nviz-flow-packetflow__participant', 'data-id': participant.id });
+          node.appendChild(svgEl('rect', { class: 'nviz-flow-packetflow__participant-box', x: 0, y: 0, width: 132, height: 44, rx: 8 }));
+          node.appendChild(svgEl('text', { class: 'nviz-flow-packetflow__participant-label', x: 0, y: 0, 'text-anchor': 'middle' }));
+          participantLayer.appendChild(node);
+          participantNodes.set(participant.id, node);
+        }
+        seenParticipants[participant.id] = true;
+        var x = xs[index].x;
+        node.setAttribute('data-status', participant.status || '');
+        node.setAttribute('transform', 'translate(' + (x - 66).toFixed(1) + ',16)');
+        var labelNode = node.querySelector('.nviz-flow-packetflow__participant-label');
+        labelNode.setAttribute('x', '66');
+        labelNode.setAttribute('y', '27');
+        setText(labelNode, participant.label || participant.id);
+        var line = lifelineNodes.get(participant.id);
+        if (!line) {
+          line = svgEl('line', { class: 'nviz-flow-packetflow__lifeline' });
+          lifelineLayer.appendChild(line);
+          lifelineNodes.set(participant.id, line);
+        }
+        setAttrs(line, { x1: x.toFixed(1), y1: 62, x2: x.toFixed(1), y2: 120 + Math.max(1, shownValidMessages.length) * 52 });
+      });
+      Array.from(participantNodes.keys()).forEach(function (id) {
+        if (seenParticipants[id]) return;
+        var node = participantNodes.get(id);
+        if (node && node.parentNode) node.parentNode.removeChild(node);
+        participantNodes.delete(id);
+        var line = lifelineNodes.get(id);
+        if (line && line.parentNode) line.parentNode.removeChild(line);
+        lifelineNodes.delete(id);
+      });
+
+      var seenMessages = Object.create(null);
+      validMessages.forEach(function (message) {
+        var node = messageNodes.get(message.id);
+        if (!node) {
+          node = svgEl('g', { class: 'nviz-flow-packetflow__message', 'data-id': message.id });
+          node.appendChild(svgEl('line', { class: 'nviz-flow-packetflow__message-line' }));
+          node.appendChild(svgEl('path', { class: 'nviz-flow-packetflow__message-arrow' }));
+          node.appendChild(svgEl('text', { class: 'nviz-flow-packetflow__message-label', 'text-anchor': 'middle' }));
+          messageLayer.appendChild(node);
+          messageNodes.set(message.id, node);
+        }
+        seenMessages[message.id] = true;
+        var fromIndex = participantIndexById[message.from];
+        var toIndex = participantIndexById[message.to];
+        var x1 = xs[fromIndex].x;
+        var x2 = xs[toIndex].x;
+        var shownIndex = shownValidMessages.indexOf(message);
+        var y = 92 + Math.max(0, shownIndex) * 52;
+        var selfLoop = message.from === message.to;
+        var line = node.querySelector('.nviz-flow-packetflow__message-line');
+        var arrow = node.querySelector('.nviz-flow-packetflow__message-arrow');
+        var labelNode = node.querySelector('.nviz-flow-packetflow__message-label');
+        if (selfLoop) {
+          line.setAttribute('class', 'nviz-flow-packetflow__message-line is-hidden');
+          line.setAttribute('x1', String(x1)); line.setAttribute('y1', String(y)); line.setAttribute('x2', String(x1)); line.setAttribute('y2', String(y));
+          arrow.setAttribute('d', 'M ' + x1.toFixed(1) + ' ' + (y + 8) + ' L ' + (x1 + 34).toFixed(1) + ' ' + (y + 8) +
+            ' L ' + (x1 + 34).toFixed(1) + ' ' + (y + 26) + ' L ' + (x1 + 4).toFixed(1) + ' ' + (y + 26) +
+            ' L ' + (x1 + 4).toFixed(1) + ' ' + (y + 14) + ' L ' + (x1 + 9).toFixed(1) + ' ' + (y + 18) +
+            ' L ' + (x1 + 4).toFixed(1) + ' ' + (y + 9) + ' Z');
+          labelNode.setAttribute('x', (x1 + 40).toFixed(1));
+          labelNode.setAttribute('y', String(y + 4));
+          node.setAttribute('data-direction', 'self');
+        } else {
+          line.setAttribute('class', 'nviz-flow-packetflow__message-line');
+          line.setAttribute('x1', x1.toFixed(1)); line.setAttribute('y1', String(y));
+          line.setAttribute('x2', x2.toFixed(1)); line.setAttribute('y2', String(y));
+          var direction = x2 >= x1 ? 1 : -1;
+          var tip = x2;
+          arrow.setAttribute('d', 'M ' + tip.toFixed(1) + ' ' + y + ' L ' + (tip - direction * 10).toFixed(1) + ' ' + (y - 5) +
+            ' L ' + (tip - direction * 10).toFixed(1) + ' ' + (y + 5) + ' Z');
+          labelNode.setAttribute('x', ((x1 + x2) / 2).toFixed(1));
+          labelNode.setAttribute('y', String(y - 8));
+          node.setAttribute('data-direction', direction > 0 ? 'right' : 'left');
+        }
+        node.setAttribute('data-from', message.from);
+        node.setAttribute('data-to', message.to);
+        node.setAttribute('data-target', message.to);
+        node.setAttribute('data-status', message.status || '');
+        var isShown = !!shown[message.id];
+        if (isShown) node.removeAttribute('data-hidden');
+        else node.setAttribute('data-hidden', 'true');
+        if (textOrEmpty(model.focus) === message.id) node.setAttribute('data-focus', 'true');
+        else node.removeAttribute('data-focus');
+        setText(labelNode, message.label || (message.from + ' → ' + message.to));
+      });
+      Array.from(messageNodes.keys()).forEach(function (id) {
+        if (seenMessages[id]) return;
+        var node = messageNodes.get(id);
+        if (node && node.parentNode) node.parentNode.removeChild(node);
+        messageNodes.delete(id);
+      });
+      var height = 120 + Math.max(1, shownValidMessages.length) * 52;
+      setAttrs(svg, { viewBox: '0 0 ' + width + ' ' + height, height: null });
+      setViewportMessage(note, invalid ? '已跳过 ' + invalid + ' 条引用未知参与者的消息。' : '');
+    }
+
+    var instance = component(root, model, render, function () {
+      participantNodes.clear();
+      lifelineNodes.clear();
+      messageNodes.clear();
+    });
+    instance.getTarget = function (id) {
+      if (instance.destroyed || id == null) return null;
+      var key = text(id);
+      if (key === 'svg') return svg;
+      if (key.indexOf('message:') === 0) return messageNodes.get(key.slice(8)) || null;
+      if (key.indexOf('participant:') === 0) return participantNodes.get(key.slice(12)) || null;
+      if (messageNodes.has(key)) return messageNodes.get(key);
+      if (participantNodes.has(key)) return participantNodes.get(key);
+      return null;
+    };
+    render({});
+    return instance;
+  };
+
+  /* ---------------- SegmentBar ---------------- */
+
+  var SegmentBar = {};
+  SegmentBar.version = VERSION;
+  SegmentBar.mount = function (host, options) {
+    validateHost(host, 'NoteViz.Flow.SegmentBar');
+    var root = el('div', 'nviz-flow-segmentbar');
+    root.setAttribute('role', 'group');
+    var viewport = el('div', 'nviz-flow-segmentbar__viewport');
+    viewport.tabIndex = 0;
+    var svg = svgEl('svg', { class: 'nviz-flow-segmentbar__svg', viewBox: '0 0 1000 100' });
+    var empty = el('p', 'nviz-flow-segmentbar__empty', '暂无可显示的段。');
+    var note = el('p', 'nviz-flow-segmentbar__note');
+    note.hidden = true;
+    viewport.appendChild(svg);
+    root.append(viewport, empty, note);
+    host.appendChild(root);
+
+    var accessible = makeSvgAccessible(svg, '段条', '真实值、显示尺度与最小可读宽度分离的条形图。', 'nviz-flow-segmentbar');
+    var trackLayer = svgEl('g', { class: 'nviz-flow-segmentbar__track' });
+    var segmentLayer = svgEl('g', { class: 'nviz-flow-segmentbar__segments' });
+    var rangeLayer = svgEl('g', { class: 'nviz-flow-segmentbar__ranges' });
+    svg.append(trackLayer, segmentLayer, rangeLayer);
+    trackLayer.appendChild(svgEl('rect', { class: 'nviz-flow-segmentbar__track-bg', x: 0, y: 30, width: 1000, height: 26, rx: 7 }));
+    var scaleText = svgEl('text', { class: 'nviz-flow-segmentbar__scale', 'text-anchor': 'end', x: 1000, y: 24 });
+    trackLayer.appendChild(scaleText);
+
+    var model = Object.assign({
+      segments: [],
+      ranges: [],
+      scaleMax: null,
+      minWidth: 14,
+      label: '段条'
+    }, options || {});
+
+    var segmentNodes = new Map();
+    var rangeNodes = new Map();
+
+    function normalizeSegments() {
+      return array(model.segments).map(function (source, index) {
+        var item = source && typeof source === 'object' && !isNode(source) ? source : {};
+        var id = textOrEmpty(item.id) || defaultId('segment', index);
+        var value = Math.max(0, numberOr(item.value, 0));
+        return { id: id, label: item.label == null ? id : text(item.label), value: value, color: textOrEmpty(item.color), raw: item };
+      });
+    }
+
+    function normalizeRanges(segments) {
+      var indexById = Object.create(null);
+      segments.forEach(function (segment, index) { indexById[segment.id] = index; });
+      var valid = [];
+      var invalid = 0;
+      array(model.ranges).forEach(function (source, index) {
+        var item = source && typeof source === 'object' ? source : {};
+        var id = textOrEmpty(item.id) || defaultId('range', index);
+        var startIndex;
+        var endIndex;
+        if (own(indexById, textOrEmpty(item.start))) startIndex = indexById[textOrEmpty(item.start)];
+        else startIndex = numberOr(item.start, -1);
+        if (own(indexById, textOrEmpty(item.end))) endIndex = indexById[textOrEmpty(item.end)];
+        else endIndex = numberOr(item.end, -1);
+        startIndex = Math.floor(startIndex);
+        endIndex = Math.floor(endIndex);
+        if (startIndex < 0 || endIndex < 0 || startIndex >= segments.length || endIndex >= segments.length) {
+          invalid += 1;
+          return;
+        }
+        valid.push({
+          id: id,
+          label: item.label == null ? '' : text(item.label),
+          start: Math.min(startIndex, endIndex),
+          end: Math.max(startIndex, endIndex),
+          key: 'range:' + id
+        });
+      });
+      return { valid: valid, invalid: invalid };
+    }
+
+    function render() {
+      root.setAttribute('aria-label', textOrEmpty(model.label) || '段条');
+      setText(accessible.title, textOrEmpty(model.label) || '段条');
+      var segments = normalizeSegments();
+      var values = segments.map(function (segment) { return segment.value; });
+      var sum = values.reduce(function (total, value) { return total + value; }, 0);
+      var autoMax = Math.max(sum, values.length ? Math.max.apply(null, values) : 1, 1);
+      var scaleMax = numberOr(model.scaleMax, autoMax);
+      if (!(scaleMax > 0)) scaleMax = autoMax;
+      var minWidth = Math.max(2, numberOr(model.minWidth, 14));
+      var trackBase = 1000;
+      var x = 0;
+      var layout = [];
+      segments.forEach(function (segment) {
+        var ratio = segment.value / scaleMax;
+        var raw = ratio * trackBase;
+        var zero = segment.value === 0;
+        var clamped = !zero && raw < minWidth;
+        var width = zero ? minWidth : Math.max(minWidth, raw);
+        layout.push({ id: segment.id, x: x, width: width, ratio: ratio, zero: zero, clamped: clamped });
+        x += width;
+      });
+      var totalWidth = Math.max(trackBase, x);
+      setAttrs(svg, { viewBox: '0 0 ' + totalWidth.toFixed(1) + ' 100' });
+      setAttrs(trackLayer.querySelector('.nviz-flow-segmentbar__track-bg'), { width: totalWidth.toFixed(1) });
+      setAttrs(scaleText, { x: trackBase.toFixed(1) });
+      setText(scaleText, String(scaleMax));
+
+      empty.hidden = segments.length > 0;
+      svg.style.display = segments.length ? '' : 'none';
+
+      var seenSegments = Object.create(null);
+      segments.forEach(function (segment, index) {
+        var info = layout[index];
+        var node = segmentNodes.get(segment.id);
+        if (!node) {
+          node = svgEl('g', { class: 'nviz-flow-segmentbar__segment', 'data-id': segment.id });
+          node.appendChild(svgEl('rect', { class: 'nviz-flow-segmentbar__segment-rect', y: 30, height: 26, rx: 7 }));
+          node.appendChild(svgEl('text', { class: 'nviz-flow-segmentbar__label', 'text-anchor': 'middle', y: 22 }));
+          node.appendChild(svgEl('text', { class: 'nviz-flow-segmentbar__value', 'text-anchor': 'middle', y: 48 }));
+          segmentLayer.appendChild(node);
+          segmentNodes.set(segment.id, node);
+        }
+        seenSegments[segment.id] = true;
+        var rect = node.querySelector('.nviz-flow-segmentbar__segment-rect');
+        setAttrs(rect, { x: info.x.toFixed(1), width: info.width.toFixed(1) });
+        if (segment.color) rect.style.setProperty('--nviz-flow-segmentbar-segment-color', segment.color);
+        else rect.style.removeProperty('--nviz-flow-segmentbar-segment-color');
+        var label = node.querySelector('.nviz-flow-segmentbar__label');
+        label.setAttribute('x', (info.x + info.width / 2).toFixed(1));
+        setText(label, segment.label || segment.id);
+        var valueNode = node.querySelector('.nviz-flow-segmentbar__value');
+        valueNode.setAttribute('x', (info.x + info.width / 2).toFixed(1));
+        setText(valueNode, String(segment.value));
+        node.setAttribute('data-real-value', String(segment.value));
+        node.setAttribute('data-ratio', String(Math.round(info.ratio * 10000) / 10000));
+        node.setAttribute('data-zero', info.zero ? 'true' : 'false');
+        node.setAttribute('data-clamped', info.clamped ? 'true' : 'false');
+        node.setAttribute('data-index', String(index));
+      });
+      Array.from(segmentNodes.keys()).forEach(function (id) {
+        if (seenSegments[id]) return;
+        var node = segmentNodes.get(id);
+        if (node && node.parentNode) node.parentNode.removeChild(node);
+        segmentNodes.delete(id);
+      });
+
+      var ranges = normalizeRanges(segments);
+      var seenRanges = Object.create(null);
+      ranges.valid.forEach(function (range) {
+        var node = rangeNodes.get(range.key);
+        if (!node) {
+          node = svgEl('g', { class: 'nviz-flow-segmentbar__range', 'data-id': range.id });
+          node.appendChild(svgEl('path', { class: 'nviz-flow-segmentbar__range-bracket' }));
+          node.appendChild(svgEl('text', { class: 'nviz-flow-segmentbar__range-label', 'text-anchor': 'middle', y: 90 }));
+          rangeLayer.appendChild(node);
+          rangeNodes.set(range.key, node);
+        }
+        seenRanges[range.key] = true;
+        var x0 = layout[range.start].x;
+        var x1 = layout[range.end].x + layout[range.end].width;
+        node.querySelector('.nviz-flow-segmentbar__range-bracket').setAttribute('d',
+          'M ' + x0.toFixed(1) + ' 66 L ' + x0.toFixed(1) + ' 74 L ' + x1.toFixed(1) + ' 74 L ' + x1.toFixed(1) + ' 66');
+        var labelNode = node.querySelector('.nviz-flow-segmentbar__range-label');
+        labelNode.setAttribute('x', ((x0 + x1) / 2).toFixed(1));
+        setText(labelNode, range.label || (segments[range.start].label + '–' + segments[range.end].label));
+        node.setAttribute('data-start', String(range.start));
+        node.setAttribute('data-end', String(range.end));
+        node.setAttribute('data-start-id', segments[range.start].id);
+        node.setAttribute('data-end-id', segments[range.end].id);
+      });
+      Array.from(rangeNodes.keys()).forEach(function (key) {
+        if (seenRanges[key]) return;
+        var node = rangeNodes.get(key);
+        if (node && node.parentNode) node.parentNode.removeChild(node);
+        rangeNodes.delete(key);
+      });
+      setViewportMessage(note, ranges.invalid ? '已跳过 ' + ranges.invalid + ' 个引用未知段的范围。' : '');
+    }
+
+    var instance = component(root, model, render, function () {
+      segmentNodes.clear();
+      rangeNodes.clear();
+    });
+    instance.getTarget = function (id) {
+      if (instance.destroyed || id == null) return null;
+      var key = text(id);
+      if (key === 'track') return trackLayer;
+      if (key.indexOf('label:') === 0) {
+        var labelNode = segmentNodes.get(key.slice(6));
+        return labelNode ? labelNode.querySelector('.nviz-flow-segmentbar__label') : null;
+      }
+      if (key.indexOf('range:') === 0) return rangeNodes.get(key) || null;
+      if (segmentNodes.has(key)) return segmentNodes.get(key);
+      if (rangeNodes.has('range:' + key)) return rangeNodes.get('range:' + key);
+      return null;
+    };
+    render({});
+    return instance;
+  };
+
+  /* ---------------- DeviceLinks ---------------- */
+
+  var DeviceLinks = {};
+  DeviceLinks.version = VERSION;
+  DeviceLinks.mount = function (host, options) {
+    validateHost(host, 'NoteViz.Flow.DeviceLinks');
+    var root = el('div', 'nviz-flow-devicelinks');
+    root.setAttribute('role', 'group');
+    var viewport = el('div', 'nviz-flow-devicelinks__viewport');
+    viewport.tabIndex = 0;
+    var svg = svgEl('svg', { class: 'nviz-flow-devicelinks__svg', viewBox: '0 0 1000 300' });
+    var note = el('p', 'nviz-flow-devicelinks__note');
+    note.hidden = true;
+    viewport.appendChild(svg);
+    root.append(viewport, note);
+    host.appendChild(root);
+
+    var accessible = makeSvgAccessible(svg, '设备连接', '设备、命名端口与连接路径；由宿主提供状态。', 'nviz-flow-devicelinks');
+    var linkLayer = svgEl('g', { class: 'nviz-flow-devicelinks__links' });
+    var deviceLayer = svgEl('g', { class: 'nviz-flow-devicelinks__devices' });
+    svg.append(linkLayer, deviceLayer);
+
+    var model = Object.assign({
+      devices: [],
+      links: [],
+      label: '设备连接'
+    }, options || {});
+
+    var deviceNodes = new Map();
+    var portNodes = new Map();
+    var linkNodes = new Map();
+    var linkPaths = new Map();
+
+    function normalizeDevices() {
+      return array(model.devices).map(function (source, index) {
+        var item = source && typeof source === 'object' && !isNode(source) ? source : {};
+        var id = textOrEmpty(item.id) || defaultId('device', index);
+        var ports = array(item.ports).map(function (portSource, portIndex) {
+          var port = portSource && typeof portSource === 'object' ? portSource : {};
+          var portId = textOrEmpty(port.id) || defaultId('port', portIndex);
+          return { id: portId, label: port.label == null ? portId : text(port.label) };
+        });
+        return { id: id, label: item.label == null ? id : text(item.label), status: normalizeStatus(item.status), ports: ports };
+      });
+    }
+
+    function render() {
+      root.setAttribute('aria-label', textOrEmpty(model.label) || '设备连接');
+      setText(accessible.title, textOrEmpty(model.label) || '设备连接');
+      var devices = normalizeDevices();
+      var deviceIndexById = Object.create(null);
+      devices.forEach(function (device, index) { deviceIndexById[device.id] = index; });
+
+      var boxWidth = 168;
+      var boxHeight = 82;
+      var gap = 28;
+      var margin = 26;
+      var width = Math.max(720, margin * 2 + devices.length * boxWidth + Math.max(0, devices.length - 1) * gap);
+      var top = 24;
+      var bottom = top + boxHeight;
+      var positions = devices.map(function (device, index) {
+        var x = margin + index * (boxWidth + gap);
+        var portPositions = Object.create(null);
+        device.ports.forEach(function (port, portIndex) {
+          var px = x + (boxWidth * (portIndex + 1)) / (device.ports.length + 1);
+          portPositions[port.id] = { x: px, y: bottom };
+        });
+        return { x: x, width: boxWidth, height: boxHeight, ports: portPositions };
+      });
+
+      var normalizedLinks = array(model.links).map(function (source, index) {
+        var item = source && typeof source === 'object' ? source : {};
+        var id = textOrEmpty(item.id) || defaultId('link', index);
+        var from = item.from && typeof item.from === 'object' ? item.from : {};
+        var to = item.to && typeof item.to === 'object' ? item.to : {};
+        var fromDevice = textOrEmpty(from.device || from.deviceId || from[0]);
+        var fromPort = textOrEmpty(from.port || from.portId || from[1]);
+        var toDevice = textOrEmpty(to.device || to.deviceId || to[0]);
+        var toPort = textOrEmpty(to.port || to.portId || to[1]);
+        var fromIndex = own(deviceIndexById, fromDevice) ? deviceIndexById[fromDevice] : -1;
+        var toIndex = own(deviceIndexById, toDevice) ? deviceIndexById[toDevice] : -1;
+        var fromPos = fromIndex >= 0 ? positions[fromIndex].ports[fromPort] : null;
+        var toPos = toIndex >= 0 ? positions[toIndex].ports[toPort] : null;
+        return {
+          id: id,
+          fromDevice: fromDevice,
+          fromPort: fromPort,
+          toDevice: toDevice,
+          toPort: toPort,
+          fromPos: fromPos || null,
+          toPos: toPos || null,
+          status: normalizeStatus(item.status),
+          label: item.label == null ? '' : text(item.label),
+          valid: !!fromPos && !!toPos
+        };
+      }).filter(function (link) { return link.valid; });
+      var invalidLinks = array(model.links).length - normalizedLinks.length;
+
+      var maxLane = bottom + 34 + Math.max(0, normalizedLinks.length - 1) * 22;
+      var height = Math.max(240, maxLane + 46);
+
+      var seenDevices = Object.create(null);
+      devices.forEach(function (device, index) {
+        var node = deviceNodes.get(device.id);
+        if (!node) {
+          node = svgEl('g', { class: 'nviz-flow-devicelinks__device', 'data-id': device.id });
+          node.appendChild(svgEl('rect', { class: 'nviz-flow-devicelinks__device-box', y: top, height: boxHeight, rx: 10 }));
+          node.appendChild(svgEl('text', { class: 'nviz-flow-devicelinks__device-label', y: top + 30, 'text-anchor': 'middle' }));
+          node.appendChild(svgEl('text', { class: 'nviz-flow-devicelinks__device-status', y: top + 50, 'text-anchor': 'middle' }));
+          deviceLayer.appendChild(node);
+          deviceNodes.set(device.id, node);
+        }
+        seenDevices[device.id] = true;
+        var pos = positions[index];
+        node.setAttribute('data-status', device.status || '');
+        setAttrs(node.querySelector('.nviz-flow-devicelinks__device-box'), { x: pos.x.toFixed(1), width: boxWidth });
+        var labelNode = node.querySelector('.nviz-flow-devicelinks__device-label');
+        labelNode.setAttribute('x', (pos.x + boxWidth / 2).toFixed(1));
+        setText(labelNode, device.label || device.id);
+        var statusNode = node.querySelector('.nviz-flow-devicelinks__device-status');
+        statusNode.setAttribute('x', (pos.x + boxWidth / 2).toFixed(1));
+        setText(statusNode, device.status || '');
+        var seenPorts = Object.create(null);
+        device.ports.forEach(function (port) {
+          var key = device.id + ':' + port.id;
+          var portPos = pos.ports[port.id];
+          var portNode = portNodes.get(key);
+          if (!portNode) {
+            portNode = svgEl('g', { class: 'nviz-flow-devicelinks__port', 'data-device': device.id, 'data-port': port.id });
+            portNode.appendChild(svgEl('circle', { class: 'nviz-flow-devicelinks__port-dot', r: 4 }));
+            portNode.appendChild(svgEl('text', { class: 'nviz-flow-devicelinks__port-label', 'text-anchor': 'middle' }));
+            deviceLayer.appendChild(portNode);
+            portNodes.set(key, portNode);
+          }
+          seenPorts[key] = true;
+          portNode.setAttribute('data-id', key);
+          setAttrs(portNode.querySelector('.nviz-flow-devicelinks__port-dot'), { cx: portPos.x.toFixed(1), cy: portPos.y.toFixed(1) });
+          var portLabel = portNode.querySelector('.nviz-flow-devicelinks__port-label');
+          setAttrs(portLabel, { x: portPos.x.toFixed(1), y: (portPos.y - 9).toFixed(1) });
+          setText(portLabel, port.label || port.id);
+        });
+        Array.from(portNodes.keys()).forEach(function (key) {
+          if (seenPorts[key] || key.indexOf(device.id + ':') !== 0) return;
+          var stale = portNodes.get(key);
+          if (stale && stale.parentNode) stale.parentNode.removeChild(stale);
+          portNodes.delete(key);
+        });
+      });
+      Array.from(deviceNodes.keys()).forEach(function (id) {
+        if (seenDevices[id]) return;
+        var node = deviceNodes.get(id);
+        if (node && node.parentNode) node.parentNode.removeChild(node);
+        deviceNodes.delete(id);
+        Array.from(portNodes.keys()).forEach(function (key) {
+          if (key.indexOf(id + ':') !== 0) return;
+          var port = portNodes.get(key);
+          if (port && port.parentNode) port.parentNode.removeChild(port);
+          portNodes.delete(key);
+        });
+      });
+
+      var seenLinks = Object.create(null);
+      normalizedLinks.forEach(function (link, index) {
+        var node = linkNodes.get(link.id);
+        if (!node) {
+          node = svgEl('g', { class: 'nviz-flow-devicelinks__link', 'data-id': link.id });
+          node.appendChild(svgEl('path', { class: 'nviz-flow-devicelinks__link-path' }));
+          node.appendChild(svgEl('path', { class: 'nviz-flow-devicelinks__link-arrow' }));
+          node.appendChild(svgEl('text', { class: 'nviz-flow-devicelinks__link-label', 'text-anchor': 'middle' }));
+          linkLayer.appendChild(node);
+          linkNodes.set(link.id, node);
+          linkPaths.set(link.id, node.querySelector('.nviz-flow-devicelinks__link-path'));
+        }
+        seenLinks[link.id] = true;
+        var fx = link.fromPos.x;
+        var fy = link.fromPos.y;
+        var tx = link.toPos.x;
+        var ty = link.toPos.y;
+        var laneY = bottom + 34 + index * 22;
+        var d;
+        if (link.fromDevice === link.toDevice && link.fromPort === link.toPort) {
+          d = 'M ' + fx.toFixed(1) + ' ' + fy + ' V ' + (laneY - 8) + ' Q ' + fx.toFixed(1) + ' ' + laneY +
+            ', ' + (fx + 16).toFixed(1) + ' ' + laneY + ' H ' + (fx + 40).toFixed(1) + ' Q ' + (fx + 56).toFixed(1) + ' ' + laneY +
+            ', ' + (fx + 56).toFixed(1) + ' ' + (laneY - 16) + ' V ' + (fy - 8);
+        } else {
+          d = 'M ' + fx.toFixed(1) + ' ' + fy + ' V ' + (laneY - 6) + ' Q ' + fx.toFixed(1) + ' ' + laneY +
+            ', ' + (fx + 6).toFixed(1) + ' ' + laneY + ' H ' + (tx - 6).toFixed(1) + ' Q ' + tx.toFixed(1) + ' ' + laneY +
+            ', ' + tx.toFixed(1) + ' ' + (laneY - 6) + ' V ' + ty;
+        }
+        var path = linkPaths.get(link.id);
+        path.setAttribute('d', d);
+        node.querySelector('.nviz-flow-devicelinks__link-arrow').setAttribute('d',
+          'M ' + (tx - 4).toFixed(1) + ' ' + (ty - 12) + ' L ' + (tx + 4).toFixed(1) + ' ' + (ty - 12) + ' L ' + tx.toFixed(1) + ' ' + (ty - 4) + ' Z');
+        var labelNode = node.querySelector('.nviz-flow-devicelinks__link-label');
+        labelNode.setAttribute('x', ((fx + tx) / 2).toFixed(1));
+        labelNode.setAttribute('y', String(laneY - 6));
+        setText(labelNode, link.label || (link.fromDevice + ' → ' + link.toDevice));
+        node.setAttribute('data-status', link.status || '');
+        node.setAttribute('data-from-device', link.fromDevice);
+        node.setAttribute('data-from-port', link.fromPort);
+        node.setAttribute('data-to-device', link.toDevice);
+        node.setAttribute('data-to-port', link.toPort);
+      });
+      Array.from(linkNodes.keys()).forEach(function (id) {
+        if (seenLinks[id]) return;
+        var node = linkNodes.get(id);
+        if (node && node.parentNode) node.parentNode.removeChild(node);
+        linkNodes.delete(id);
+        linkPaths.delete(id);
+      });
+      setAttrs(svg, { viewBox: '0 0 ' + width.toFixed(1) + ' ' + height.toFixed(1) });
+      setViewportMessage(note, invalidLinks ? '已跳过 ' + invalidLinks + ' 条引用未知设备/端口的连接。' : '');
+    }
+
+    var instance = component(root, model, render, function () {
+      deviceNodes.clear();
+      portNodes.clear();
+      linkNodes.clear();
+      linkPaths.clear();
+    });
+    instance.getTarget = function (id) {
+      if (instance.destroyed || id == null) return null;
+      var key = text(id);
+      if (key === 'svg') return svg;
+      if (key.indexOf('port:') === 0) return portNodes.get(key.slice(5)) || null;
+      if (key.indexOf('device:') === 0) return deviceNodes.get(key.slice(7)) || null;
+      if (key.indexOf('link:') === 0) return linkNodes.get(key.slice(5)) || null;
+      if (deviceNodes.has(key)) return deviceNodes.get(key);
+      if (linkNodes.has(key)) return linkNodes.get(key);
+      return null;
+    };
+    instance.getLinkPath = function (id) {
+      if (instance.destroyed || id == null) return null;
+      var key = text(id);
+      var path = linkPaths.get(key) || linkPaths.get(key.replace(/^link:/, ''));
+      return path || null;
+    };
+    instance.pointAt = function (id, ratio) {
+      if (instance.destroyed || id == null) return null;
+      var path = instance.getLinkPath(id);
+      if (!path || typeof path.getTotalLength !== 'function') return null;
+      var total = 0;
+      try { total = path.getTotalLength(); } catch (error) { return null; }
+      if (!(total > 0)) return null;
+      var t = clamp(numberOr(ratio, 0), 0, 1);
+      var length = total * t;
+      var point;
+      try { point = path.getPointAtLength(length); } catch (error) { return null; }
+      var delta = Math.min(4, total);
+      var first = path.getPointAtLength(clamp(length - delta, 0, total));
+      var second = path.getPointAtLength(clamp(length + delta, 0, total));
+      var angle = Math.atan2(second.y - first.y, second.x - first.x);
+      return { x: point.x, y: point.y, angle: angle, length: length, total: total };
+    };
+    render({});
+    return instance;
+  };
+
+  NoteViz.Flow = {
+    version: VERSION,
+    StageTrack: StageTrack,
+    PacketFlow: PacketFlow,
+    SegmentBar: SegmentBar,
+    DeviceLinks: DeviceLinks
   };
 })(window);
 
@@ -53242,10 +55856,34 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     }
     var kind = input.kind;
     if (kind === 'local') {
-      var localAllowed = { kind: true, dx: true, dy: true, width: true, height: true };
+      var localAllowed = { kind: true, dx: true, dy: true, width: true, height: true, outset: true, inset: true };
       Object.keys(input).forEach(function (key) {
-        if (!own(localAllowed, key)) issues.push(pathKey(path, key), 'local range 只允许 kind/dx/dy/width/height');
+        if (!own(localAllowed, key)) issues.push(pathKey(path, key), 'local range 只允许 kind/dx/dy/width/height/outset/inset');
       });
+      var hasOutset = own(input, 'outset');
+      var hasInset = own(input, 'inset');
+      var hasAbsolute = own(input, 'dx') || own(input, 'dy') || own(input, 'width') || own(input, 'height');
+      if (hasOutset || hasInset) {
+        /* 相对形式：以主目标当前视口矩形四边等量外扩（outset）或内缩（inset），单位 CSS 像素；
+         * 与绝对 dx/dy/width/height 互斥，避免两种语义叠加。 */
+        if (hasAbsolute) {
+          issues.push(path, 'local range 的相对外扩/内缩（outset/inset）与绝对 dx/dy/width/height 互斥');
+          return null;
+        }
+        if (hasOutset && hasInset) {
+          issues.push(pathKey(path, 'inset'), 'outset 与 inset 只能声明一个');
+          return null;
+        }
+        var relativeKey = hasOutset ? 'outset' : 'inset';
+        var relativeValue = input[relativeKey];
+        if (typeof relativeValue !== 'number' || !isFinite(relativeValue) || relativeValue < 0) {
+          issues.push(pathKey(path, relativeKey), '必须是大于等于 0 的有限数字（CSS 像素）');
+          return null;
+        }
+        var relative = { kind: 'local' };
+        relative[relativeKey] = relativeValue;
+        return deepFreeze(relative);
+      }
       var numbers = {};
       var valid = true;
       ['dx', 'dy'].forEach(function (key) {
@@ -53287,12 +55925,19 @@ if(__exports != exports)module.exports = exports;return module.exports}));
           continue;
         }
         Object.keys(ref).forEach(function (key) {
-          if (key !== 'binding' && key !== 'query') {
-            issues.push(pathKey(refPath, key), 'union refs 只允许 binding 与 query（深度 ≤1，不再嵌套 range）');
+          if (key !== 'binding' && key !== 'query' && key !== 'optional') {
+            issues.push(pathKey(refPath, key), 'union refs 只允许 binding/query/optional（深度 ≤1，不再嵌套 range）');
           }
         });
+        if (isNonEmptyString(ref.binding) && ref.query != null && ref.optional !== undefined && typeof ref.optional !== 'boolean') {
+          refsValid = false;
+          continue;
+        }
         if (isNonEmptyString(ref.binding) && ref.query != null) {
-          refs.push(deepFreeze({ binding: ref.binding, query: cloneData(ref.query) }));
+          var unionRef = { binding: ref.binding, query: cloneData(ref.query) };
+          /* 只有显式 optional:true 才保留字段；false 与省略等价，保持旧快照形状。 */
+          if (ref.optional === true) unionRef.optional = true;
+          refs.push(deepFreeze(unionRef));
         } else {
           refsValid = false;
         }
@@ -54840,6 +57485,193 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     return Array.isArray(value);
   }
 
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+  var EPSILON = 0.01;
+
+  function isElement(value) {
+    return !!value && value.nodeType === 1;
+  }
+
+  function isConnected(element) {
+    if (!element) return false;
+    if (typeof element.isConnected === 'boolean') return element.isConnected;
+    var doc = global.document;
+    return !!(doc && doc.documentElement && doc.documentElement.contains(element));
+  }
+
+  function isSvgElement(element) {
+    return !!(element && (element.ownerSVGElement || element.namespaceURI === SVG_NS));
+  }
+
+  function computedStyleOf(node) {
+    if (!global.getComputedStyle) return null;
+    try { return global.getComputedStyle(node); } catch (error) { return null; }
+  }
+
+  function finite(value) {
+    return typeof value === 'number' && isFinite(value);
+  }
+
+  function normalizedRect(raw) {
+    if (!raw) return null;
+    if (!finite(raw.left) || !finite(raw.top) || !finite(raw.width) || !finite(raw.height)) return null;
+    return {
+      left: raw.left, top: raw.top, width: raw.width, height: raw.height,
+      right: finite(raw.right) ? raw.right : raw.left + raw.width,
+      bottom: finite(raw.bottom) ? raw.bottom : raw.top + raw.height
+    };
+  }
+
+  function classifyRect(rect) {
+    if (!rect) return 'invalid';
+    if (Math.abs(rect.width) <= EPSILON && Math.abs(rect.height) <= EPSILON) return 'point';
+    if (Math.abs(rect.width) <= EPSILON || Math.abs(rect.height) <= EPSILON) return 'line';
+    return 'area';
+  }
+
+  /* 布局可用性：断开、display:none、visibility:hidden/collapse 都不算可定位几何；
+   * opacity:0 的待入场内容仍可能有真实矩形，不在这里判无效。 */
+  function layoutIssue(element) {
+    if (!isConnected(element)) return '节点已从文档断开';
+    var node = element;
+    while (node && node.nodeType === 1) {
+      var style = computedStyleOf(node);
+      if (style) {
+        if (style.display === 'none') {
+          return node === element ? 'display:none' : '祖先 display:none';
+        }
+      }
+      node = node.parentElement;
+    }
+    return null;
+  }
+
+  /* 供 presentation 目标解析使用：区分节点存在/布局有效/零尺寸形态。
+   * 返回 { ok, rect, kind:'area'|'line'|'point', issue, connected, svg }。 */
+  function readTargetGeometry(element) {
+    var output = { ok: false, rect: null, kind: 'invalid', issue: null, connected: false, svg: isSvgElement(element) };
+    if (!isElement(element)) {
+      output.issue = '目标节点不存在';
+      return output;
+    }
+    output.connected = isConnected(element);
+    if (!output.connected) {
+      output.issue = '节点已从文档断开';
+      return output;
+    }
+    var issue = layoutIssue(element);
+    if (issue) {
+      output.issue = '目标布局不可用（' + issue + '）';
+      return output;
+    }
+    var rect = normalizedRect(effectsModule().rectOf(element));
+    if (!rect) {
+      output.issue = '目标没有可用的布局矩形';
+      return output;
+    }
+    output.rect = rect;
+    output.kind = classifyRect(rect);
+    output.ok = true;
+    return output;
+  }
+
+  function finiteNumber(value) {
+    return finite(value) ? value : null;
+  }
+
+  function nonNegativeNumber(value) {
+    return finite(value) && value >= 0 ? value : null;
+  }
+
+  /* local range：绝对 dx/dy/width/height 或相对 outset/inset（四边等量，CSS 像素）。
+   * 返回 { ok, rect, kind, issue }；不修改输入。 */
+  function applyLocalRange(baseRect, range) {
+    var output = { ok: false, rect: null, kind: 'invalid', issue: null };
+    if (!baseRect || !range || typeof range !== 'object') {
+      output.issue = 'local range 缺少基准矩形或范围对象';
+      return output;
+    }
+    var hasOutset = Object.prototype.hasOwnProperty.call(range, 'outset');
+    var hasInset = Object.prototype.hasOwnProperty.call(range, 'inset');
+    var hasAbsolute = ['dx', 'dy', 'width', 'height'].some(function (key) {
+      return Object.prototype.hasOwnProperty.call(range, key);
+    });
+    if ((hasOutset || hasInset) && hasAbsolute) {
+      output.issue = 'local range 的相对外扩/内缩与绝对 dx/dy/width/height 不能同时使用';
+      return output;
+    }
+    if (hasOutset && hasInset) {
+      output.issue = 'local range 的 outset 与 inset 只能声明一个';
+      return output;
+    }
+    var rect;
+    if (hasOutset || hasInset) {
+      var key = hasOutset ? 'outset' : 'inset';
+      var amount = nonNegativeNumber(range[key]);
+      if (amount == null) {
+        output.issue = 'local range 的 ' + key + ' 必须是大于等于 0 的有限数字（CSS 像素）';
+        return output;
+      }
+      var delta = hasOutset ? amount : -amount;
+      rect = {
+        left: baseRect.left - delta,
+        top: baseRect.top - delta,
+        width: baseRect.width + delta * 2,
+        height: baseRect.height + delta * 2
+      };
+      if (rect.width < 0) rect.width = 0;
+      if (rect.height < 0) rect.height = 0;
+    } else {
+      var dx = finiteNumber(range.dx);
+      var dy = finiteNumber(range.dy);
+      var width = nonNegativeNumber(range.width);
+      var height = nonNegativeNumber(range.height);
+      if (dx == null || dy == null || width == null || height == null) {
+        output.issue = 'local range 缺少 dx/dy/width/height（或使用 outset/inset 相对形式）';
+        return output;
+      }
+      rect = { left: baseRect.left + dx, top: baseRect.top + dy, width: width, height: height };
+    }
+    rect.right = rect.left + rect.width;
+    rect.bottom = rect.top + rect.height;
+    output.rect = rect;
+    output.kind = classifyRect(rect);
+    if (output.kind === 'invalid') {
+      output.issue = 'local range 归一化失败';
+      return output;
+    }
+    if (output.kind === 'point') {
+      output.issue = 'local range 退化为零尺寸（width/height 均为 0）';
+      return output;
+    }
+    output.ok = true;
+    return output;
+  }
+
+  /* 并集：调用方负责排除无效/可选缺失成员；空集返回 null。 */
+  function unionRects(rects) {
+    var list = isArray(rects) ? rects : [];
+    var left = Infinity;
+    var top = Infinity;
+    var right = -Infinity;
+    var bottom = -Infinity;
+    for (var i = 0; i < list.length; i += 1) {
+      var rect = list[i];
+      if (!rect || !finite(rect.left) || !finite(rect.top) || !finite(rect.width) || !finite(rect.height)) continue;
+      if (rect.left < left) left = rect.left;
+      if (rect.top < top) top = rect.top;
+      var itemRight = finite(rect.right) ? rect.right : rect.left + rect.width;
+      var itemBottom = finite(rect.bottom) ? rect.bottom : rect.top + rect.height;
+      if (itemRight > right) right = itemRight;
+      if (itemBottom > bottom) bottom = itemBottom;
+    }
+    if (!isFinite(left) || !isFinite(top) || !isFinite(right) || !isFinite(bottom)) return null;
+    return {
+      left: left, top: top, right: right, bottom: bottom,
+      width: Math.max(0, right - left), height: Math.max(0, bottom - top)
+    };
+  }
+
   function rectOf(element) {
     return effectsModule().rectOf(element);
   }
@@ -54880,7 +57712,11 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   Internals.sceneGeometry = {
     rectOf: rectOf,
     flipElement: flipElement,
-    captureSourceRects: captureSourceRects
+    captureSourceRects: captureSourceRects,
+    readTargetGeometry: readTargetGeometry,
+    applyLocalRange: applyLocalRange,
+    classifyRect: classifyRect,
+    unionRects: unionRects
   };
 })(window);
 
@@ -55629,6 +58465,20 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     }, 'NoteDemoInternals.sceneAttention（src/demo/scene-attention.js）');
   }
 
+  /* 可选时序事实出口：由 timing-facts.js 按需安装 Internals.sceneTimingFacts；
+   * 默认不存在，观察不参与运行决策，也不改变 scene 行为。 */
+  function factsSink() {
+    var facts = Internals.sceneTimingFacts;
+    return facts && typeof facts.emit === 'function' ? facts : null;
+  }
+
+  var factsRunSequence = 0;
+
+  function nowMs() {
+    if (global.performance && typeof global.performance.now === 'function') return global.performance.now();
+    return Date.now();
+  }
+
   function afterFrame() {
     return new Promise(function (resolve) {
       if (typeof global.requestAnimationFrame !== 'function') {
@@ -55713,6 +58563,37 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     var presentation = options.presentation || null;
     var motionName = options.motion === 'reduced' ? 'reduced' : 'normal';
     var reason = normalizeReason(options);
+    var factSink = factsSink();
+    var factRunId = factSink ? (factsRunSequence += 1) : 0;
+
+    function emitFact(kind, detail) {
+      if (!factSink) return;
+      var payload = {
+        kind: kind,
+        at: nowMs(),
+        runId: factRunId,
+        frameId: transition ? transition.to : null,
+        sourceFrameId: transition ? transition.from : null,
+        motion: motionName,
+        binding: null,
+        index: null,
+        groups: null,
+        track: null,
+        group: null
+      };
+      if (isObject(detail)) {
+        if (detail.binding != null) payload.binding = detail.binding;
+        if (typeof detail.index === 'number') payload.index = detail.index;
+        if (isArray(detail.groups)) payload.groups = detail.groups.slice();
+        if (detail.track != null) payload.track = detail.track;
+        if (detail.group != null) payload.group = detail.group;
+      }
+      try {
+        factSink.emit(payload);
+      } catch (error) {
+        /* 时序观察失败不影响运行。 */
+      }
+    }
 
     return new Promise(function (resolve, reject) {
       var definition;
@@ -55726,6 +58607,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       var port = null;
       var attention = null;
       var attentionCoordinator = null;
+      var attentionInfos = [];
       var attentionEnabled = false;
       var runtimes = {};
       var scope = null;
@@ -56041,6 +58923,15 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         });
       }
 
+      function attentionFactDetail(index) {
+        var info = attentionInfos[index] || null;
+        return {
+          index: index,
+          binding: info ? info.binding : null,
+          groups: info && isArray(info.groups) ? info.groups : null
+        };
+      }
+
       function setupAttention() {
         attentionEnabled = motionName !== 'reduced' && !!scene.attention;
         if (!scene.attention) {
@@ -56086,10 +58977,22 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         }
         attention.validate();
         attentionCoordinator = {
-          start: function (index) { attention.start(index); },
-          ready: function (index) { return attention.ready(index); }
+          start: function (index) {
+            /* presentation 只在 Focus 真实到达后调用 start；先记录到达，再放行内容组，
+             * 这样观察到的顺序是 focus-arrival → effect-start。 */
+            emitFact('focus-arrival', attentionFactDetail(index));
+            attention.start(index);
+          },
+          ready: function (index) {
+            var ready = attention.ready(index);
+            Promise.resolve(ready).then(function () {
+              emitFact('attention-ready', attentionFactDetail(index));
+            }, function () { /* 失败由 scene 统一处理 */ });
+            return ready;
+          }
         };
         var infos = attention.targetInfos();
+        attentionInfos = infos;
         infos.forEach(function (info) {
           if (!info || !info.member) return;
           var member = info.member;
@@ -56160,21 +59063,44 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         } else {
           runtime.trackList.push(runtime.defaultTrack);
         }
+        runtime.defaultTrack.binding = member.binding;
+        runtime.defaultTrack.trackKind = 'default';
+        if (runtime.layoutTrack) {
+          runtime.layoutTrack.binding = member.binding;
+          runtime.layoutTrack.trackKind = 'layout';
+        }
+        runtime.groupNames.forEach(function (name) {
+          var track = runtime.groupTracks[name];
+          track.binding = member.binding;
+          track.trackKind = 'group';
+          track.groupName = name;
+        });
         runtime.memberReady = Promise.all(runtime.trackList.map(function (trackInfo) { return trackInfo.ready; }));
         runtime.memberFinished = Promise.all(runtime.trackList.map(function (trackInfo) { return trackInfo.finished; }));
         return runtime;
+      }
+
+      function trackFactDetail(trackInfo) {
+        if (!trackInfo) return null;
+        return {
+          binding: trackInfo.binding == null ? null : trackInfo.binding,
+          track: trackInfo.trackKind == null ? 'default' : trackInfo.trackKind,
+          group: trackInfo.groupName == null ? null : trackInfo.groupName
+        };
       }
 
       function resolveTrackReady(trackInfo) {
         if (!trackInfo || trackInfo.readyResolved) return;
         trackInfo.readyResolved = true;
         trackInfo.resolveReady(true);
+        emitFact('ready', trackFactDetail(trackInfo));
       }
 
       function resolveTrackFinished(trackInfo) {
         if (!trackInfo || trackInfo.finishedResolved) return;
         trackInfo.finishedResolved = true;
         trackInfo.resolveFinished(true);
+        emitFact('finished', trackFactDetail(trackInfo));
       }
 
       function waitHandle(handle) {
@@ -56208,6 +59134,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         trackInfo.started = true;
         /* 本 Binding 的第一个内容效果轨道开始接管：来源视觉交接释放。 */
         releaseSourceVisibility(runtime.member);
+        emitFact('effect-start', trackFactDetail(trackInfo));
         if (!trackInfo.readyHandles.length && !trackInfo.finishHandles.length) {
           resolveTrackReady(trackInfo);
           resolveTrackFinished(trackInfo);
@@ -56239,6 +59166,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         releaseSourceVisibility(runtime.member);
         var trackInfo = runtime.defaultTrack;
         trackInfo.started = true;
+        emitFact('effect-start', trackFactDetail(trackInfo));
         var member = runtime.member;
         if (!runtime.revealContainer) {
           resolveTrackReady(trackInfo);
@@ -56648,6 +59576,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
             }
             if (motionName === 'reduced') {
               /* 减少动效：揭示与标记直接到位，不创建动画/进度；仍执行提交后核对与收尾。 */
+              emitFact('reduced', null);
               scope.showRevealContainers();
               scope.showMarkRoots();
               var reducedSettleError = settlePort();
@@ -56709,8 +59638,675 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   }
 
   Internals.scene = {
-    run: run
+    run: run,
+    supportsTimingFacts: true,
+    timingFactsVersion: 1
   };
+})(window);
+
+/* ---- source: src/demo/scene-adapter.js ---- */
+/* NoteDemo scene adapter helper — 自定义图形接入 scene 的共享胶水。
+ * Scope: window.NoteDemoInternals.sceneAdapter（由 src/demo/index.js 发布为 NoteDemo.sceneAdapter）
+ * Depends on: 无（只组织现有 Adapter / PreparedChange 契约，不调用 scene 内部实现）。
+ *
+ * 作者提供：领域视图、绘图/恢复方法、目标解析、每步局部变化计划（planStep）。
+ * 公共 helper 统一：normalizeView 包装、restore/readView 包装、PreparedChange 的
+ * commit/groups/targets/effects/cleanup/sourceElements 组织、减少动效直接落终态、
+ * effectCtx.timing 的最终值透传（0 合法，不夹入未声明最低时长）。
+ *
+ * 不新建播放器、不持有会话历史、不启动第二套动画；效果句柄、ready/finished、
+ * 取消与清理仍归公共 scene 所有。经典脚本，无模块 / 无网络 / 无 eval。
+ */
+(function (global) {
+  'use strict';
+
+  var Internals = global.NoteDemoInternals = global.NoteDemoInternals || {};
+  var VERSION = '1.0.0';
+
+  function fail(message) {
+    throw new Error('NoteDemo.sceneAdapter: ' + message);
+  }
+
+  function isObject(value) {
+    return !!value && typeof value === 'object' && !Array.isArray(value);
+  }
+
+  function isArray(value) {
+    return Array.isArray(value);
+  }
+
+  function own(object, key) {
+    return object != null && Object.prototype.hasOwnProperty.call(Object(object), key);
+  }
+
+  function messageOf(error) {
+    if (error == null) return '';
+    if (typeof error === 'string') return error;
+    if (error.message != null) return String(error.message);
+    return String(error);
+  }
+
+  function viewModel(view) {
+    return isObject(view) && own(view, 'model') ? view.model : null;
+  }
+
+  function copyStrings(value, where) {
+    if (!isArray(value)) fail(where + ' 必须是 string[]。');
+    var output = [];
+    for (var i = 0; i < value.length; i += 1) {
+      if (typeof value[i] !== 'string' || value[i].trim() === '') {
+        fail(where + '[' + i + '] 必须是非空字符串。');
+      }
+      if (output.indexOf(value[i]) < 0) output.push(value[i]);
+    }
+    return output;
+  }
+
+  function validateTimingDefaults(input) {
+    if (!isObject(input)) fail('spec.sceneTimingDefaults 必须是稀疏 timing 对象。');
+    var output = {};
+    Object.keys(input).forEach(function (key) {
+      var value = input[key];
+      if (key === 'easing') {
+        if (typeof value !== 'string' || value.trim() === '') {
+          fail('spec.sceneTimingDefaults.easing 必须是非空字符串。');
+        }
+        output[key] = value;
+        return;
+      }
+      if (typeof value !== 'number' || !isFinite(value) || value < 0) {
+        fail('spec.sceneTimingDefaults.' + key + ' 必须是大于等于 0 的有限数字（0 合法）。');
+      }
+      output[key] = value;
+    });
+    return output;
+  }
+
+  /* 可选作者便利：生成 progress EffectSpec。只做最小结构校验，duration/easing 由
+   * 作者从 effectCtx.timing 的最终值传入；0 是合法时长，不做最低时长夹取。 */
+  function progress(config) {
+    if (!isObject(config)) fail('progress(config) 需要一个对象。');
+    var spec = { type: 'progress' };
+    if (typeof config.update !== 'function') fail('progress(config).update 必须是函数。');
+    spec.update = config.update;
+    if (typeof config.duration !== 'number' || !isFinite(config.duration) || config.duration < 0) {
+      fail('progress(config).duration 必须是大于等于 0 的有限数字（0 合法）。');
+    }
+    spec.duration = config.duration;
+    if (config.delay != null) {
+      if (typeof config.delay !== 'number' || !isFinite(config.delay) || config.delay < 0) {
+        fail('progress(config).delay 必须是大于等于 0 的有限数字。');
+      }
+      spec.delay = config.delay;
+    }
+    if (config.easing != null) {
+      if (typeof config.easing !== 'string' || config.easing.trim() === '') {
+        fail('progress(config).easing 必须是非空字符串。');
+      }
+      spec.easing = config.easing;
+    }
+    if (config.group != null) {
+      if (typeof config.group !== 'string' || config.group.trim() === '') {
+        fail('progress(config).group 必须是非空字符串。');
+      }
+      spec.group = config.group;
+    }
+    if (config.gate != null) {
+      if (config.gate !== 'ready' && config.gate !== 'finish') {
+        fail('progress(config).gate 只支持 "ready" 或 "finish"。');
+      }
+      spec.gate = config.gate;
+    }
+    if (config.effect != null) spec.effect = String(config.effect);
+    return spec;
+  }
+
+  function preparedFromPlan(plan, reduced, name) {
+    if (!isObject(plan)) fail(name + ' 的 planStep() 必须返回 PreparedChange 形状的对象。');
+    if (typeof plan.commit !== 'function') fail(name + ' 的 planStep() 缺少同步 commit()。');
+    var committed = false;
+    var cleaned = false;
+
+    function groups() {
+      var value = typeof plan.groups === 'function' ? plan.groups() : plan.groups;
+      if (value == null) return undefined;
+      return copyStrings(value, name + ' plan.groups()');
+    }
+
+    function targets() {
+      if (typeof plan.targets !== 'function') return [];
+      var value = plan.targets();
+      if (value == null) return [];
+      if (!isArray(value)) fail(name + ' plan.targets() 必须返回数组。');
+      return value;
+    }
+
+    function effects(ctx) {
+      /* 减少动效：由 helper 统一跳过效果，Adapter 的 commit 已按 reduced 直接落目标终态。 */
+      if (reduced) return [];
+      if (typeof plan.effects !== 'function') return [];
+      var timing = isObject(ctx) && isObject(ctx.timing) ? ctx.timing : null;
+      if (!timing) fail(name + ' 的 scene effects 上下文缺少 timing（加载顺序或 scene 版本不匹配）。');
+      var meta = {
+        bindingId: isObject(ctx) && ctx.bindingId != null ? ctx.bindingId : null,
+        motion: isObject(ctx) && ctx.motion != null ? ctx.motion : 'auto',
+        attention: isObject(ctx) && ctx.attention === true,
+        grouped: isObject(ctx) && ctx.grouped === true,
+        groups: isObject(ctx) && isArray(ctx.groups) ? ctx.groups.slice() : []
+      };
+      var specs = plan.effects(timing, meta);
+      if (specs == null) return [];
+      if (!isArray(specs)) fail(name + ' 的 plan.effects(timing) 必须返回 EffectSpec[]。');
+      return specs;
+    }
+
+    function sourceElements() {
+      if (typeof plan.sourceElements !== 'function') return undefined;
+      return plan.sourceElements();
+    }
+
+    return {
+      /* 同步提交完整目标；helper 只做一次性守卫，不替 Adapter 改活 DOM。 */
+      commit: function () {
+        if (committed) return;
+        committed = true;
+        plan.commit();
+      },
+      targets: targets,
+      groups: groups,
+      effects: effects,
+      sourceElements: sourceElements,
+      cleanup: function () {
+        if (cleaned) return;
+        cleaned = true;
+        if (typeof plan.cleanup === 'function') plan.cleanup();
+      },
+      facts: function () {
+        if (typeof plan.facts === 'function') return plan.facts();
+        return { entered: [], exited: [], valueChanged: [] };
+      }
+    };
+  }
+
+  function prepareChange(instance, name, ctx) {
+    if (!isObject(ctx)) fail(name + ' 的 prepareChange(ctx) 收到无效上下文。');
+    var reduced = ctx.motion === 'never';
+    var input = {
+      bindingId: ctx.bindingId == null ? null : ctx.bindingId,
+      sourceFrameId: ctx.sourceFrameId == null ? null : ctx.sourceFrameId,
+      targetFrameId: ctx.targetFrameId == null ? null : ctx.targetFrameId,
+      sourceView: ctx.sourceView == null ? null : ctx.sourceView,
+      targetView: ctx.targetView == null ? null : ctx.targetView,
+      sourceModel: viewModel(ctx.sourceView),
+      targetModel: viewModel(ctx.targetView),
+      motion: ctx.motion == null ? 'auto' : ctx.motion,
+      reduced: reduced,
+      signal: ctx.signal == null ? null : ctx.signal
+    };
+    var plan;
+    try {
+      plan = instance.planStep(input);
+    } catch (error) {
+      fail(name + ' 的 planStep() 失败：' + messageOf(error));
+    }
+    if (plan && typeof plan.then === 'function') {
+      return Promise.resolve(plan).then(function (value) {
+        return preparedFromPlan(value, reduced, name);
+      }, function (error) {
+        fail(name + ' 的 planStep() 异步失败：' + messageOf(error));
+      });
+    }
+    return preparedFromPlan(plan, reduced, name);
+  }
+
+  function mountFactory(spec, name) {
+    return function mount(host, options) {
+      var instance;
+      try {
+        instance = spec.mount(host, options);
+      } catch (error) {
+        fail('Adapter "' + name + '" mount() 失败：' + messageOf(error));
+      }
+      if (!isObject(instance)) fail('Adapter "' + name + '" mount() 必须返回实例对象。');
+      if (typeof instance.restore !== 'function') {
+        fail('Adapter "' + name + '" 的实例缺少 restore(model, view)。');
+      }
+      var handle = {
+        restore: function (view) {
+          return instance.restore(viewModel(view), view);
+        }
+      };
+      if (typeof instance.readView === 'function') {
+        handle.readView = function () {
+          return instance.readView();
+        };
+      } else if (typeof instance.readModel === 'function') {
+        handle.readView = function () {
+          var model = instance.readModel();
+          if (!isObject(model)) fail('Adapter "' + name + '" 的 readModel() 必须返回 model 对象。');
+          var cues = typeof instance.cues === 'function' ? instance.cues(model) : {};
+          if (cues == null) cues = {};
+          if (!isObject(cues)) fail('Adapter "' + name + '" 的 cues(model) 必须返回对象。');
+          return { model: model, cues: cues };
+        };
+      }
+      if (typeof instance.target === 'function') {
+        handle.target = function (query) {
+          return instance.target(query);
+        };
+      }
+      if (typeof instance.applyCues === 'function') {
+        handle.applyCues = function (cues) {
+          return instance.applyCues(cues);
+        };
+      }
+      if (typeof instance.settleVisual === 'function') {
+        handle.settleVisual = function () {
+          return instance.settleVisual();
+        };
+      }
+      if (typeof instance.planStep === 'function') {
+        handle.prepareChange = function (ctx) {
+          return prepareChange(instance, name, ctx);
+        };
+      }
+      if (typeof instance.destroy === 'function') {
+        handle.destroy = function () {
+          return instance.destroy();
+        };
+      }
+      return handle;
+    };
+  }
+
+  /* 定义一个完整 Adapter。spec：
+   *   name（必填）、sceneModes?、defaultSceneMode?、sceneTimingDefaults?、
+   *   normalizeView(input, options)（必填）、validateAction?、mount(host, options)（必填）。
+   * mount 返回的实例：
+   *   restore(model, view)（必填）、readModel()/readView()（scene 参与者需要）、
+   *   cues(model)?、target(query)?、applyCues?、settleVisual?、destroy?、
+   *   planStep(input)（layout/update 参与者需要）→ PreparedChange 形状：
+   *   { groups?, commit(), targets?, effects?(timing, meta), sourceElements?, cleanup?, facts? }。
+   * planStep(input)：{bindingId, sourceFrameId, targetFrameId, sourceView, targetView,
+   *   sourceModel, targetModel, motion, reduced, signal}；同步或返回 Promise 均可。
+   */
+  function define(spec) {
+    if (!isObject(spec)) fail('define(spec) 需要一个对象。');
+    var name = typeof spec.name === 'string' ? spec.name.trim() : '';
+    if (!name) fail('spec.name 必须是非空字符串。');
+    if (typeof spec.normalizeView !== 'function') fail('spec.normalizeView 必须是函数。');
+    if (typeof spec.mount !== 'function') fail('spec.mount 必须是函数。');
+    var sceneModes = null;
+    if (spec.sceneModes != null) sceneModes = copyStrings(spec.sceneModes, 'spec.sceneModes');
+    if (spec.defaultSceneMode != null) {
+      if (typeof spec.defaultSceneMode !== 'string' || spec.defaultSceneMode.trim() === '') {
+        fail('spec.defaultSceneMode 必须是非空字符串。');
+      }
+      if (sceneModes && sceneModes.indexOf(spec.defaultSceneMode) < 0) {
+        fail('spec.defaultSceneMode "' + spec.defaultSceneMode + '" 必须出现在 spec.sceneModes 中。');
+      }
+    }
+    var timingDefaults = spec.sceneTimingDefaults == null ? null : validateTimingDefaults(spec.sceneTimingDefaults);
+    var adapter = {
+      name: name,
+      normalizeView: function (input, options) {
+        var normalized = spec.normalizeView(input, options);
+        if (!isObject(normalized)) fail('Adapter "' + name + '" 的 normalizeView() 必须返回对象。');
+        if (own(normalized, 'model') || own(normalized, 'cues')) {
+          if (!own(normalized, 'model') || !own(normalized, 'cues')) {
+            fail('Adapter "' + name + '" 的 normalizeView() 返回含 model/cues 时必须两者都有。');
+          }
+          return { model: normalized.model, cues: normalized.cues };
+        }
+        return { model: normalized, cues: {} };
+      },
+      validateAction: function (action, options) {
+        if (typeof spec.validateAction === 'function') return spec.validateAction(action, options);
+        fail('Adapter "' + name + '" 只用于 scene，不支持 actions。');
+      },
+      mount: mountFactory(spec, name)
+    };
+    if (sceneModes) adapter.sceneModes = sceneModes;
+    if (spec.defaultSceneMode != null) adapter.defaultSceneMode = spec.defaultSceneMode;
+    if (timingDefaults) adapter.sceneTimingDefaults = timingDefaults;
+    return adapter;
+  }
+
+  var api = {
+    version: VERSION,
+    define: define,
+    progress: progress
+  };
+
+  Internals.sceneAdapter = api;
+  if (global.NoteDemo) global.NoteDemo.sceneAdapter = api;
+  if (global.NoteDemoAuthor) global.NoteDemoAuthor.sceneAdapter = api;
+})(window);
+
+/* ---- source: src/demo/timing-facts.js ---- */
+/* NoteDemo timing facts — 按需的 scene 时序观察。
+ * Scope: window.NoteDemoInternals.timingFacts（由 src/demo/index.js 发布为 NoteDemo.timingFacts）
+ * Depends on: src/demo/scene.js 的窄时序出口（Internals.scene.supportsTimingFacts）。
+ *
+ * 默认关闭：只有调用 watch()/collect() 时才安装 scene 的轻量 emit 出口，停止后移除；
+ * 全部数据只在内存，不写文件、不发网络请求、不参与运行决策。
+ *
+ * fact 字段（scene 发出）：
+ *   { kind, at, runId, frameId, sourceFrameId, motion, binding, index, groups, track, group }
+ *   kind: 'focus-arrival' | 'attention-ready' | 'effect-start' | 'ready' | 'finished' | 'reduced'
+ *   frameId = 本次过渡目标 Frame，sourceFrameId = 来源 Frame；binding 为 scene 参与者；
+ *   track: 'default' | 'layout' | 'group'；group 仅在 track==='group' 时为组名；
+ *   index/groups 仅 attention 到达/ready 事实携带。
+ *
+ * 用法：
+ *   var rec = NoteDemo.timingFacts.watch(session, { onFact: function (fact) {} });
+ *   session.next();
+ *   rec.summary();  // 按 run/frame/binding/组汇总时长
+ *   rec.stop();
+ * 经典脚本，无模块 / 无网络 / 无 eval。
+ */
+(function (global) {
+  'use strict';
+
+  var Internals = global.NoteDemoInternals = global.NoteDemoInternals || {};
+  var VERSION = '1.0.0';
+  var recorders = [];
+  var installed = false;
+
+  function fail(message) {
+    throw new Error('NoteDemo.timingFacts: ' + message);
+  }
+
+  function isObject(value) {
+    return !!value && typeof value === 'object' && !Array.isArray(value);
+  }
+
+  function isArray(value) {
+    return Array.isArray(value);
+  }
+
+  function nowMs() {
+    if (global.performance && typeof global.performance.now === 'function') {
+      return global.performance.now();
+    }
+    return Date.now();
+  }
+
+  /* scene.js 的窄出口标记；旧构建没有该标记时明确报错，而不是静默返回空事实。 */
+  function supported() {
+    return !!(Internals.scene && Internals.scene.supportsTimingFacts === true);
+  }
+
+  function sinkEmit(fact) {
+    if (!fact) return;
+    for (var i = 0; i < recorders.length; i += 1) {
+      var recorder = recorders[i];
+      if (!recorder || !recorder.active) continue;
+      try {
+        recorder._accept(fact);
+      } catch (error) {
+        /* 观察失败不打断运行，也不影响其它 recorder。 */
+      }
+    }
+  }
+
+  function install() {
+    if (installed) return;
+    if (!supported()) {
+      fail('当前 scene.js 没有提供时序事实出口（需要新版公共编排层）。');
+    }
+    installed = true;
+    Internals.sceneTimingFacts = {
+      version: 1,
+      emit: sinkEmit
+    };
+  }
+
+  function uninstall() {
+    installed = false;
+    if (!Internals.sceneTimingFacts) return;
+    try {
+      delete Internals.sceneTimingFacts;
+    } catch (error) {
+      Internals.sceneTimingFacts = null;
+    }
+  }
+
+  function normalizeFact(fact) {
+    var source = isObject(fact) ? fact : {};
+    var at = typeof source.at === 'number' && isFinite(source.at) ? source.at : nowMs();
+    return {
+      kind: typeof source.kind === 'string' ? source.kind : '',
+      at: at,
+      runId: source.runId == null ? null : source.runId,
+      frameId: source.frameId == null ? null : String(source.frameId),
+      sourceFrameId: source.sourceFrameId == null ? null : String(source.sourceFrameId),
+      motion: source.motion === 'reduced' ? 'reduced' : 'normal',
+      binding: source.binding == null ? null : String(source.binding),
+      index: typeof source.index === 'number' ? source.index : null,
+      groups: isArray(source.groups) ? source.groups.slice() : null,
+      track: source.track == null ? null : String(source.track),
+      group: source.group == null ? null : String(source.group)
+    };
+  }
+
+  function createRecorder(options) {
+    var config = isObject(options) ? options : {};
+    var list = [];
+    var listeners = [];
+    var predicate = typeof config.predicate === 'function' ? config.predicate : null;
+    var recorder = {
+      active: false,
+      label: config.label == null ? null : String(config.label),
+      startedAt: nowMs(),
+      version: VERSION,
+      _unsubscribe: null
+    };
+
+    function notify(fact) {
+      for (var i = 0; i < listeners.length; i += 1) {
+        try {
+          listeners[i](fact);
+        } catch (error) {
+          /* 观察回调异常不回传给 scene。 */
+        }
+      }
+    }
+
+    function accept(fact) {
+      var normalized = normalizeFact(fact);
+      if (predicate && predicate(normalized) !== true) return;
+      list.push(normalized);
+      notify(normalized);
+    }
+
+    recorder._accept = accept;
+    recorder.snapshot = function () {
+      return list.slice();
+    };
+    recorder.count = function () {
+      return list.length;
+    };
+    recorder.clear = function () {
+      list.length = 0;
+    };
+    recorder.onFact = function (callback) {
+      if (typeof callback !== 'function') fail('onFact(callback) 需要函数。');
+      listeners.push(callback);
+      return function off() {
+        var index = listeners.indexOf(callback);
+        if (index >= 0) listeners.splice(index, 1);
+      };
+    };
+    recorder.summary = function () {
+      return summarize(list);
+    };
+    recorder.stop = function () {
+      if (!recorder.active) return;
+      recorder.active = false;
+      if (typeof recorder._unsubscribe === 'function') {
+        try {
+          recorder._unsubscribe();
+        } catch (error) { /* 已销毁的 session 等，忽略 */ }
+        recorder._unsubscribe = null;
+      }
+      var index = recorders.indexOf(recorder);
+      if (index >= 0) recorders.splice(index, 1);
+      if (config.onFact != null && typeof config.onFact === 'function') {
+        /* 通过 listen 注册的回调由 listeners 管；结束不清空已收集事实。 */
+      }
+      if (!recorders.length) uninstall();
+    };
+
+    if (typeof config.onFact === 'function') recorder.onFact(config.onFact);
+    /* 先安装 scene 出口：旧构建不支持时在返回 recorder 前明确抛错，不注册半成品。 */
+    install();
+    recorders.push(recorder);
+    recorder.active = true;
+    return recorder;
+  }
+
+  function trackKey(track, group) {
+    return String(track || '') + '\u0000' + String(group || '');
+  }
+
+  /* 汇总：按 run（runId+目标/来源 Frame+motion）→ Binding → 轨道（track+group）聚合。
+   * 同一轨道多次出现时取第一次 startedAt/readyAt/finishedAt；时长只在两者都有时计算。 */
+  function summarize(facts) {
+    var runs = [];
+    var runMap = {};
+    for (var i = 0; i < facts.length; i += 1) {
+      var fact = facts[i];
+      var runKey = String(fact.runId) + '|' + String(fact.frameId) + '|' + String(fact.sourceFrameId) + '|' + fact.motion;
+      var run = runMap[runKey];
+      if (!run) {
+        run = {
+          runId: fact.runId,
+          frameId: fact.frameId,
+          sourceFrameId: fact.sourceFrameId,
+          motion: fact.motion,
+          firstAt: fact.at,
+          lastAt: fact.at,
+          bindings: {}
+        };
+        runMap[runKey] = run;
+        runs.push(run);
+      }
+      if (fact.at < run.firstAt) run.firstAt = fact.at;
+      if (fact.at > run.lastAt) run.lastAt = fact.at;
+      if (!fact.binding) continue;
+      var binding = run.bindings[fact.binding];
+      if (!binding) {
+        binding = { binding: fact.binding, focusArrivals: [], attentionReady: [], tracks: {} };
+        run.bindings[fact.binding] = binding;
+      }
+      if (fact.kind === 'focus-arrival') {
+        binding.focusArrivals.push({ at: fact.at, index: fact.index, groups: fact.groups ? fact.groups.slice() : null });
+        continue;
+      }
+      if (fact.kind === 'attention-ready') {
+        binding.attentionReady.push({ at: fact.at, index: fact.index });
+        continue;
+      }
+      if (!fact.track) continue;
+      var key = trackKey(fact.track, fact.group);
+      var track = binding.tracks[key];
+      if (!track) {
+        track = { track: fact.track, group: fact.group, startedAt: null, readyAt: null, finishedAt: null };
+        binding.tracks[key] = track;
+      }
+      if (fact.kind === 'effect-start' && track.startedAt == null) track.startedAt = fact.at;
+      else if (fact.kind === 'ready' && track.readyAt == null) track.readyAt = fact.at;
+      else if (fact.kind === 'finished' && track.finishedAt == null) track.finishedAt = fact.at;
+    }
+    for (var r = 0; r < runs.length; r += 1) {
+      var current = runs[r];
+      current.bindings = Object.keys(current.bindings).map(function (bindingId) {
+        var binding = current.bindings[bindingId];
+        binding.tracks = Object.keys(binding.tracks).map(function (key) {
+          var track = binding.tracks[key];
+          track.readyMs = track.startedAt != null && track.readyAt != null
+            ? Math.round((track.readyAt - track.startedAt) * 100) / 100
+            : null;
+          track.finishedMs = track.startedAt != null && track.finishedAt != null
+            ? Math.round((track.finishedAt - track.startedAt) * 100) / 100
+            : null;
+          return track;
+        });
+        return binding;
+      });
+    }
+    var firstAt = null;
+    var lastAt = null;
+    for (var f = 0; f < facts.length; f += 1) {
+      if (firstAt == null || facts[f].at < firstAt) firstAt = facts[f].at;
+      if (lastAt == null || facts[f].at > lastAt) lastAt = facts[f].at;
+    }
+    return {
+      count: facts.length,
+      firstAt: firstAt,
+      lastAt: lastAt,
+      runs: runs
+    };
+  }
+
+  /* 会话级窄订阅：只收集该 session 已知 Frame（当前/目标/历史停点）相关的 fact；
+   * 多会话并发且 Frame ID 相同时可能互相可见，观察工具不承担会话隔离判断。 */
+  function watch(session, options) {
+    if (!session || typeof session.getState !== 'function' || typeof session.subscribe !== 'function') {
+      fail('watch(session, options) 需要一个 NoteDemo 会话。');
+    }
+    var knownFrames = {};
+    function remember(state) {
+      if (!isObject(state)) return;
+      if (state.settledFrameId != null) knownFrames[state.settledFrameId] = true;
+      if (state.targetFrameId != null) knownFrames[state.targetFrameId] = true;
+    }
+    remember(session.getState());
+    var unsubscribe = session.subscribe(remember);
+    var recorder = createRecorder({
+      label: isObject(options) && options.label != null ? options.label : null,
+      onFact: isObject(options) && typeof options.onFact === 'function' ? options.onFact : null,
+      predicate: function (fact) {
+        var state = null;
+        try {
+          state = session.getState();
+        } catch (error) {
+          state = null;
+        }
+        if (isObject(state)) {
+          if (state.targetFrameId != null && fact.frameId === state.targetFrameId) return true;
+          if (state.settledFrameId != null &&
+              (fact.frameId === state.settledFrameId || fact.sourceFrameId === state.settledFrameId)) return true;
+        }
+        return (fact.frameId != null && knownFrames[fact.frameId] === true) ||
+          (fact.sourceFrameId != null && knownFrames[fact.sourceFrameId] === true);
+      }
+    });
+    recorder._unsubscribe = unsubscribe;
+    return recorder;
+  }
+
+  /* 全局收集：不绑定 session，用于单页调试或探针对照；默认仍然关闭。 */
+  function collect(options) {
+    var config = isObject(options) ? options : {};
+    return createRecorder({
+      label: config.label == null ? null : config.label,
+      onFact: typeof config.onFact === 'function' ? config.onFact : null,
+      predicate: typeof config.filter === 'function' ? config.filter : null
+    });
+  }
+
+  var api = {
+    version: VERSION,
+    supported: supported,
+    watch: watch,
+    collect: collect
+  };
+
+  Internals.timingFacts = api;
+  if (global.NoteDemo) global.NoteDemo.timingFacts = api;
+  if (global.NoteDemoAuthor) global.NoteDemoAuthor.timingFacts = api;
 })(window);
 
 /* ---- source: src/demo/runner.js ---- */
@@ -61131,6 +64727,11 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     }
   };
 
+  /* 作者侧接入辅助（scene-adapter.js / timing-facts.js 提供）：自定义图形接 scene 的
+   * 共享胶水与默认关闭的时序观察；未加载对应文件时不创建空入口。 */
+  if (Internals.sceneAdapter) NoteDemoAuthor.sceneAdapter = Internals.sceneAdapter;
+  if (Internals.timingFacts) NoteDemoAuthor.timingFacts = Internals.timingFacts;
+
   NoteDemoAuthor.collectSlots = collectSlots;
   NoteDemoAuthor.compile = compile;
   NoteDemoAuthor.version = '1.0.0';
@@ -61246,7 +64847,13 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     NoteDemo.compile = global.NoteDemoAuthor.compile;
     NoteDemo.author = global.NoteDemoAuthor;
     if (global.NoteDemoAuthor.effects) NoteDemo.effects = global.NoteDemoAuthor.effects;
+    if (global.NoteDemoAuthor.sceneAdapter) NoteDemo.sceneAdapter = global.NoteDemoAuthor.sceneAdapter;
+    if (global.NoteDemoAuthor.timingFacts) NoteDemo.timingFacts = global.NoteDemoAuthor.timingFacts;
   }
+  /* 加载顺序兜底：scene-adapter.js / timing-facts.js 若在 authoring/index 之后加载，
+   * 它们也会自挂到 NoteDemo；这里保证按清单顺序加载时同样可用。 */
+  if (!NoteDemo.sceneAdapter && Internals.sceneAdapter) NoteDemo.sceneAdapter = Internals.sceneAdapter;
+  if (!NoteDemo.timingFacts && Internals.timingFacts) NoteDemo.timingFacts = Internals.timingFacts;
   NoteDemo.version = VERSION;
 
   Internals.createSession = createSession;
@@ -62467,7 +66074,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       }
     }
 
-    /* ---------------- attention target resolution（range local/union） ---------------- */
+    /* ---------------- attention target resolution（有效性 / range local / union） ---------------- */
 
     function missingAttentionError(frameId, index, target, detail) {
       return new Error('Frame "' + text(frameId) + '" 的 attention 目标缺失（第 ' + (index + 1) +
@@ -62475,35 +66082,91 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         (detail ? '：' + detail : '') + '。');
     }
 
-    function makeAttentionMeasure(desc) {
-      return function measure() {
-        var main = desc.mainElement;
-        if (!main || !isConnected(main)) throw new Error('attention 目标元素已断开。');
-        var base = rawRectOf(main);
-        if (!desc.range) return base;
-        if (desc.range.kind === 'local') {
-          var dx = numberOr(desc.range.dx, 0);
-          var dy = numberOr(desc.range.dy, 0);
-          var width = Math.max(0, numberOr(desc.range.width, base.width));
-          var height = Math.max(0, numberOr(desc.range.height, base.height));
-          return {
-            left: base.left + dx, top: base.top + dy,
-            width: width, height: height,
-            right: base.left + dx + width, bottom: base.top + dy + height
-          };
+    function geometryInternals() {
+      var geometry = Internals.sceneGeometry;
+      if (!geometry || typeof geometry.readTargetGeometry !== 'function' ||
+          typeof geometry.applyLocalRange !== 'function' || typeof geometry.unionRects !== 'function') {
+        throw new Error('NoteDemo 默认舞台需要先加载 scene-geometry.js（scene attention 目标几何判定）。');
+      }
+      return geometry;
+    }
+
+    function attentionGeometryError(desc, detail) {
+      return new Error('Frame "' + text(desc.frameId) + '" 的 attention 目标几何无效（第 ' + (desc.index + 1) +
+        ' 个目标，Binding "' + text(desc.binding) + '"，query ' + readQuery(desc.query) + '）：' + detail + '。');
+    }
+
+    function unionRefLabel(ref) {
+      return 'Binding "' + text(ref && ref.binding) + '"，query ' + readQuery(ref && ref.query);
+    }
+
+    /* 目标几何：主目标必须可定位；display:none/断开/无布局矩形不当作 0,0 参与迁移或 union。
+     * opacity:0 的待入场内容只要有真实矩形仍有效；SVG 线允许一维为 0，SVG 点需显式范围。
+     * 返回视口矩形（尚未叠加 Focus 组件的默认 6px 外扩，避免重复叠加）。 */
+    function computeAttentionGeometry(desc) {
+      var geometry = geometryInternals();
+      var mainGeo = geometry.readTargetGeometry(desc.mainElement);
+      if (!mainGeo.ok) throw attentionGeometryError(desc, mainGeo.issue || '目标不可用');
+      var base = mainGeo.rect;
+      var range = desc.range;
+      if (!range) {
+        if (mainGeo.kind === 'point') {
+          throw attentionGeometryError(desc, '目标为零尺寸点，不能作为观察范围；请提供 local/union 显式范围，或指向有真实布局区域的元素');
         }
-        /* union：主元素 + refs 的并集；refs 每次重新解析以适配组件重建。 */
+        return base;
+      }
+      if (range.kind === 'local') {
+        var local = geometry.applyLocalRange(base, range);
+        if (!local.ok) throw attentionGeometryError(desc, local.issue || 'local range 不可用');
+        return local.rect;
+      }
+      if (range.kind === 'union') {
+        /* 主元素始终参与并集；无效几何成员不参与。optional 成员缺失/暂不可用跳过，必需成员明确报错。 */
         var rects = [base];
         for (var i = 0; i < desc.unionRefs.length; i += 1) {
           var entry = desc.unionRefs[i];
-          var element = resolveTarget(entry.ref) || entry.element;
-          if (!element || !isConnected(element)) {
-            throw new Error('attention union ref 目标已断开：Binding "' + text(entry.ref && entry.ref.binding) + '"。');
+          var optional = !!(entry.ref && entry.ref.optional === true);
+          var element = resolveTarget(entry.ref);
+          if (!element) {
+            if (optional) { entry.element = null; continue; }
+            throw attentionGeometryError(desc, 'union 辅助成员不可解析（必需）：' + unionRefLabel(entry.ref) +
+              '；确可缺失请显式声明 optional:true');
           }
           entry.element = element;
-          rects.push(rawRectOf(element));
+          var memberGeo = geometry.readTargetGeometry(element);
+          if (!memberGeo.ok) {
+            if (optional) continue;
+            throw attentionGeometryError(desc, 'union 辅助成员几何无效（必需）：' + unionRefLabel(entry.ref) + '：' +
+              (memberGeo.issue || '不可用'));
+          }
+          rects.push(memberGeo.rect);
         }
-        return unionRectOf(rects);
+        var union = geometry.unionRects(rects);
+        if (!union) throw attentionGeometryError(desc, 'union 范围无法形成有效矩形');
+        if (typeof geometry.classifyRect === 'function' && geometry.classifyRect(union) === 'point') {
+          throw attentionGeometryError(desc, 'union 范围退化为零尺寸点');
+        }
+        return union;
+      }
+      throw new Error('Frame "' + text(desc.frameId) + '" 的 attention range 未知类型：' + text(range.kind) + '。');
+    }
+
+    function makeAttentionMeasure(desc) {
+      return function measure() {
+        var main = desc.mainElement;
+        if (!main || !isConnected(main)) {
+          /* 运行中临时重建/断开：保留上一有效落点，由 reanchor 重新按逻辑身份解析。 */
+          if (desc.lastRect) return desc.lastRect;
+          throw new Error('attention 目标元素已断开。');
+        }
+        try {
+          var rect = computeAttentionGeometry(desc);
+          desc.lastRect = rect;
+          return rect;
+        } catch (error) {
+          if (desc.lastRect) return desc.lastRect;
+          throw error;
+        }
       };
     }
 
@@ -62521,47 +66184,50 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         range: target && target.range ? target.range : null,
         unionRefs: [],
         mainElement: main,
+        lastRect: null,
         measure: null
       };
       if (desc.range && typeof desc.range === 'object') {
         if (desc.range.kind === 'union') {
           var refs = Array.isArray(desc.range.refs) ? desc.range.refs : [];
+          if (!refs.length) {
+            throw new Error('Frame "' + text(frameId) + '" 的 attention union range 缺少 refs。');
+          }
           for (var r = 0; r < refs.length; r += 1) {
-            var ref = refs[r];
-            var element = resolveTarget(ref);
-            if (!element) {
-              throw missingAttentionError(frameId, index, target, 'union ref 目标不可解析：Binding "' +
-                text(ref && ref.binding) + '"，query ' + readQuery(ref && ref.query));
-            }
-            desc.unionRefs.push({ ref: ref, element: element });
+            desc.unionRefs.push({ ref: refs[r], element: null });
           }
         } else if (desc.range.kind !== 'local') {
           throw new Error('Frame "' + text(frameId) + '" 的 attention range 未知类型：' + text(desc.range.kind) + '。');
         }
       }
       desc.measure = makeAttentionMeasure(desc);
+      /* 先算一次初始几何：缺少布局/dispaly:none/必需 union 成员无效在此明确报错，不静默退化。 */
+      var initial = desc.measure();
+      if (!initial) throw attentionGeometryError(desc, '目标初始几何不可用');
+      desc.lastRect = initial;
       if (focusRegistry) focusRegistry.set(main, { measure: desc.measure });
       return desc;
     }
 
-    /* DOM 重建后重新解析同一逻辑目标并静默 reanchor；缺失返回 false 由调用方隐藏。 */
+    /* DOM 重建后重新解析同一逻辑目标并静默 reanchor；missing 由调用方隐藏，invalid/failed 保留上一有效落点。 */
     function reanchorFocusTo(desc) {
       var view = sessionFocusView();
-      if (!view || !desc) return false;
+      if (!view || !desc) return 'missing';
       var main = resolveTarget({ binding: desc.binding, query: desc.query });
-      if (!main) return false;
+      if (!main) return 'missing';
       if (main !== desc.mainElement) {
         if (focusRegistry) focusRegistry.delete(desc.mainElement);
         desc.mainElement = main;
         if (focusRegistry) focusRegistry.set(main, { measure: desc.measure });
       }
-      if (typeof view.reanchor !== 'function') return true;
+      if (typeof view.reanchor !== 'function') return 'ok';
       try {
+        /* 若新元素暂不可用，measure 会返回上一有效落点；静默重绑定，不回到屏幕角落再飞入。 */
         view.reanchor({ el: main, geometry: focusGeometry });
-        return true;
+        return 'ok';
       } catch (error) {
         logError('NoteDemo presentation：会话焦点 reanchor 失败。', error);
-        return false;
+        return 'failed';
       }
     }
 
@@ -62569,7 +66235,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       if (!lastFocusDesc) return;
       var view = sessionFocusView();
       if (!view || !view.visible) return;
-      if (!reanchorFocusTo(lastFocusDesc)) {
+      var status = reanchorFocusTo(lastFocusDesc);
+      if (status === 'missing') {
         hideSessionFocus();
         return;
       }
@@ -62581,7 +66248,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       if (!lastFocusDesc) return;
       var view = sessionFocusView();
       if (!view || !view.visible) return;
-      if (!reanchorFocusTo(lastFocusDesc)) {
+      var status = reanchorFocusTo(lastFocusDesc);
+      if (status === 'missing') {
         hideSessionFocus();
         return;
       }
@@ -62606,7 +66274,16 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         return Promise.reject(error);
       }
       if (!session) return Promise.resolve(false);
-      if (focusRegistry) focusRegistry.set(desc.mainElement, { measure: desc.measure });
+      /* 解析到 show 之间若 DOM 已重建：按逻辑身份重新取当前元素，再交给 Focus。 */
+      var current = resolveTarget({ binding: desc.binding, query: desc.query });
+      if (!current) {
+        return Promise.reject(missingAttentionError(desc.frameId, desc.index, desc.target, 'Binding 目标不可解析'));
+      }
+      if (current !== desc.mainElement) {
+        if (focusRegistry) focusRegistry.delete(desc.mainElement);
+        desc.mainElement = current;
+        if (focusRegistry) focusRegistry.set(current, { measure: desc.measure });
+      }
       var view = session.view;
       try {
         view.show({ el: desc.mainElement, geometry: focusGeometry });

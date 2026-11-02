@@ -61,6 +61,31 @@ expect(searchStage.ok === true && searchStage.results.some((item) => item.id ===
   '“静态舞台”命中舞台容器而非运行层', JSON.stringify(searchStage.results.map((item) => item.id)));
 const searchButton = json(run(['search', '按钮', '--json']));
 expect(searchButton.ok === true && searchButton.results.some((item) => item.id === 'R01' && item.coverage === 'catalog'), '首批语料外组件仍返回基础信息（R01）', JSON.stringify(searchButton.results.map((item) => item.id)));
+const searchStageTrack = json(run(['search', '阶段轨', '--json']));
+expect(searchStageTrack.ok === true && searchStageTrack.results.some((item) => item.id === 'D07'),
+  '“阶段轨”命中 D07', JSON.stringify(searchStageTrack.results.map((item) => item.id)));
+const searchPacketFlow = json(run(['search', '消息流', '--json']));
+expect(searchPacketFlow.ok === true && searchPacketFlow.results.some((item) => item.id === 'D08'),
+  '“消息流”命中 D08', JSON.stringify(searchPacketFlow.results.map((item) => item.id)));
+const flowKit = json(run(['show', 'example:flow-kit', '--json']));
+const flowKitEntry = flowKit.entries && flowKit.entries[0];
+expect(flowKit.ok === true && flowKitEntry && flowKitEntry.resources.some((item) => item.key === 'example') && flowKitEntry.resources.some((item) => item.key === 'fragment'),
+  'show example:flow-kit 返回完整示例与局部片段', JSON.stringify(flowKitEntry && flowKitEntry.resources && flowKitEntry.resources.map((item) => item.key)));
+const continuousAdapter = json(run(['show', 'public:continuous-adapter', '--json']));
+const continuousAdapterEntry = continuousAdapter.entries && continuousAdapter.entries[0];
+expect(continuousAdapter.ok === true && continuousAdapterEntry && continuousAdapterEntry.resources.some((item) => item.key === 'api') && continuousAdapterEntry.resources.some((item) => item.key === 'source'),
+  'show public:continuous-adapter 返回 API 与源码', JSON.stringify(continuousAdapterEntry && continuousAdapterEntry.resources && continuousAdapterEntry.resources.map((item) => item.key)));
+const attentionApi = json(run(['read', 'public:attention', 'api', '--json']));
+expect(attentionApi.ok === true && /outset/.test(attentionApi.content) && /optional/.test(attentionApi.content),
+  'attention API 含相对范围与 optional union');
+const c06Api = json(run(['read', 'C06', 'api', '--json']));
+expect(c06Api.ok === true && /rowState/.test(c06Api.content) && /getState/.test(c06Api.content), 'C06 API 含行状态与 getState');
+const d03Api = json(run(['read', 'D03', 'api', '--json']));
+expect(d03Api.ok === true && /getEdgeTarget/.test(d03Api.content) && /edgeFocus/.test(d03Api.content), 'D03 API 含边目标与状态');
+const r04Api = json(run(['read', 'R04', 'api', '--json']));
+expect(r04Api.ok === true && /数组/.test(r04Api.content), 'R04 API 含节点数组契约');
+const f10Api = json(run(['read', 'F10', 'api', '--json']));
+expect(f10Api.ok === true && /ticks/.test(f10Api.content) && /segments/.test(f10Api.content), 'F10 API 含刻度与分段');
 const empty = json(run(['search', '不存在词xyz', '--json']));
 expect(empty.ok === true && empty.total === 0 && empty.results.length === 0 && empty.message, '空搜索是正常结果，不伪造推荐');
 

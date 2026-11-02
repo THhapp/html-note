@@ -110,10 +110,12 @@ var sw = NoteUI.Switch.mount(host, {
 | `error` | string | `''` | 外部错误 |
 | `disabled` | boolean | `false` | 原生禁用 |
 | `onChange` | function | `null` | `(number \| [min,max], event)` |
+| `ticks` | Array<number \| {value,label?}> | `null` | 可选刻度；按值排序，值必须落在 `[min,max]`。`label` 省略时用 `format` 显示值，传空串则只画刻度不写字。 |
+| `segments` | Array<{valueStart,valueEnd,positionStart,positionEnd}> | `null` | 可选显式分段映射；不传时保持线性。position 为 0–100 百分比。 |
 
 ### 方法
 
-`getValue()` 返回 number 或 `[min, max]`；`setError(msg)`；`focus()`；`update(patch)`；`destroy()`。
+`getValue()` 返回 number 或 `[min, max]`；`setError(msg)`；`focus()`；`update(patch)`；`destroy()`。`update(patch)` 会先校验 `ticks`/`segments`（以及新的 `min/max/step` 组合），坏配置不会先破坏旧状态或旧 DOM。
 
 ### 行为
 
@@ -123,13 +125,20 @@ var sw = NoteUI.Switch.mount(host, {
 - 切换 `range` 会重建输入；程序更新不触发 `onChange`。
 - 减少动效时没有轨道动画；轨道、端点与文本读数仍然可见。
 
+### 刻度与分段映射
+
+- `ticks` 是可选标的刻度：数字或 `{value,label}`；值必须落在 `[min,max]`，按值排序。`label` 省略时用当前 `format` 显示数值，传空字符串则只画刻度不写文字。刻度只是视觉与读数辅助，不改变输入域、步长或 `getValue()`。
+- `segments` 是显式分段映射：每段给出 `{valueStart,valueEnd,positionStart,positionEnd}`，position 使用 0–100 百分比，线性默认不传。各段必须按顺序连续覆盖 `min..max` 与 `0..100`；每段 `positionEnd > positionStart`、`valueEnd >= valueStart`，value 与 position 各自单调不减。
+- 传入 `segments` 后，值与轨道位置按分段双向映射；数值、键盘和 `aria-valuetext` 仍按真实值与 `step` 计算，再把结果换回位置。区间模式的两个输入都使用同一映射，起点不得大于终点。
+- 校验失败抛带 `NoteUI.Slider:` 前缀的 `TypeError`；`update` 的校验先于状态合并，坏 `ticks`/`segments` 保持旧状态与旧 DOM。
+
 ### 键盘
 
-原生 range 键盘：方向键逐步调整，Home/End 到最小/最大，PageUp/PageDown 由浏览器按较大步长调整。区间模式中两个输入均可聚焦，标签为“最小值/最大值”。
+原生 range 键盘：方向键逐步调整，Home/End 到最小/最大，PageUp/PageDown 由浏览器按较大步长调整。分段映射下，键盘先按真实值与 `step` 计算，再换算回位置；区间模式中两个输入均可聚焦，标签为“最小值/最大值”。
 
 ### 精确选择（配合 NumberInput 与预设）
 
-滑块负责“扫视范围、粗调与键盘步进”，不承诺用指针命中末端的小边界值（例如 0–1500 中的 46）。需要精确输入时，把 Slider 与 F04 NumberInput、A03 Toggle 预设组合起来，三者通过公开 API 双向同步；不要为精确命中改滑块几何或引入非线性比例：
+滑块负责“扫视范围、粗调与键盘步进”，不承诺用指针命中末端的小边界值（例如 0–1500 中的 46）。需要精确输入时，把 Slider 与 F04 NumberInput、A03 Toggle 预设组合起来，三者通过公开 API 双向同步；需要显式非线性映射时使用 `segments`，不要为精确命中改滑块几何或写私有比例：
 
 ```js
 var slider = NoteUI.Slider.mount(host, {
@@ -157,7 +166,7 @@ function setLength(value) {
 }
 ```
 
-约束：Slider 与 NumberInput 必须使用同一 `min/max/step`，预设值应落在这个范围内；`NumberInput` 负责合法性与精度，`Slider.update({value})` 在 `step: 1` 时保留精确整数，非法/越界值仍按 Slider 自己的规则夹紧或吸附。程序 `update()` 一律不触发 `onChange`，不会互相递归。预设项也可换成分段按钮或宿主自有按钮；不新增 Slider 的非线性映射 API。
+约束：Slider 与 NumberInput 必须使用同一 `min/max/step`，预设值应落在这个范围内；`NumberInput` 负责合法性与精度，`Slider.update({value})` 在 `step: 1` 时保留精确整数，非法/越界值仍按 Slider 自己的规则夹紧或吸附。程序 `update()` 一律不触发 `onChange`，不会互相递归。预设项也可换成分段按钮或宿主自有按钮；非线性显示使用显式 `segments`，不内置课程阈值或隐式比例。
 
 ### 最小用法
 
@@ -172,7 +181,7 @@ var slider = NoteUI.Slider.mount(host, {
 ### 限制
 
 - 两个原生 range 上下排列，不是同轨重叠的双拇指；这是为保证可靠点击与键盘可达所做的选择。
-- 不内置刻度标签或非线性比例（例如对数尺度）；精确小边界值用 NumberInput + 预设组合，而不是改滑块命中几何。
+- 刻度与分段映射是作者显式传入的可选能力；不内置对数尺度、课程阈值或自动分段，也不为单个例子写死比例。精确小边界值用 NumberInput + 预设组合，而不是改滑块命中几何。
 - 格式化函数抛错时回退为普通数字，不阻塞组件。
 
 ---

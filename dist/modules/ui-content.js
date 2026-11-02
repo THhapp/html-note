@@ -498,6 +498,34 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 
   /* ------------------------------------------------------------------ *
    * C06 Table
+   *
+   * 兼容边界（旧输入全部保持）：
+   * - columns/rows/rowKey/caption/empty/sort/onSort/emphasis/maxHeight/dense 语义不变；
+   * - getTarget(rowKey) 仍返回当前 <tr>，行键重复时仍只保留最后一个映射；
+   * - 表头排序、稳定排序、空态、滚动区与既有类名/aria 保持不变。
+   *
+   * 本轮新增（设计 6.1）：
+   * - 稳定行/单元身份：<tr data-row-key>、<td data-col-key>；同键/同列局部更新不再重建整表。
+   * - 作者声明状态（不内置课程规则；state/cellStates 是行数据保留字段，不要再用作列键）：
+   *     row.state        string | number | string[] | { type|name, label? } | 上述数组
+   *     row.cellStates   { [columnKey]: 同上 }（按列替换；整行替换后旧状态自然消失）
+   *     也可以不给行数据，改用 options.rowState(row,index,rowKey) 或
+   *     options.cellState(row,column,rowKey,index) 计算状态；声明了对应函数时以函数为准，
+   *     不再读取 row.state / row.cellStates。
+   *   状态渲染为 data-row-state / data-cell-state（空格分隔类型）和
+   *   nui-table__row--state-<type> / nui-table__cell--state-<type> 类；
+   *   只有状态带 label 时才渲染可见的 .nui-table__state 标签，不自动补“关注/变化”文字。
+   *   type 建议用不含空白的单 token；带空白时 data 属性按空格拆分，类名会换成连字符。
+   * - getTarget(query) 扩展：
+   *     getTarget(rowKey)                          -> <tr>（兼容）
+   *     getTarget({ row|rowKey|key: rowKey })      -> <tr>
+   *     getTarget({ row, column|col: columnKey })  -> <td>
+   *     part:'row' 强制返回行；part:'cell' 需要列键。
+   * - getState() 返回当前列/行/排序/强调/状态快照（见实例方法注释；销毁后为 null）。
+   * - 值、强调、状态或排序方向变化只更新对应行/单元；只有列键/顺序/对齐/可排序列
+   *   等结构变化才重建该行单元或表头。行键不变时 <tr> 身份保留；排序只移动现有节点。
+   *   空行（rows 为空）会清除行节点缓存，恢复数据时按新行创建。
+   *   重复行键仍按旧兼容语义：两行都渲染，getTarget 返回最后一个映射。
    * ------------------------------------------------------------------ */
 
   var TABLE_DEFAULTS = {
@@ -510,8 +538,11 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     onSort: null,
     emphasis: null,
     maxHeight: null,
-    dense: false
+    dense: false,
+    rowState: null,
+    cellState: null
   };
+  var TABLE_NO_VALUE = {};
   var tableCollator = null;
 
   function sameKey(left, right) {
@@ -542,7 +573,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     return value == null ? '' : String(value);
   }
 
-  function TableSort(sort) {
+  function tableSort(sort) {
     if (!sort) return { enabled: false, key: null, direction: null };
     if (sort === true) return { enabled: true, key: null, direction: null };
     if (typeof sort === 'object') {
@@ -551,6 +582,83 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       return { enabled: true, key: key, direction: direction };
     }
     return { enabled: true, key: null, direction: null };
+  }
+
+  /* 状态值归一：字符串/数字、数组、{type|name,label} 与它们的数组。无效项忽略。 */
+  function tableStateItems(value) {
+    var items = [];
+    var seen = {};
+    function add(item) {
+      if (item == null || item === false || item === '') return;
+      if (Array.isArray(item)) {
+        item.forEach(add);
+        return;
+      }
+      if (typeof item === 'string' || typeof item === 'number') {
+        var type = text(item).trim();
+        if (!type || own(seen, '$' + type)) return;
+        seen['$' + type] = true;
+        items.push({ type: type, label: '' });
+        return;
+      }
+      if (typeof item === 'object') {
+        var rawType = item.type != null ? item.type : item.name;
+        var typeText = rawType == null ? '' : text(rawType).trim();
+        if (!typeText || own(seen, '$' + typeText)) return;
+        seen['$' + typeText] = true;
+        items.push({ type: typeText, label: item.label == null ? '' : text(item.label).trim() });
+      }
+    }
+    add(value);
+    return items;
+  }
+
+  function tableStateToken(type) {
+    return String(type).trim().replace(/\s+/g, '-');
+  }
+
+  /* 只写 data 属性与服务端声明状态的类；不解释状态含义，也不自动生成文案。 */
+  function setTableState(node, attr, classPrefix, items, previousTokens) {
+    var names = [];
+    var tokens = [];
+    var seen = {};
+    items.forEach(function (item) {
+      if (!own(seen, '$' + item.type)) {
+        seen['$' + item.type] = true;
+        names.push(item.type);
+        var token = tableStateToken(item.type);
+        if (token && tokens.indexOf(token) < 0) tokens.push(token);
+      }
+    });
+    if (names.length) node.setAttribute(attr, names.join(' '));
+    else node.removeAttribute(attr);
+    var previous = Array.isArray(previousTokens) ? previousTokens : [];
+    previous.forEach(function (token) {
+      if (tokens.indexOf(token) < 0) node.classList.remove(classPrefix + token);
+    });
+    tokens.forEach(function (token) {
+      if (previous.indexOf(token) < 0) node.classList.add(classPrefix + token);
+    });
+    return tokens;
+  }
+
+  /* 状态可见标签：仅作者显式给 label 时出现；内容替换会清掉子节点，所以调用方在 setContent 之后调用。 */
+  function setTableStateLabel(host, items, box) {
+    if (!box) return;
+    var labels = [];
+    items.forEach(function (item) {
+      if (item.label && labels.indexOf(item.label) < 0) labels.push(item.label);
+    });
+    var label = labels.join(' ');
+    if (!label) {
+      if (box.el && box.el.parentNode === host) host.removeChild(box.el);
+      return;
+    }
+    if (!box.el) box.el = create('span', 'nui-table__state');
+    if (box.el.textContent !== label) box.el.textContent = label;
+    if (items.length && items[0].type) box.el.setAttribute('data-state', items[0].type);
+    else box.el.removeAttribute('data-state');
+    if (box.el.parentNode !== host) host.appendChild(box.el);
   }
 
   NoteUI.Table = {
@@ -578,6 +686,13 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       root.append(scroll, hint);
 
       var rowMap = Object.create(null);
+      var rowRecordByKey = Object.create(null);
+      var rowRecords = Object.create(null);
+      var rowOrder = [];
+      var renderedRows = [];
+      var columnsSignature = '';
+      var headerSignature = null;
+      var headRow = null;
       var sortEnabled = false;
       var activeSort = { key: null, direction: null };
       var captionBase = '数据表格。';
@@ -588,6 +703,16 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 
       function currentColumns() {
         return Array.isArray(state.columns) ? state.columns : [];
+      }
+
+      function columnKeyString(column) {
+        return column && column.key != null ? String(column.key) : '';
+      }
+
+      function columnSignature(columns) {
+        return columns.map(function (column) {
+          return columnKeyString(column) + '\u0001' + tableAlignment(column.align);
+        }).join('\u0002');
       }
 
       function createSortRows(columns) {
@@ -672,22 +797,203 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         if (!disconnectResize) disconnectResize = C.onResize(scroll, updateScrollState);
       }
 
-      function render() {
-        /* Sorting controls are controlled by state.sort; the active
-           direction is internal after the first user click. */
-        var columns = currentColumns();
-        if (activeSort.key != null) {
-          var hasActive = columns.some(function (column) { return sameKey(column.key, activeSort.key); });
-          if (!hasActive) activeSort = { key: null, direction: null };
+      /* ---------------- 状态来源 ---------------- */
+
+      function rowStatesOf(row, index, key) {
+        var value = null;
+        if (typeof state.rowState === 'function') value = state.rowState(row, index, key);
+        else if (row && own(row, 'state')) value = row.state;
+        return tableStateItems(value);
+      }
+
+      function cellStatesOf(row, column, key, index) {
+        var value = null;
+        if (typeof state.cellState === 'function') value = state.cellState(row, column, key, index);
+        else if (row && row.cellStates && own(row.cellStates, column.key)) value = row.cellStates[column.key];
+        return tableStateItems(value);
+      }
+
+      /* ---------------- 行/单元增量渲染 ---------------- */
+
+      function createCellRecord(column) {
+        var td = create('td', [
+          'nui-table__cell',
+          'nui-table__cell--' + tableAlignment(column.align)
+        ].join(' '));
+        if (column.key != null) td.setAttribute('data-col-key', String(column.key));
+        return {
+          td: td,
+          columnKey: columnKeyString(column),
+          value: TABLE_NO_VALUE,
+          stateTokens: [],
+          stateItems: [],
+          label: { el: null }
+        };
+      }
+
+      function createRowRecord(entry, columns) {
+        var tr = create('tr', 'nui-table__row');
+        var record = {
+          tr: tr,
+          keyString: String(entry.key),
+          row: entry.row,
+          index: entry.index,
+          cells: [],
+          rowStateTokens: [],
+          rowStates: [],
+          rowLabel: { el: null }
+        };
+        tr.setAttribute('data-row-key', record.keyString);
+        columns.forEach(function (column) {
+          var cell = createCellRecord(column);
+          record.cells.push(cell);
+          tr.appendChild(cell.td);
+        });
+        return record;
+      }
+
+      function rebuildRowCells(record, columns) {
+        clear(record.tr);
+        record.cells = columns.map(function (column) {
+          var cell = createCellRecord(column);
+          record.tr.appendChild(cell.td);
+          return cell;
+        });
+        record.rowLabel = { el: null };
+      }
+
+      function updateCell(cell, row, column, key, index) {
+        var alignment = tableAlignment(column.align);
+        ['start', 'center', 'end'].forEach(function (name) {
+          cell.td.classList.toggle('nui-table__cell--' + name, name === alignment);
+        });
+        var emphasisOn = Boolean(state.emphasis && state.emphasis.column != null &&
+          anyKeyMatch(state.emphasis.column, column.key));
+        cell.td.classList.toggle('nui-table__cell--emphasis', emphasisOn);
+        var items = cellStatesOf(row, column, key, index);
+        cell.stateItems = items;
+        cell.stateTokens = setTableState(cell.td, 'data-cell-state', 'nui-table__cell--state-', items, cell.stateTokens);
+        var value = tableCellValue(row, column);
+        if (cell.value === TABLE_NO_VALUE || cell.value !== value) {
+          setContent(cell.td, value);
+          cell.value = value;
         }
-        var rows = createSortRows(columns);
-        var captionText = text(state.caption).trim();
-        captionBase = captionText ? '表格：' + captionText + '。' : '数据表格。';
+        setTableStateLabel(cell.td, items, cell.label);
+      }
 
-        hidden(caption, !captionText);
-        clear(caption);
-        if (captionText) caption.textContent = captionText;
+      function updateRowRecord(record, entry, columns) {
+        record.row = entry.row;
+        record.index = entry.index;
+        record.keyString = String(entry.key);
+        record.tr.setAttribute('data-row-key', record.keyString);
+        var emphasisOn = Boolean(state.emphasis && state.emphasis.row != null &&
+          anyKeyMatch(state.emphasis.row, entry.key));
+        record.tr.classList.toggle('nui-table__row--emphasis', emphasisOn);
+        columns.forEach(function (column, index) {
+          updateCell(record.cells[index], entry.row, column, entry.key, entry.index);
+        });
+        var items = rowStatesOf(entry.row, entry.index, entry.key);
+        record.rowStates = items;
+        record.rowStateTokens = setTableState(record.tr, 'data-row-state', 'nui-table__row--state-', items, record.rowStateTokens);
+        if (record.cells.length) setTableStateLabel(record.cells[0].td, items, record.rowLabel);
+      }
 
+      function removeRowRecord(record) {
+        if (!record) return;
+        if (record.tr.parentNode) record.tr.parentNode.removeChild(record.tr);
+      }
+
+      function nextRowElement(node) {
+        var current = node;
+        while (current) {
+          if (current.nodeType === 1 && current.classList && current.classList.contains('nui-table__row')) return current;
+          current = current.nextSibling;
+        }
+        return null;
+      }
+
+      function renderEmptyRows(columns) {
+        Array.prototype.slice.call(tbody.querySelectorAll('.nui-table__row')).forEach(function (tr) {
+          if (tr.parentNode) tr.parentNode.removeChild(tr);
+        });
+        rowOrder.forEach(function (id) { removeRowRecord(rowRecords[id]); delete rowRecords[id]; });
+        rowOrder = [];
+        renderedRows = [];
+        clear(tbody);
+        var count = columns.length;
+        var emptyRow = create('tr', 'nui-table__empty-row');
+        var emptyCell = create('td', 'nui-table__empty-cell');
+        emptyCell.colSpan = count || 1;
+        setContent(emptyCell, state.empty == null ? '暂无数据' : state.empty);
+        emptyRow.appendChild(emptyCell);
+        tbody.appendChild(emptyRow);
+        rowMap = Object.create(null);
+        rowRecordByKey = Object.create(null);
+      }
+
+      function renderRows(columns) {
+        var entries = createSortRows(columns);
+        if (!columns.length || !entries.length) {
+          renderEmptyRows(columns);
+          return;
+        }
+        /* 空态行先移除；行记录继续复用。 */
+        Array.prototype.slice.call(tbody.querySelectorAll('.nui-table__empty-row')).forEach(function (tr) {
+          if (tr.parentNode) tr.parentNode.removeChild(tr);
+        });
+        var counts = Object.create(null);
+        entries.forEach(function (entry) {
+          var keyString = String(entry.key);
+          counts[keyString] = (counts[keyString] || 0) + 1;
+        });
+        var seen = Object.create(null);
+        var desired = [];
+        entries.forEach(function (entry) {
+          var keyString = String(entry.key);
+          seen[keyString] = (seen[keyString] || 0) + 1;
+          var id = keyString + '\u0000' + (counts[keyString] > 1 ? seen[keyString] : '');
+          desired.push({ entry: entry, id: id, record: null });
+        });
+        var used = Object.create(null);
+        desired.forEach(function (slot) {
+          var record = rowRecords[slot.id];
+          if (!record) {
+            record = createRowRecord(slot.entry, columns);
+            rowRecords[slot.id] = record;
+            tbody.appendChild(record.tr);
+          }
+          updateRowRecord(record, slot.entry, columns);
+          used[slot.id] = true;
+          slot.record = record;
+        });
+        rowOrder.forEach(function (id) {
+          if (used[id]) return;
+          removeRowRecord(rowRecords[id]);
+          delete rowRecords[id];
+        });
+        rowOrder = desired.map(function (slot) { return slot.id; });
+        /* 最小移动：已按目标顺序的节点不重复插入。 */
+        var cursor = nextRowElement(tbody.firstChild);
+        desired.forEach(function (slot) {
+          if (slot.record.tr === cursor) {
+            cursor = nextRowElement(slot.record.tr.nextSibling);
+            return;
+          }
+          tbody.insertBefore(slot.record.tr, cursor);
+        });
+        rowMap = Object.create(null);
+        rowRecordByKey = Object.create(null);
+        renderedRows = desired.map(function (slot) {
+          var record = slot.record;
+          rowMap['$' + record.keyString] = record.tr;
+          rowRecordByKey['$' + record.keyString] = record;
+          return { entry: slot.entry, record: record };
+        });
+      }
+
+      /* ---------------- 表头与整体 ---------------- */
+
+      function renderColgroup(columns) {
         clear(colgroup);
         columns.forEach(function (column) {
           var col = create('col');
@@ -696,101 +1002,125 @@ if(__exports != exports)module.exports = exports;return module.exports}));
           }
           colgroup.appendChild(col);
         });
+      }
 
-        clear(thead);
-        var headRow = create('tr', 'nui-table__head-row');
+      /* 列键/顺序/对齐/可排序列与排序开关决定表头结构；标签、强调、排序方向可原地更新。 */
+      function headerSignatureOf(columns) {
+        return (sortEnabled ? '1' : '0') + '\u0003' + columns.map(function (column) {
+          return columnKeyString(column) + '\u0001' + tableAlignment(column.align) +
+            '\u0001' + (column.sortable === false ? '0' : '1');
+        }).join('\u0002');
+      }
+
+      function sortButtonLabel(column) {
+        var labelText = column.label && column.label.nodeType
+          ? C.text(column.label.textContent).trim()
+          : C.text(column.label).trim();
+        var sortName = labelText || '此列';
+        var sortHint = '按“' + sortName + '”排序';
+        if (activeSort.key != null && sameKey(activeSort.key, column.key)) {
+          sortHint += activeSort.direction === 'desc'
+            ? '，当前降序，点击取消排序'
+            : '，当前升序，点击切换为降序';
+        }
+        return sortHint;
+      }
+
+      function updateHeaderCell(th, column, index) {
+        var alignment = tableAlignment(column.align);
+        ['start', 'center', 'end'].forEach(function (name) {
+          th.classList.toggle('nui-table__cell--' + name, name === alignment);
+        });
+        if (activeSort.key != null && sameKey(activeSort.key, column.key)) {
+          th.setAttribute('aria-sort', activeSort.direction === 'desc' ? 'descending' : 'ascending');
+        } else {
+          th.removeAttribute('aria-sort');
+        }
+        var emphasisOn = Boolean(state.emphasis && state.emphasis.column != null &&
+          anyKeyMatch(state.emphasis.column, column.key));
+        th.classList.toggle('nui-table__cell--emphasis', emphasisOn);
+        var sortable = sortEnabled && column.sortable !== false;
+        var labelEl = th.querySelector('.nui-table__sort-label');
+        if (labelEl) setContent(labelEl, column.label);
+        if (!sortable) return;
+        var button = th.querySelector('.nui-table__sort');
+        if (!button) return;
+        button.setAttribute('data-col-index', String(index));
+        button.setAttribute('aria-label', sortButtonLabel(column));
+        var indicator = button.querySelector('.nui-table__sort-indicator');
+        if (indicator) {
+          indicator.textContent = activeSort.key != null && sameKey(activeSort.key, column.key)
+            ? (activeSort.direction === 'desc' ? '↓' : '↑')
+            : '↕';
+        }
+      }
+
+      function syncHeader(columns) {
+        if (!headRow) return;
+        var cells = headRow.children;
         columns.forEach(function (column, index) {
-          var alignment = tableAlignment(column.align);
+          if (cells[index]) updateHeaderCell(cells[index], column, index);
+        });
+      }
+
+      function rebuildHeader(columns) {
+        clear(thead);
+        headRow = create('tr', 'nui-table__head-row');
+        columns.forEach(function (column, index) {
           var th = create('th', [
             'nui-table__cell',
             'nui-table__head-cell',
-            'nui-table__cell--' + alignment
+            'nui-table__cell--' + tableAlignment(column.align)
           ].join(' '));
           th.scope = 'col';
-          if (activeSort.key != null && sameKey(activeSort.key, column.key)) {
-            th.setAttribute('aria-sort', activeSort.direction === 'desc' ? 'descending' : 'ascending');
-          }
-          if (state.emphasis && state.emphasis.column != null &&
-              anyKeyMatch(state.emphasis.column, column.key)) {
-            th.classList.add('nui-table__cell--emphasis');
-          }
           var sortable = sortEnabled && column.sortable !== false;
           if (sortable) {
             var button = create('button', 'nui-table__sort');
             button.type = 'button';
-            button.setAttribute('data-col-index', String(index));
             var label = create('span', 'nui-table__sort-label');
-            var labelText = column.label && column.label.nodeType
-              ? C.text(column.label.textContent).trim()
-              : C.text(column.label).trim();
-            setContent(label, column.label);
-            var sortName = labelText || '此列';
-            var sortHint = '按“' + sortName + '”排序';
-            if (activeSort.key != null && sameKey(activeSort.key, column.key)) {
-              sortHint += activeSort.direction === 'desc'
-                ? '，当前降序，点击取消排序'
-                : '，当前升序，点击切换为降序';
-            }
-            button.setAttribute('aria-label', sortHint);
             var indicator = create('span', 'nui-table__sort-indicator');
             indicator.setAttribute('aria-hidden', 'true');
-            indicator.textContent = activeSort.key != null && sameKey(activeSort.key, column.key)
-              ? (activeSort.direction === 'desc' ? '↓' : '↑')
-              : '↕';
             button.append(label, indicator);
             th.appendChild(button);
           } else {
-            var plainLabel = create('span', 'nui-table__sort-label');
-            setContent(plainLabel, column.label);
-            th.appendChild(plainLabel);
+            th.appendChild(create('span', 'nui-table__sort-label'));
           }
+          updateHeaderCell(th, column, index);
           headRow.appendChild(th);
         });
         if (columns.length) thead.appendChild(headRow);
+        headerSignature = headerSignatureOf(columns);
+      }
 
-        clear(tbody);
-        rowMap = Object.create(null);
-        if (!columns.length) {
-          var noColumns = create('tr', 'nui-table__empty-row');
-          var noColumnsCell = create('td', 'nui-table__empty-cell');
-          noColumnsCell.colSpan = 1;
-          setContent(noColumnsCell, state.empty == null ? '暂无数据' : state.empty);
-          noColumns.appendChild(noColumnsCell);
-          tbody.appendChild(noColumns);
-        } else if (!rows.length) {
-          var emptyRow = create('tr', 'nui-table__empty-row');
-          var emptyCell = create('td', 'nui-table__empty-cell');
-          emptyCell.colSpan = columns.length;
-          setContent(emptyCell, state.empty == null ? '暂无数据' : state.empty);
-          emptyRow.appendChild(emptyCell);
-          tbody.appendChild(emptyRow);
+      function render() {
+        var columns = currentColumns();
+        if (activeSort.key != null) {
+          var hasActive = columns.some(function (column) { return sameKey(column.key, activeSort.key); });
+          if (!hasActive) activeSort = { key: null, direction: null };
+        }
+        var signature = columnSignature(columns);
+        var structureChanged = signature !== columnsSignature;
+        columnsSignature = signature;
+
+        var captionText = text(state.caption).trim();
+        captionBase = captionText ? '表格：' + captionText + '。' : '数据表格。';
+        hidden(caption, !captionText);
+        if (caption.textContent !== captionText) caption.textContent = captionText;
+
+        renderColgroup(columns);
+        var nextHeaderSignature = headerSignatureOf(columns);
+        if (headerSignature === null || headerSignature !== nextHeaderSignature) {
+          rebuildHeader(columns);
         } else {
-          rows.forEach(function (entry) {
-            var row = entry.row || {};
-            var keyString = String(entry.key);
-            var tr = create('tr', 'nui-table__row');
-            tr.setAttribute('data-row-key', keyString);
-            if (state.emphasis && state.emphasis.row != null &&
-                anyKeyMatch(state.emphasis.row, entry.key)) {
-              tr.classList.add('nui-table__row--emphasis');
-            }
-            rowMap['$' + keyString] = tr;
-            columns.forEach(function (column) {
-              var alignment = tableAlignment(column.align);
-              var td = create('td', [
-                'nui-table__cell',
-                'nui-table__cell--' + alignment
-              ].join(' '));
-              if (state.emphasis && state.emphasis.column != null &&
-                  anyKeyMatch(state.emphasis.column, column.key)) {
-                td.classList.add('nui-table__cell--emphasis');
-              }
-              setContent(td, tableCellValue(row, column));
-              tr.appendChild(td);
-            });
-            tbody.appendChild(tr);
+          syncHeader(columns);
+        }
+        if (structureChanged) {
+          /* 列键/顺序/对齐变化：仅重建每行的单元，保留行节点身份。 */
+          Object.keys(rowRecords).forEach(function (id) {
+            rebuildRowCells(rowRecords[id], columns);
           });
         }
+        renderRows(columns);
 
         var width = columns.length ? columns.length * 128 : 0;
         table.style.minWidth = width ? Math.min(width, 4096) + 'px' : '';
@@ -805,7 +1135,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 
       function syncSort(patch) {
         if (patch === null || (patch && own(patch, 'sort'))) {
-          var next = TableSort(state.sort);
+          var next = tableSort(state.sort);
           sortEnabled = next.enabled;
           activeSort = { key: sortEnabled ? next.key : null, direction: sortEnabled ? next.direction : null };
         }
@@ -857,16 +1187,92 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         syncSort(patch);
         render();
       }, cleanup);
-      /* state.sort defaults false, but TableSort(false) disables controls. */
       render();
       host.appendChild(root);
       bindOverflow();
       updateScrollState();
       measure();
-      instance.getTarget = function (rowKey) {
+
+      function findCell(record, columnKey) {
+        if (!record || !record.cells) return null;
+        var wanted = String(columnKey);
+        for (var i = 0; i < record.cells.length; i += 1) {
+          if (record.cells[i].columnKey === wanted) return record.cells[i].td;
+        }
+        return null;
+      }
+
+      function getTarget(query) {
+        if (!alive || query == null) return null;
+        var rowKey = null;
+        var columnKey = null;
+        var hasColumn = false;
+        if (typeof query === 'object' && query.nodeType == null) {
+          if (own(query, 'row')) rowKey = query.row;
+          else if (own(query, 'rowKey')) rowKey = query.rowKey;
+          else if (own(query, 'key')) rowKey = query.key;
+          if (own(query, 'column')) {
+            columnKey = query.column;
+            hasColumn = true;
+          } else if (own(query, 'col')) {
+            columnKey = query.col;
+            hasColumn = true;
+          }
+          if (query.part === 'row') hasColumn = false;
+          else if (query.part === 'cell' && !hasColumn) return null;
+        } else {
+          rowKey = query;
+        }
+        if (rowKey == null) return null;
+        var keyString = String(rowKey);
+        var tr = rowMap['$' + keyString];
+        if (!tr) return null;
+        if (!hasColumn) return tr;
+        var record = rowRecordByKey['$' + keyString];
+        return record ? findCell(record, columnKey) : null;
+      }
+
+      function copyStateItems(items) {
+        return (items || []).map(function (item) { return { type: item.type, label: item.label }; });
+      }
+
+      function getState() {
         if (!alive) return null;
-        return rowMap['$' + String(rowKey)] || null;
-      };
+        var columns = currentColumns();
+        var rows = renderedRows.map(function (rendered) {
+          var record = rendered.record;
+          return {
+            key: rendered.entry.key,
+            keyString: record.keyString,
+            index: rendered.entry.index,
+            row: rendered.entry.row,
+            states: copyStateItems(record.rowStates),
+            cells: columns.map(function (column, index) {
+              var cell = record.cells[index];
+              var value = cell && cell.value !== TABLE_NO_VALUE ? cell.value : undefined;
+              return {
+                key: column.key,
+                column: column,
+                value: value,
+                states: cell ? copyStateItems(cell.stateItems) : []
+              };
+            })
+          };
+        });
+        return {
+          columns: columns.slice(),
+          rows: rows,
+          sort: { enabled: sortEnabled, key: activeSort.key, direction: activeSort.direction },
+          emphasis: state.emphasis,
+          caption: text(state.caption).trim(),
+          empty: !rows.length,
+          dense: Boolean(state.dense),
+          maxHeight: state.maxHeight
+        };
+      }
+
+      instance.getTarget = getTarget;
+      instance.getState = getState;
       return instance;
     }
   };

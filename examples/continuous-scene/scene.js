@@ -137,23 +137,23 @@
         targets: function () { return []; },
         effects: function (timing) {
           if (reduced) return [];
-          var rawDuration = timing && timing.enterDuration;
-          var duration = typeof rawDuration === 'number' && isFinite(rawDuration) && rawDuration >= 0
-            ? rawDuration : 420;
-          var easing = timing && typeof timing.easing === 'string' && timing.easing
-            ? timing.easing : 'linear';
+          /* timing 是 scene 合并后的最终值（含 Adapter 默认/公开 attention 节奏/scene.timing/
+           * 参与者 timing）；这里不再放第二份默认，0 也按真实值交给进度句柄。 */
+          var Tools = global.NoteDemo && global.NoteDemo.sceneAdapter;
+          if (!Tools || typeof Tools.progress !== 'function') {
+            throw new Error('ContinuousScene：prepareStep 需要 NoteDemo.sceneAdapter.progress（先加载 scene-adapter.js）。');
+          }
           return groups.map(function (group) {
-            return {
-              type: 'progress',
+            return Tools.progress({
               group: group,
-              duration: duration,
-              easing: easing,
+              duration: timing.enterDuration,
+              easing: timing.easing,
               gate: 'ready',
               update: function (progress) {
                 state.progress[group] = progress;
                 render();
               }
-            };
+            });
           });
         },
         cleanup: function () {}

@@ -58,22 +58,30 @@ Button 和 Segmented 的现行维护源是 src/ui/controls.js|css。R01 在原 B
 | --- | --- | --- | --- |
 | <a id="R02"></a>R02 | `NoteUI.Segmented` | options/value/onChange/getValue；方向键、Home/End、跳过禁用项；程序 update 不触发 onChange | 单选；值应唯一；不做多选/自由输入 |
 | <a id="R03"></a>R03 | `NoteUI.Badge` | label/tone：neutral/accent/warning；长文字换行 | 不自动判定语义、不开放任意颜色 |
-| <a id="R04"></a>R04 | `NoteUI.Notice` | 常驻说明；title/content/tone；content 为文本或**单个** DOM 节点 | 不是 Tooltip；无关闭/自动隐藏；节点数组需先包容器 |
+| R04 | `NoteUI.Notice` | 常驻说明；title/content/tone；content 为文本、单个 DOM 节点，或由文本/节点组成的数组 | 不是 Tooltip；无关闭/自动隐藏；数组按内容插入，不静默字符串化 |
 | <a id="R05"></a>R05 | `NoteUI.Disclosure` | 原生 details；title/summary/content/open/onToggle；程序开合的 event=null | 必要的当前说明不藏进折叠；手风琴只是宿主组合 |
 | <a id="R06"></a>R06 | `NoteUI.DataObject` | label/value/caption/attention/changed；value 可为 DOM；程序 update 不回调 | 不判定关注/变化，不提供编辑或持久化 |
 
 gallery demo 直接挂载这些实现的公开 API，并用控件真实更新内容；未改源码。
 
-**R04 Notice 内容契约（明确反馈）**：`content` 只接受字符串/数字/布尔文本或单个 DOM 节点（Element/Text/DocumentFragment）。传入数组或普通对象会抛出带 `NoteUI.Notice:` 前缀的 `TypeError`，不再把多节点静默字符串化成 `[object ...]`；需要放多个并列元素时，先由宿主包进一个容器：
+<a id="R04"></a>
+
+### R04 NoteUI.Notice
+
+**内容契约（明确反馈）**：`content` 接受字符串/数字/布尔文本、单个 DOM 节点（Element/Text/DocumentFragment），或由文本与节点组成的数组；`null`/`undefined` 视为空内容，数组中的 `null` 项跳过。数组在写入前整体校验，任一项不是文本或 DOM 节点就抛出带 `NoteUI.Notice:` 前缀的 `TypeError`，不会先破坏旧内容。数组通过 `NoteCore.setContent` 插入，需要 core 模块已加载。
 
 ```js
-var wrap = document.createElement("div");
-wrap.append(document.createElement("strong"), document.createTextNode("说明文字"));
-NoteUI.Notice.mount(host, { title: "范围", content: wrap, tone: "warning" });
-// 传 [node1, node2] 会抛错：content 只接受文本或单个 DOM 节点；多个节点请先用一个容器元素包裹。
+var strong = document.createElement("strong");
+strong.textContent = "重点";
+NoteUI.Notice.mount(host, {
+  title: "范围",
+  content: [strong, document.createTextNode("普通说明文字")],
+  tone: "warning"
+});
+// 传 [node, {}] 会抛错：content 数组第 2 项不是文本或 DOM 节点
 ```
 
-`update({ content })` 遵循同一校验；校验失败时不会先清掉旧内容（错误在写入前抛出），宿主修正后可再次更新。
+`update({ content })` 遵循同一校验：先整体校验再写入，失败时不会先改标题、语气或旧内容，宿主修正后可再次更新。
 
 ## 5. R07–R10：旧表达组件与序列插入
 

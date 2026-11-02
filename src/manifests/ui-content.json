@@ -258,7 +258,9 @@
         "onSort",
         "emphasis",
         "maxHeight",
-        "dense"
+        "dense",
+        "rowState",
+        "cellState"
       ],
       "customizable": [
         "列 key/label/align/width/sortable",
@@ -266,7 +268,11 @@
         "表注与空态",
         "本地排序初值与回调",
         "行/列强调",
-        "最大高度和密度"
+        "最大高度和密度",
+        "row.state / cellStates 行状态与单元状态",
+        "rowState/cellState 计算函数",
+        "getTarget 行/单元查询",
+        "getState 只读快照"
       ],
       "states": [
         "基础表格",
@@ -298,7 +304,7 @@
         "K13"
       ],
       "docs": "docs/ui-content.md#C06",
-      "notes": "onSort(info, event) 的 info 含 key、direction、column、rows；只在用户点击表头时触发。列可额外传 sortable:false。"
+      "notes": "onSort(info, event) 的 info 含 key、direction、column、rows；只在用户点击表头时触发。列可额外传 sortable:false。 状态渲染为 data-row-state/data-cell-state 与 nui-table__row--state-<type>/nui-table__cell--state-<type>；只有显式 label 才生成可见状态标签。getState() 返回当前显示顺序的行、单元格、状态、排序与强调快照。"
     },
     {
       "id": "C07",

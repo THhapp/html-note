@@ -77,6 +77,20 @@
     }, 'NoteDemoInternals.sceneAttention（src/demo/scene-attention.js）');
   }
 
+  /* 可选时序事实出口：由 timing-facts.js 按需安装 Internals.sceneTimingFacts；
+   * 默认不存在，观察不参与运行决策，也不改变 scene 行为。 */
+  function factsSink() {
+    var facts = Internals.sceneTimingFacts;
+    return facts && typeof facts.emit === 'function' ? facts : null;
+  }
+
+  var factsRunSequence = 0;
+
+  function nowMs() {
+    if (global.performance && typeof global.performance.now === 'function') return global.performance.now();
+    return Date.now();
+  }
+
   function afterFrame() {
     return new Promise(function (resolve) {
       if (typeof global.requestAnimationFrame !== 'function') {
@@ -161,6 +175,37 @@
     var presentation = options.presentation || null;
     var motionName = options.motion === 'reduced' ? 'reduced' : 'normal';
     var reason = normalizeReason(options);
+    var factSink = factsSink();
+    var factRunId = factSink ? (factsRunSequence += 1) : 0;
+
+    function emitFact(kind, detail) {
+      if (!factSink) return;
+      var payload = {
+        kind: kind,
+        at: nowMs(),
+        runId: factRunId,
+        frameId: transition ? transition.to : null,
+        sourceFrameId: transition ? transition.from : null,
+        motion: motionName,
+        binding: null,
+        index: null,
+        groups: null,
+        track: null,
+        group: null
+      };
+      if (isObject(detail)) {
+        if (detail.binding != null) payload.binding = detail.binding;
+        if (typeof detail.index === 'number') payload.index = detail.index;
+        if (isArray(detail.groups)) payload.groups = detail.groups.slice();
+        if (detail.track != null) payload.track = detail.track;
+        if (detail.group != null) payload.group = detail.group;
+      }
+      try {
+        factSink.emit(payload);
+      } catch (error) {
+        /* 时序观察失败不影响运行。 */
+      }
+    }
 
     return new Promise(function (resolve, reject) {
       var definition;
@@ -174,6 +219,7 @@
       var port = null;
       var attention = null;
       var attentionCoordinator = null;
+      var attentionInfos = [];
       var attentionEnabled = false;
       var runtimes = {};
       var scope = null;
@@ -489,6 +535,15 @@
         });
       }
 
+      function attentionFactDetail(index) {
+        var info = attentionInfos[index] || null;
+        return {
+          index: index,
+          binding: info ? info.binding : null,
+          groups: info && isArray(info.groups) ? info.groups : null
+        };
+      }
+
       function setupAttention() {
         attentionEnabled = motionName !== 'reduced' && !!scene.attention;
         if (!scene.attention) {
@@ -534,10 +589,22 @@
         }
         attention.validate();
         attentionCoordinator = {
-          start: function (index) { attention.start(index); },
-          ready: function (index) { return attention.ready(index); }
+          start: function (index) {
+            /* presentation 只在 Focus 真实到达后调用 start；先记录到达，再放行内容组，
+             * 这样观察到的顺序是 focus-arrival → effect-start。 */
+            emitFact('focus-arrival', attentionFactDetail(index));
+            attention.start(index);
+          },
+          ready: function (index) {
+            var ready = attention.ready(index);
+            Promise.resolve(ready).then(function () {
+              emitFact('attention-ready', attentionFactDetail(index));
+            }, function () { /* 失败由 scene 统一处理 */ });
+            return ready;
+          }
         };
         var infos = attention.targetInfos();
+        attentionInfos = infos;
         infos.forEach(function (info) {
           if (!info || !info.member) return;
           var member = info.member;
@@ -608,21 +675,44 @@
         } else {
           runtime.trackList.push(runtime.defaultTrack);
         }
+        runtime.defaultTrack.binding = member.binding;
+        runtime.defaultTrack.trackKind = 'default';
+        if (runtime.layoutTrack) {
+          runtime.layoutTrack.binding = member.binding;
+          runtime.layoutTrack.trackKind = 'layout';
+        }
+        runtime.groupNames.forEach(function (name) {
+          var track = runtime.groupTracks[name];
+          track.binding = member.binding;
+          track.trackKind = 'group';
+          track.groupName = name;
+        });
         runtime.memberReady = Promise.all(runtime.trackList.map(function (trackInfo) { return trackInfo.ready; }));
         runtime.memberFinished = Promise.all(runtime.trackList.map(function (trackInfo) { return trackInfo.finished; }));
         return runtime;
+      }
+
+      function trackFactDetail(trackInfo) {
+        if (!trackInfo) return null;
+        return {
+          binding: trackInfo.binding == null ? null : trackInfo.binding,
+          track: trackInfo.trackKind == null ? 'default' : trackInfo.trackKind,
+          group: trackInfo.groupName == null ? null : trackInfo.groupName
+        };
       }
 
       function resolveTrackReady(trackInfo) {
         if (!trackInfo || trackInfo.readyResolved) return;
         trackInfo.readyResolved = true;
         trackInfo.resolveReady(true);
+        emitFact('ready', trackFactDetail(trackInfo));
       }
 
       function resolveTrackFinished(trackInfo) {
         if (!trackInfo || trackInfo.finishedResolved) return;
         trackInfo.finishedResolved = true;
         trackInfo.resolveFinished(true);
+        emitFact('finished', trackFactDetail(trackInfo));
       }
 
       function waitHandle(handle) {
@@ -656,6 +746,7 @@
         trackInfo.started = true;
         /* 本 Binding 的第一个内容效果轨道开始接管：来源视觉交接释放。 */
         releaseSourceVisibility(runtime.member);
+        emitFact('effect-start', trackFactDetail(trackInfo));
         if (!trackInfo.readyHandles.length && !trackInfo.finishHandles.length) {
           resolveTrackReady(trackInfo);
           resolveTrackFinished(trackInfo);
@@ -687,6 +778,7 @@
         releaseSourceVisibility(runtime.member);
         var trackInfo = runtime.defaultTrack;
         trackInfo.started = true;
+        emitFact('effect-start', trackFactDetail(trackInfo));
         var member = runtime.member;
         if (!runtime.revealContainer) {
           resolveTrackReady(trackInfo);
@@ -1096,6 +1188,7 @@
             }
             if (motionName === 'reduced') {
               /* 减少动效：揭示与标记直接到位，不创建动画/进度；仍执行提交后核对与收尾。 */
+              emitFact('reduced', null);
               scope.showRevealContainers();
               scope.showMarkRoots();
               var reducedSettleError = settlePort();
@@ -1157,6 +1250,8 @@
   }
 
   Internals.scene = {
-    run: run
+    run: run,
+    supportsTimingFacts: true,
+    timingFactsVersion: 1
   };
 })(window);

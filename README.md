@@ -6,7 +6,7 @@
 
 ## 组件范围
 
-- **101 条、17 个构建模块**：84 项组件能力、10 项可复用组合块、7 项共享基础（I01–I07）。
+- **105 条、18 个构建模块**：88 项组件能力、10 项可复用组合块、7 项共享基础（I01–I07）。
 - 计数与类别由 `scripts/expected-ids.json`、`src/manifests` 和构建生成的 `registry.json` 共同约束，不在文档或脚本里另立一份清单。
 
 ## 最小使用
@@ -44,6 +44,7 @@ NoteDemo.mount(document.querySelector('[data-demo-host]'), {
 | 看公共编排层 | [整合预览](dist/公共编排层-整合预览.html) · [矩阵乘法对照](dist/公共层复用验证-矩阵乘法.html) |
 | 作者装配与聚焦 | [作者入口](examples/authoring/index.html) · [作者预览](dist/作者装配与聚焦-预览.html) · [配方源码](src/demo/recipes.js) |
 | 自定义图形接入 | [传播示例入口](examples/propagation/index.html) · [传播预览](dist/传播过程与局部过渡-预览.html) · [接入说明](examples/propagation/README.md) |
+| 流程与连接图形 | [中性示例入口](examples/flow-kit/index.html) · [中性示例预览](dist/图形扩展-中性示例.html) · [接入说明](examples/flow-kit/README.md) |
 | 最小连续画面接法 | [示例入口](examples/continuous-scene/index.html) · [离线预览](dist/连续画面局部变化-预览.html) · [说明](examples/continuous-scene/README.md) |
 | 查能力与依赖 | `node scripts/query.mjs` · [组件目录](docs/组件目录.md) · [registry](registry.json) |
 | 本地打开与量测 | `node scripts/inspect-note.mjs <成品.html> --json` · [观察入口说明](docs/公共编排层.md#author-inspect-note) |
@@ -66,6 +67,8 @@ node scripts/query.mjs show public:progress
 node scripts/query.mjs read public:progress api
 node scripts/query.mjs show public:attention
 node scripts/query.mjs show example:continuous-scene
+node scripts/query.mjs show example:flow-kit
+node scripts/query.mjs show D07
 node scripts/query.mjs show tool:inspect-note
 node scripts/query.mjs read D01 api
 node scripts/query.mjs read D01 source --limit 80
@@ -84,6 +87,7 @@ node scripts/query.mjs read D01 source --limit 80
 | [查询语料](docs/查询语料.md) | 作者别名、用途、适用边界与引用；CLI 的检索元数据 |
 | [提示词撰写](docs/提示词撰写.md) | 将 MD 预留组织为制作任务，提供通用底稿和按需条款 |
 | [公共编排层 API](docs/公共编排层.md) | NoteDemo 的 Definition、scene、Adapter、会话 API、生命周期与已知限制 |
+| [流程与连接图形](docs/viz-flow.md) | D07–D10 的加载、独立 mount/update/getTarget、路径采样与边界 |
 | [公共过渡能力设计](docs/公共过渡能力设计.md) | 公共层为什么这样分工、执行契约、timing/焦点交接与引擎取舍 |
 | [组件目录](docs/组件目录.md) | 按类别定位组件，链接到模块文档与示例 |
 | [架构与接口](docs/架构与接口.md) | 源码布局、分层职责、数据流与公开接口边界 |
@@ -106,6 +110,7 @@ node scripts/build-demo-preview.mjs --template examples/authoring/index.html --o
 node scripts/build-demo-preview.mjs --template examples/reuse-matrix-product/standalone.html --output dist/公共层复用验证-矩阵乘法.html
 node scripts/build-demo-preview.mjs --template examples/propagation/index.html --output dist/传播过程与局部过渡-预览.html
 node scripts/build-demo-preview.mjs --template examples/continuous-scene/index.html --output dist/连续画面局部变化-预览.html
+node scripts/build-demo-preview.mjs --template examples/flow-kit/index.html --output dist/图形扩展-中性示例.html
 node scripts/build-demo-preview.mjs
 
 # 完整候选包
