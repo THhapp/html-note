@@ -1,6 +1,6 @@
 /* 场景 A 的内容、公式、矩阵与换数据核对。
    node scripts/check-a.mjs */
-import { ROOT, generatedPageUrl, edgeExecutable, loadChromium } from './paths.mjs';
+import { ROOT, generatedPageUrl, edgeExecutable, loadChromium, outputPath } from './paths.mjs';
 const chromium = await loadChromium();
 const EDGE = edgeExecutable();
 const URL_A = generatedPageUrl('a');
@@ -124,7 +124,7 @@ const zoom = await browser.newPage({ viewport: { width: 1024, height: 640 }, dev
 await zoom.goto(URL_A);
 await zoom.waitForTimeout(400);
 const zoomInfo = await zoom.evaluate(() => ({ pageW: document.documentElement.scrollWidth, innerW: window.innerWidth, h1: document.querySelector('h1').getBoundingClientRect().width }));
-await zoom.screenshot({ path: ROOT + '/evidence/a-zoom125.png' });
+await zoom.screenshot({ path: outputPath('a-zoom125.png') });
 check('125% 缩放等效视口：无横向溢出', zoomInfo.pageW <= zoomInfo.innerW + 1, zoomInfo);
 
 /* 键盘：Tab 到分段选择，箭头切换数据 */

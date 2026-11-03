@@ -275,15 +275,6 @@
           "fallback"
         ],
         "aliases": [
-          "R04",
-          "NoteUI.Notice",
-          "常驻说明",
-          "提示",
-          "通知",
-          "说明块",
-          "节点数组",
-          "Notice",
-          "fallback",
           "Notice 节点内容"
         ],
         "boundary": "非法对象/节点数组项在写入前失败，不破坏旧内容；不生成弹窗或自动消失。",
@@ -480,16 +471,6 @@
           "attention"
         ],
         "aliases": [
-          "R07",
-          "NoteExpr.Focus",
-          "关注与范围标记",
-          "焦点框",
-          "框选",
-          "注意力",
-          "下划线",
-          "focus",
-          "highlight",
-          "attention",
           "当前关注与框选"
         ],
         "boundary": "独立使用是 show/hide/refresh，不是统一 update；视觉标记不替代正文解释。目标要有可用几何，隐藏或消失对象不能假定为有效观察目标。",
@@ -568,16 +549,6 @@
           "annotation"
         ],
         "aliases": [
-          "R08",
-          "NoteExpr.Range",
-          "范围注释与分组说明",
-          "范围",
-          "括线",
-          "分组说明",
-          "区间批注",
-          "range",
-          "bracket",
-          "annotation",
           "范围括线与就近说明"
         ],
         "boundary": "只提供视觉标记；不生成数据分组或推断字段语义，不宣称解决任意多层标注和复杂避让。",
@@ -654,18 +625,7 @@
           "connector",
           "mapping"
         ],
-        "aliases": [
-          "R09",
-          "NoteExpr.Link",
-          "对象关系连线",
-          "对应关系",
-          "连线",
-          "箭头",
-          "映射",
-          "link",
-          "connector",
-          "mapping"
-        ],
+        "aliases": [],
         "boundary": "关系含义由宿主给出；不是完整关系图引擎，也不由连线推断因果、计算或教学顺序。",
         "resources": []
       }
@@ -745,18 +705,7 @@
           "shift",
           "restore"
         ],
-        "aliases": [
-          "R10",
-          "SeqInsert",
-          "序列插入与让位",
-          "插入",
-          "让位",
-          "撤回",
-          "序列扩张",
-          "insert",
-          "shift",
-          "restore"
-        ],
+        "aliases": [],
         "boundary": "已测原序列 1–5 项、单插入点；不扩大解释为任意长列表、多处编辑或多行插入。旧接口是 insert/restore/replay/setData 等，保留 keepState 的实际语义。",
         "resources": []
       },

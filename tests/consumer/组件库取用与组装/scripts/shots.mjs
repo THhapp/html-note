@@ -1,6 +1,6 @@
-/* 重拍代表截图（交付用的 evidence/*.png）。
+/* 生成代表截图（tests/.cache/consumer-evidence，不覆盖固定证据）。
    node scripts/shots.mjs */
-import { ROOT, generatedPageUrl, edgeExecutable, loadChromium } from './paths.mjs';
+import { ROOT, generatedPageUrl, edgeExecutable, loadChromium, outputPath } from './paths.mjs';
 const chromium = await loadChromium();
 const EDGE = edgeExecutable();
 const A = generatedPageUrl('a');
@@ -13,7 +13,7 @@ async function shot(url, viewport, name, opts = {}) {
   await page.goto(url);
   await page.waitForTimeout(400);
   if (opts.before) await opts.before(page);
-  await page.screenshot({ path: ROOT + '/evidence/' + name + '.png', fullPage: !!opts.full });
+  await page.screenshot({ path: outputPath(name + '.png'), fullPage: !!opts.full });
   await page.close();
 }
 
@@ -51,13 +51,13 @@ await shot(B, { width: 560, height: 900 }, 'b-560-step2', {
 const zoomA = await browser.newPage({ viewport: { width: 1024, height: 640 }, deviceScaleFactor: 1.25 });
 await zoomA.goto(A);
 await zoomA.waitForTimeout(400);
-await zoomA.screenshot({ path: ROOT + '/evidence/a-zoom125.png' });
+await zoomA.screenshot({ path: outputPath('a-zoom125.png') });
 await zoomA.close();
 
 const zoomB = await browser.newPage({ viewport: { width: 1024, height: 640 }, deviceScaleFactor: 1.25 });
 await zoomB.goto(B);
 await zoomB.waitForTimeout(400);
-await zoomB.screenshot({ path: ROOT + '/evidence/b-zoom125.png' });
+await zoomB.screenshot({ path: outputPath('b-zoom125.png') });
 await zoomB.close();
 
 /* 第 1、2 步停稳画面 */
@@ -66,10 +66,10 @@ await steps.goto(B);
 await steps.waitForTimeout(400);
 await steps.getByRole('button', { name: '下一步' }).click();
 await steps.waitForTimeout(750);
-await steps.screenshot({ path: ROOT + '/evidence/b-step1.png' });
+await steps.screenshot({ path: outputPath('b-step1.png') });
 await steps.getByRole('button', { name: '下一步' }).click();
 await steps.waitForTimeout(750);
-await steps.screenshot({ path: ROOT + '/evidence/b-step2.png' });
+await steps.screenshot({ path: outputPath('b-step2.png') });
 await steps.close();
 
 console.log('screenshots refreshed');

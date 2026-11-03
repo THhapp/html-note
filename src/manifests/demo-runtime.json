@@ -146,23 +146,6 @@
           "navigation"
         ],
         "aliases": [
-          "I07",
-          "NoteDemo",
-          "公共演示编排层",
-          "下一步",
-          "停点",
-          "上一步",
-          "重看",
-          "重来",
-          "分步演示",
-          "步骤控制",
-          "逐步演示",
-          "公共播放器",
-          "session",
-          "step-by-step",
-          "stepper",
-          "step",
-          "navigation",
           "使用公共舞台与会话推进",
           "NoteDemo.mount",
           "NoteDemo.create"

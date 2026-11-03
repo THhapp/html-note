@@ -1,6 +1,6 @@
 /* 多实例、清理与互不影响的最小核对（在已加载的两页上追加临时容器）。
    node scripts/check-lifecycle.mjs */
-import { ROOT, generatedPageUrl, edgeExecutable, loadChromium } from './paths.mjs';
+import { ROOT, generatedPageUrl, edgeExecutable, loadChromium, outputPath } from './paths.mjs';
 const chromium = await loadChromium();
 const EDGE = edgeExecutable();
 const browser = await chromium.launch({ headless: true, executablePath: EDGE });
@@ -80,7 +80,7 @@ const zoomInfo = await zoom.evaluate(() => ({
   innerW: window.innerWidth,
   stageW: Math.round(document.querySelector('.nblk-demo-stage').getBoundingClientRect().width)
 }));
-await zoom.screenshot({ path: ROOT + '/evidence/b-zoom125.png' });
+await zoom.screenshot({ path: outputPath('b-zoom125.png') });
 check('B 125% 缩放等效视口：无横向溢出', zoomInfo.pageW <= zoomInfo.innerW + 1, zoomInfo);
 
 const failed = results.filter((r) => !r.ok);

@@ -2,6 +2,7 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve, relative, isAbsolute, sep, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { cacheFile } from '../../../lib/test-output.mjs';
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const LIBRARY_ROOT = resolve(ROOT, '..', '..', '..');
@@ -11,6 +12,10 @@ export const CACHE_ROOT = resolve(LIBRARY_ROOT, 'tests', '.cache');
 export const RUNTIME_ROOT = resolve(CACHE_ROOT, 'consumer-runtime');
 export const RUNTIME_MODULES = resolve(RUNTIME_ROOT, 'modules');
 export const GENERATED_ROOT = resolve(CACHE_ROOT, 'consumer-pages');
+
+export function outputPath(file) {
+  return cacheFile(LIBRARY_ROOT, 'consumer-evidence', file);
+}
 
 export function generatedPage(id) {
   if (id !== 'a' && id !== 'b') throw new Error('generatedPage(id) 只接受 a/b，收到：' + id);
@@ -53,7 +58,7 @@ export function edgeExecutable() {
 export async function loadChromium() {
   const driver = resolve(LIBRARY_ROOT, 'tests', 'tools', 'node_modules', 'playwright-core', 'index.mjs');
   if (!existsSync(driver)) throw new Error('Missing test driver: install the dependencies in tests/tools first.');
-  const temp = ownedPath('evidence/browser-profile-temp');
+  const temp = resolve(CACHE_ROOT, 'consumer-browser-temp');
   mkdirSync(temp, { recursive: true });
   process.env.TEMP = temp;
   process.env.TMP = temp;

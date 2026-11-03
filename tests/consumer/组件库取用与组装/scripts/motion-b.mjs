@@ -1,6 +1,6 @@
 /* 动效取样：正常速度下对象是否连续移动、时长与停稳是否可追踪。
    node scripts/motion-b.mjs */
-import { ROOT, generatedPageUrl, edgeExecutable, loadChromium } from './paths.mjs';
+import { ROOT, generatedPageUrl, edgeExecutable, loadChromium, outputPath } from './paths.mjs';
 const chromium = await loadChromium();
 const EDGE = edgeExecutable();
 const browser = await chromium.launch({ headless: true, executablePath: EDGE });
@@ -35,7 +35,7 @@ for (const f of frames) {
   console.log(String(f.delay).padStart(4) + 'ms  d.x=' + (f.d ? f.d.x : '-') + '  e.x=' + (f.e ? f.e.x : '-') +
     '  transform(d)=' + (f.d ? f.d.tx.slice(0, 28) : '-') + '  ghost=' + f.ghost + '  anim=' + f.anim);
 }
-await page.screenshot({ path: ROOT + '/evidence/b-motion-after.png' });
+await page.screenshot({ path: outputPath('b-motion-after.png') });
 
 /* 逐帧截图（删除步） */
 await page.getByRole('button', { name: '重来' }).click();
@@ -43,7 +43,7 @@ await page.waitForTimeout(700);
 await page.getByRole('button', { name: '下一步' }).click();
 for (const [wait, name] of [[50, 'b-frame-050'], [110, 'b-frame-160'], [120, 'b-frame-280'], [180, 'b-frame-460']]) {
   await page.waitForTimeout(wait);
-  await stage.screenshot({ path: ROOT + '/evidence/' + name + '.png' });
+  await stage.screenshot({ path: outputPath(name + '.png') });
 }
 
 console.log('\n== 重看（第 2 步）==');

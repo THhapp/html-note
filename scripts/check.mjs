@@ -174,6 +174,51 @@ function checkDocLinks(reporter, root, entries) {
   return checked;
 }
 
+function checkMaintainedLinks(reporter, root) {
+  const files = [path.join(root, 'README.md')];
+  function collect(directory, extensions) {
+    if (!fs.existsSync(directory)) return;
+    for (const item of fs.readdirSync(directory, { withFileTypes: true })) {
+      const file = path.join(directory, item.name);
+      if (item.isDirectory()) collect(file, extensions);
+      else if (item.isFile() && extensions.includes(path.extname(item.name))) files.push(file);
+    }
+  }
+  collect(path.join(root, 'docs'), ['.md']);
+  collect(path.join(root, 'skills'), ['.md']);
+  collect(path.join(root, 'examples'), ['.md', '.html']);
+  files.push(path.join(root, 'gallery', 'index.html'));
+  const anchors = new Map();
+  let checked = 0;
+  for (const file of files) {
+    if (!existsFile(file)) continue;
+    const source = fs.readFileSync(file, 'utf8');
+    let fenced = false;
+    const text = source.split(/\r?\n/).filter((line) => {
+      if (/^\s*(`{3,}|~{3,})/.test(line)) { fenced = !fenced; return false; }
+      return !fenced;
+    }).join('\n');
+    const refs = [...text.matchAll(/\]\(<?([^\s)>]+)>?(?:\s+"[^"]*")?\)/g),
+      ...text.matchAll(/<a\b[^>]*\bhref=["']([^"']+)["']/gi)];
+    for (const match of refs) {
+      const href = match[1];
+      if (/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(href)) continue;
+      const [location, rawAnchor] = href.split('#');
+      const target = path.resolve(path.dirname(file), decodeURIComponent(location.split('?')[0]));
+      checked += 1;
+      if (!existsFile(target)) {
+        reporter.error(toPosix(path.relative(root, file)) + ' links to missing file: ' + href);
+      } else if (rawAnchor && target.endsWith('.md')) {
+        if (!anchors.has(target)) anchors.set(target, collectDocAnchors(fs.readFileSync(target, 'utf8')));
+        if (!anchors.get(target).has(decodeURIComponent(rawAnchor))) {
+          reporter.error(toPosix(path.relative(root, file)) + ' links to missing heading: ' + href);
+        }
+      }
+    }
+  }
+  console.log('maintained links checked: ' + checked);
+}
+
 function headerInfo(source) {
   const match = String(source).slice(0, 4000).match(/^\/\*![\s\S]*?\*\//);
   if (!match) return null;
@@ -526,6 +571,7 @@ function main() {
   // Docs links from registry entries must resolve to real files and anchors.
   const docsLinksChecked = checkDocLinks(reporter, args.root, entries);
   if (docsLinksChecked) console.log('docs links checked: ' + docsLinksChecked);
+  checkMaintainedLinks(reporter, args.root);
 
   // Manifests must match the built registry; reading them again catches stale builds.
   const manifestDir = path.join(args.root, 'src', 'manifests');

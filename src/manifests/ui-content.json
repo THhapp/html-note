@@ -73,17 +73,6 @@
           "text"
         ],
         "aliases": [
-          "C01",
-          "NoteUI.Typography",
-          "排版",
-          "标题",
-          "正文",
-          "引导语",
-          "辅助说明",
-          "文字层级",
-          "typography",
-          "body",
-          "text",
           "标题与正文排版"
         ],
         "boundary": "调整文字表现；章节外部间距由宿主或布局组件安排，字符串不按 HTML 解析。必要解释不能仅因名为“辅助说明”就缩到难以发现。",
@@ -349,18 +338,6 @@
           "cell"
         ],
         "aliases": [
-          "C06",
-          "NoteUI.Table",
-          "表格",
-          "行状态",
-          "单元状态",
-          "行键",
-          "单元格",
-          "局部更新",
-          "table",
-          "row",
-          "state",
-          "cell",
           "表格行/单元状态"
         ],
         "boundary": "状态由作者提供，不推断关注/变化；结构和排序规则仍按组件接口。独立 Table 的 `stableStateLabels` 默认 `false`；开启后每行常驻隐藏状态标签槽，label 显隐不改变行高，无固定 min-height、不裁切正文；5 行示例表约 261→361px。scene `table` Adapter 默认开启，可在 binding options 设 false。",
@@ -529,15 +506,6 @@
           "equation"
         ],
         "aliases": [
-          "C09",
-          "NoteUI.Math",
-          "公式",
-          "TeX",
-          "LaTeX",
-          "行内数学",
-          "块级公式",
-          "math",
-          "equation",
           "公式排版"
         ],
         "boundary": "适合呈现公式；不进行代数推导、计算或公式对象自动配对。分项变化的组织由作者在公共层中安排。",
@@ -694,16 +662,6 @@
           "readout"
         ],
         "aliases": [
-          "C12",
-          "NoteUI.Metric",
-          "指标读数",
-          "数值",
-          "单位",
-          "指标",
-          "结果读数",
-          "累计值",
-          "metric",
-          "readout",
           "指标与结果读数"
         ],
         "boundary": "适合局部数据读数；不计算结果或推断趋势，也不承担解释当前整步的字幕职责。",
@@ -771,17 +729,6 @@
           "id"
         ],
         "aliases": [
-          "C13",
-          "NoteUI.Expression",
-          "表达式项",
-          "算式",
-          "表达式",
-          "逐项相加",
-          "公式项",
-          "expression",
-          "term",
-          "stable",
-          "id",
           "有身份的表达式项"
         ],
         "boundary": "适合作者明确知道哪些项保留、出现或换值的表达式；不解析公式含义或自动生成推导。组件负责呈现，过渡由公共层 Adapter 提供。",

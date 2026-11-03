@@ -1,12 +1,12 @@
 /* 自包含页面：移动到独立目录后离线打开，检查请求、错误与关键交互。
    node scripts/check-offline.mjs */
-import { ROOT, ownedPath, edgeExecutable, loadChromium } from './paths.mjs';
+import { ROOT, ownedPath, edgeExecutable, loadChromium, outputPath } from './paths.mjs';
 const chromium = await loadChromium();
 const EDGE = edgeExecutable();
 import { pathToFileURL } from 'node:url';
 import { mkdirSync, copyFileSync, rmSync } from 'node:fs';
 
-const OUT = ownedPath('evidence/offline-copy');
+const OUT = outputPath('offline-copy');
 rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
 copyFileSync(ROOT + '/01-矩阵转置.html', OUT + '/01.html');
@@ -41,7 +41,7 @@ async function run(file, name, fn) {
   check(name + '：无外部请求', external.length === 0, external);
   check(name + '：无脚本错误', errors.length === 0, errors);
   await fn(page);
-  await page.screenshot({ path: ROOT + '/evidence/' + name + '-offline.png' });
+  await page.screenshot({ path: outputPath(name + '-offline.png') });
   await context.close();
 }
 

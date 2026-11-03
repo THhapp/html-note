@@ -26,12 +26,6 @@ function Should-SkipDirectory([string]$relative, [string]$name) {
   if ($relative -eq '%SystemDrive%' -or $relative.StartsWith('%SystemDrive%/')) { return $true }
   if ($relative -eq '.local' -or $relative.StartsWith('.local/')) { return $true }
   if ($relative -eq 'tests/.cache' -or $relative.StartsWith('tests/.cache/')) { return $true }
-  if ($relative -eq 'archive/private' -or $relative.StartsWith('archive/private/')) { return $true }
-  if ($relative -eq 'archive/rejected' -or $relative.StartsWith('archive/rejected/')) { return $true }
-  if ($relative -eq 'archive/packages' -or $relative.StartsWith('archive/packages/')) { return $true }
-  if ($relative -eq 'archive/tasks' -or $relative.StartsWith('archive/tasks/')) { return $true }
-  if ($relative -eq 'archive/prototypes/序列插入-第二轮-原始独立交付' -or $relative.StartsWith('archive/prototypes/序列插入-第二轮-原始独立交付/')) { return $true }
-  if ($relative -eq 'archive/prototypes/公共编排层首版' -or $relative.StartsWith('archive/prototypes/公共编排层首版/')) { return $true }
   return $false
 }
 
@@ -48,7 +42,17 @@ function Should-SkipFile([string]$relative, [string]$fullName) {
 
 $files = [Collections.Generic.List[IO.FileInfo]]::new()
 $pending = [Collections.Generic.Stack[IO.DirectoryInfo]]::new()
-$pending.Push([IO.DirectoryInfo]::new($root))
+# 只枚举现行维护目录与明确的根文件，不从仓库根递归排除历史资料。
+foreach ($name in @('src', 'dist', 'docs', 'examples', 'gallery', 'scripts', 'skills', 'vendor', 'tests')) {
+  $directory = Join-Path $root $name
+  if (Test-Path -LiteralPath $directory -PathType Container) {
+    $pending.Push([IO.DirectoryInfo]::new($directory))
+  }
+}
+foreach ($name in @('README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'registry.json', '.gitignore', '.gitattributes')) {
+  $file = Join-Path $root $name
+  if (Test-Path -LiteralPath $file -PathType Leaf) { $files.Add([IO.FileInfo]::new($file)) }
+}
 while ($pending.Count -gt 0) {
   $directory = $pending.Pop()
   foreach ($item in $directory.GetFileSystemInfos()) {

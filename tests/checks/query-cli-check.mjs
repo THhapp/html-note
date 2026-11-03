@@ -12,6 +12,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { TOPICS } from '../../scripts/query/entries.mjs';
+import { load, resolveEntryResource } from '../../scripts/query/catalog.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
@@ -405,6 +406,23 @@ try {
   expect(explicitRoot.ok === true && explicitRoot.results[0].id === 'D01', '--root 明确指定库位置');
 } finally {
   fs.rmSync(tempRoot, { recursive: true, force: true });
+}
+
+// 每个公开资源都必须能真正读取，不只检查路径存在或精选条目。
+const resourceFailures = [];
+const catalog = load(root);
+for (const entry of catalog.entries) {
+  for (const key of new Set(entry.resources.map((resource) => resource.key))) {
+    try {
+      const result = resolveEntryResource(catalog, entry, key, { limit: 1 });
+      if (result.error) resourceFailures.push(entry.id + '/' + key + ': ' + result.error);
+    } catch (error) { resourceFailures.push(entry.id + '/' + key + ': ' + error.message); }
+  }
+}
+expect(resourceFailures.length === 0, '全部查询资源可按公开入口读取', resourceFailures.join('\n'));
+for (const id of ['R03', 'R05']) {
+  const section = resolveEntryResource(catalog, catalog.entries.find((entry) => entry.id === id), 'api');
+  expect(section.content.startsWith('## 4. R02–R06') && !section.content.includes('## 5.'), id + ' 表内锚点读取所属章节');
 }
 
 console.log('SUMMARY ' + passes + '/' + (passes + failures.length) + ' passed');

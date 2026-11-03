@@ -1,6 +1,6 @@
 /* 场景 B 的交互与动效核对：状态、字幕、标记、按钮边界、回退/重看/重来、换标签、减少动效。
    node scripts/check-b.mjs */
-import { ROOT, generatedPageUrl, edgeExecutable, loadChromium } from './paths.mjs';
+import { ROOT, generatedPageUrl, edgeExecutable, loadChromium, outputPath } from './paths.mjs';
 const chromium = await loadChromium();
 const EDGE = edgeExecutable();
 const URL_B = generatedPageUrl('b');
@@ -242,7 +242,7 @@ const nb = await narrow.evaluate(() => {
     captionLines: Math.round(document.querySelector('.nblk-demo-stage p[class*="caption"]').getBoundingClientRect().height)
   };
 });
-await narrow.screenshot({ path: ROOT + '/evidence/b-560-long.png', fullPage: false });
+await narrow.screenshot({ path: outputPath('b-560-long.png'), fullPage: false });
 check('560 长标签：无页面横向溢出', nb.pageW <= nb.innerW + 1, nb);
 check('560 长标签：对象换到多行且不超出舞台', nb.rows >= 2 && nb.itemW <= nb.stageW, nb);
 

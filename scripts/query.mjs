@@ -192,7 +192,7 @@ function commandSearch(catalog, query, options) {
   if (!result.total) {
     data.message = suggestions.length
       ? '没有精确匹配；以下 suggestions 只来自查询拆词后的真实检索命中，请逐项确认是否相关。'
-      : '没有匹配条目，也没有可依据的相关候选；可以换用用途词、公开名、ID，或查完整组件目录 docs/组件目录.md。不要据此判断库缺少能力。';
+      : '没有匹配条目，也没有可依据的相关候选；可以换用用途词、公开名或 ID，或打开 gallery/index.html 浏览组件。不要据此判断库缺少能力。';
   }
   return data;
 }

@@ -2,11 +2,11 @@
 import assert from 'node:assert/strict';
 import { mkdirSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
-import { ROOT, ownedPath, generatedPageUrl, edgeExecutable, loadChromium } from './paths.mjs';
+import { ROOT, ownedPath, generatedPageUrl, edgeExecutable, loadChromium, outputPath } from './paths.mjs';
 
 const chromium = await loadChromium();
 const browser = await chromium.launch({ headless: true, executablePath: edgeExecutable() });
-const evidence = ownedPath('evidence');
+const evidence = outputPath('.');
 mkdirSync(evidence, { recursive: true });
 const findings = [];
 const errors = [];
@@ -40,7 +40,7 @@ try {
   await a.page.getByRole('radio', { name: '示例二 · 3×2' }).click();
   const aValues = await a.page.locator('.nviz-matrix').first().locator('tbody td').allTextContents();
   assert.deepEqual(aValues.map(text => Number(text.replace(/关注/g, '').trim())), [7, 8, 9, 10, 11, 12]);
-  await a.page.screenshot({ path: ownedPath('evidence/migration-a.png'), fullPage: true });
+  await a.page.screenshot({ path: outputPath('migration-a.png'), fullPage: true });
   findings.push('A 模块宿主：公式、矩阵与换数据正常');
   await a.context.close();
 
@@ -71,7 +71,7 @@ try {
   await b.page.setViewportSize({ width: 700, height: 900 });
   await b.page.waitForTimeout(100);
   assert.equal(await b.page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-  await b.page.screenshot({ path: ownedPath('evidence/migration-b-narrow.png') });
+  await b.page.screenshot({ path: outputPath('migration-b-narrow.png') });
   findings.push('B 模块宿主：删除、交换、回退、重看、重来、换标签及700px窗口正常');
   await b.context.close();
 

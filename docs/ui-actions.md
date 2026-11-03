@@ -145,7 +145,6 @@ var group = NoteUI.Toggle.mount(host, {
 
 ## 6. 支持范围与限制
 
-- 已在 Windows Edge（Chromium）headless、`file://` 下验证挂载、更新、禁用、复制成功/失败回退、程序更新不触发回调及销毁；未验证 Firefox/Safari、移动端触摸、打印及真实笔记中的组合排版。
 - 模块依赖旧组件模块；不加载 legacy 时 A01/A02 会明确抛错，A03 也不会被独立承诺为可运行模块包。字符串图标需要宿主设置 `NoteUI.Button.iconResolver`，或用 DOM 图标。
 - A02 只处理文本；失败回退依赖用户手动复制，不尝试绕过浏览器权限；成功提示的计时器在销毁/更新时清理，失败回退不自动消失。
 - A03 的结构更新（`options`/`multi`）会重建按钮，可能丢失当前焦点；互斥组不提供方向键 roving；建议选项值使用可严格比较的标量。

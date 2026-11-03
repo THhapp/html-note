@@ -218,6 +218,7 @@ function buildTopic(topic) {
     anchor: spec.anchor || null, readable: !/^https?:/.test(spec.path)
   }));
   const aliases = new Set([topic.id, topic.name, topic.cn].filter(Boolean));
+  for (const term of topic.terms || []) if (term) aliases.add(term);
   for (const alias of topic.aliases || []) if (alias) aliases.add(alias);
   return {
     kind: 'topic', id: topic.id, name: topic.name, cn: topic.cn, type: topic.type,
@@ -578,13 +579,10 @@ export function readDocSection(root, relativePath, anchor, options = {}) {
     while (next < lines.length && lines[next].trim() === '') next += 1;
     if (next < lines.length && /^(#{1,6})\s+/.test(lines[next])) headingIndex = next;
     if (headingIndex < 0) {
-      for (let previous = i - 1; previous >= Math.max(0, i - 4); previous -= 1) {
+      // 行内锚点（例如表格中的组件 ID）属于最近的上级章节，
+      // 不能按相距几行猜测，更不能误取后续组件的标题。
+      for (let previous = i - 1; previous >= 0; previous -= 1) {
         if (/^(#{1,6})\s+/.test(lines[previous])) { headingIndex = previous; break; }
-      }
-    }
-    if (headingIndex < 0) {
-      for (let forward = i + 1; forward < Math.min(lines.length, i + 7); forward += 1) {
-        if (/^(#{1,6})\s+/.test(lines[forward])) { headingIndex = forward; break; }
       }
     }
     if (headingIndex < 0) throw new Error('文档锚点未关联标题：' + relativePath + '#' + decoded);

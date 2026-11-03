@@ -90,18 +90,7 @@
           "bits",
           "bytes"
         ],
-        "aliases": [
-          "D01",
-          "NoteViz.Sequence",
-          "序列与位串",
-          "序列",
-          "比特串",
-          "字节",
-          "顺序对象",
-          "sequence",
-          "bits",
-          "bytes"
-        ],
+        "aliases": [],
         "boundary": "独立组件更新直接呈现状态；过程动效需公共层接入或具体机制。等宽单元不适合表示真实字段长度比例。",
         "resources": [
           {
@@ -202,19 +191,7 @@
           "column",
           "cell"
         ],
-        "aliases": [
-          "D02",
-          "NoteViz.Matrix",
-          "矩阵与网格数据",
-          "矩阵",
-          "行列",
-          "单元格",
-          "二维数据",
-          "matrix",
-          "row",
-          "column",
-          "cell"
-        ],
+        "aliases": [],
         "boundary": "数值和计算由宿主提供；当前公共接入支持 cut/update，不能据此推断已有行列重排或转置布局动画。",
         "resources": [],
         "scene": {
@@ -308,21 +285,6 @@
           "path"
         ],
         "aliases": [
-          "D03",
-          "NoteViz.Graph",
-          "节点与关系图",
-          "关系图",
-          "节点",
-          "边",
-          "边目标",
-          "路径",
-          "长度",
-          "关注边",
-          "变化边",
-          "graph",
-          "edge",
-          "target",
-          "path",
           "图节点与边目标"
         ],
         "boundary": "边是作者声明的直连路径，不自动避障；直线边以 SVG path 绘制，局部/视口坐标语义分开。",

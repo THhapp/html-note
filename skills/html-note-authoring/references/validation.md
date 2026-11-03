@@ -2,7 +2,7 @@
 
 本文件是 Skill 自带的验证与观察指导，供仓库内外的制作任务直接使用；不依赖项目专项文档。工具参数以目标库的 `inspect-note --help` 和实际返回为准，库位置通过 `--root` 给出。
 
-## 7. 验证与观察
+## 验证范围
 
 验证范围由本次任务和实际风险决定，不默认遍历全部停点、全部视口或跑整库浏览器矩阵。先核对知识与代表状态，再在实际速度下观察需要动态理解的过程；只有具体疑点才加探针。
 
@@ -15,18 +15,18 @@
 
 ### 本地观察入口
 
-工程提供 `scripts/inspect-note.mjs`：一次调用、执行后退出、无常驻服务；默认无头打开给定本地 HTML，收集页面错误、控制台错误和外部请求，按需截图或执行作品专属 probe，并在正常结束或失败时释放自己创建的浏览器资源。
+Skill 提供 `scripts/inspect-note.mjs` 薄入口，使用 `--root <库目录>` 调用目标库工具：一次调用、执行后退出、无常驻服务；默认无头打开给定本地 HTML，收集页面错误、控制台错误和外部请求，按需截图或执行作品专属 probe，并在正常结束或失败时释放自己创建的浏览器资源。
 
 ```powershell
-node scripts/inspect-note.mjs "D:/path/to/成品.html" --json
-node scripts/inspect-note.mjs "D:/path/to/成品.html" --screenshot "D:/path/out.png" --width 860 --height 1000
-node scripts/inspect-note.mjs "D:/path/to/成品.html" --probe "D:/path/probe.mjs" --json
-node scripts/inspect-note.mjs "D:/path/to/成品.html" --frame <frameId> --session "window.__inspectSession" --json
+node "<Skill目录>/scripts/inspect-note.mjs" --root "<库目录>" "D:/path/to/成品.html" --json
+node "<Skill目录>/scripts/inspect-note.mjs" --root "<库目录>" "D:/path/to/成品.html" --screenshot "D:/path/out.png" --width 860 --height 1000
+node "<Skill目录>/scripts/inspect-note.mjs" --root "<库目录>" "D:/path/to/成品.html" --probe "D:/path/probe.mjs" --json
+node "<Skill目录>/scripts/inspect-note.mjs" --root "<库目录>" "D:/path/to/成品.html" --frame <frameId> --session "window.__inspectSession" --json
 ```
 
 - `--frame <frameId>` 用公开 `session.go(frameId)` 恢复停点并确认实际落点后才执行截图/probe；未知 Frame、空参数或会话缺失会明确失败，不退回初始态冒充定位成功。它只证明静态停点，动画/焦点/组放行仍用 `next()/replay()`。
 
-- probe 导出 `default async ({ page }) => ...`，复用同一个已打开页面；需要连续推进、采样或读取 DOM 时都在 probe 内完成，不另起浏览器。
+- probe 导出 `default async ({ page, inspect }) => ...`，复用同一个已打开页面；需要连续推进、采样或读取 DOM 时都在 probe 内完成，不另起浏览器。
 - `--help` 是实现参数的最终事实来源；默认不生成截图、报告或日志，输出文件只在调用方明确指定时写出。
 - 输出区分工具执行事实、页面观察事实和 probe 结果；不要把三者合成一个“通过”。
 - 这里要区分“浏览器组件模块依赖”和“Node 工具运行条件”：页面需要 dist 模块或整库；观察工具需要工程现有 `playwright-core` 与本机浏览器，不自动安装、下载或轮换通道。

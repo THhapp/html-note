@@ -86,22 +86,7 @@
           "track",
           "bypass"
         ],
-        "aliases": [
-          "D07",
-          "NoteViz.Flow.StageTrack",
-          "阶段轨",
-          "阶段",
-          "当前阶段",
-          "完成",
-          "跳过",
-          "失败",
-          "旁路",
-          "阶段状态",
-          "stage",
-          "track",
-          "bypass",
-          "StageTrack"
-        ],
+        "aliases": [],
         "boundary": "状态与旁路端点由作者传入；不自动播放、不推进业务状态、不推断分支剧情。",
         "resources": []
       }
@@ -169,24 +154,7 @@
           "sequence",
           "diagram"
         ],
-        "aliases": [
-          "D08",
-          "NoteViz.Flow.PacketFlow",
-          "消息流图",
-          "报文",
-          "消息",
-          "消息流",
-          "序列图",
-          "参与者",
-          "方向",
-          "逐步显现",
-          "消息交换",
-          "packet",
-          "flow",
-          "sequence",
-          "diagram",
-          "PacketFlow"
-        ],
+        "aliases": [],
         "boundary": "方向由 from/to 与参与者顺序表达；不推断请求/响应、协议或接受语义，不创建计时器或播放器。",
         "resources": []
       }
@@ -254,24 +222,7 @@
           "proportional",
           "length"
         ],
-        "aliases": [
-          "D09",
-          "NoteViz.Flow.SegmentBar",
-          "分段长度条",
-          "长度条",
-          "分段",
-          "字段",
-          "比例",
-          "零长度",
-          "字节",
-          "插入",
-          "移除",
-          "segment",
-          "bar",
-          "proportional",
-          "length",
-          "SegmentBar"
-        ],
+        "aliases": [],
         "boundary": "最小宽度会使显示长度偏离严格比例，真实值仍保留；不计算协议字段、填充或帧长。",
         "resources": []
       }
@@ -337,24 +288,7 @@
           "port",
           "path"
         ],
-        "aliases": [
-          "D10",
-          "NoteViz.Flow.DeviceLinks",
-          "设备连接图",
-          "设备",
-          "端口",
-          "链路",
-          "连接",
-          "连接路径",
-          "拓扑",
-          "传播",
-          "采样",
-          "device",
-          "links",
-          "port",
-          "path",
-          "DeviceLinks"
-        ],
+        "aliases": [],
         "boundary": "只做有限默认/手动排布，不自动路由、避障或推断网络接受规则；传播运动仍由作者/公共进度组织。",
         "resources": []
       }
