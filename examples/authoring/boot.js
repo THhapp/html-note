@@ -52,6 +52,38 @@
     return session;
   }
 
+  /* 第四例：diagramTable 跨区域承接（依据区 + 结果表 + 辅助状态）。 */
+  function mountCrossRegion(selector, title, label, phaseSelector) {
+    var host = global.document.querySelector(selector);
+    if (!host) throw new Error('找不到作者入口宿主：' + selector);
+    if (!global.NoteDemoRecipes || typeof global.NoteDemoRecipes.diagramTable !== 'function') {
+      throw new Error('作者入口需要先加载 NoteDemoRecipes.diagramTable。');
+    }
+    if (!global.AuthoringDemos || typeof global.AuthoringDemos.crossRegion !== 'function') {
+      throw new Error('作者入口需要先加载 data.js 的 AuthoringDemos.crossRegion。');
+    }
+    var spec = global.AuthoringDemos.crossRegion();
+    var recipe = global.NoteDemoRecipes.diagramTable({
+      bindings: spec.bindings,
+      initial: spec.initial,
+      steps: spec.steps,
+      density: 'compact',
+      mainMinWidth: '20rem',
+      diagram: { slot: 'evidence', title: '当前依据' },
+      table: { slot: 'table', title: '结果表' },
+      status: { slot: 'status', title: '已提交状态' }
+    });
+    var session = global.NoteDemo.mount(host, {
+      definition: recipe.definition,
+      layout: recipe.layout,
+      title: title,
+      label: label
+    });
+    sessions.push(session);
+    if (phaseSelector) watchPhase(phaseSelector, session);
+    return session;
+  }
+
   /* 第三例：普通 DOM 交接，自定义 Adapter 只使用公开契约（handoff-demo.js）。 */
   function mountHandoff(selector, title, label, phaseSelector) {
     var host = global.document.querySelector(selector);
@@ -75,9 +107,12 @@
     mountHandoff('[data-author-demo="handoff"]',
       '普通 DOM 交接：来源保留到目标接住', '作者装配：普通 DOM 交接',
       '[data-author-phase="handoff"]');
+    mountCrossRegion('[data-author-demo="crossRegion"]',
+      '跨区域承接：先辨认依据，结果表再出现', '作者装配：跨区域承接',
+      '[data-author-phase="crossRegion"]');
   }
 
-  /* 只读辅助：控制台或临时检查脚本可读取三个会话的 phase。 */
+  /* 只读辅助：控制台或临时检查脚本可读取四个会话的 phase。 */
   global.AuthoringPhases = function () {
     return sessions.map(function (session) {
       var state = session.getState();

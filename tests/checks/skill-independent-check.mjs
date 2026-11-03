@@ -33,7 +33,7 @@ try {
   const info = run([query, 'info', '--root', root, '--json'], target);
   let infoData = null;
   try { infoData = JSON.parse(info.stdout); } catch (error) { /* 下面统一报错 */ }
-  check(info.status === 0 && infoData && infoData.ok === true && infoData.library.components === 105 && infoData.library.totalEntries === 124,
+  check(info.status === 0 && infoData && infoData.ok === true && infoData.library.components === 105 && infoData.library.totalEntries === 125,
     '仓库外 Skill 可通过 --root 调用真实查询', info.stderr || (info.stdout || '').slice(0, 300));
   check(infoData && infoData.docs && infoData.docs.queryEntries === 'scripts/query/entries.mjs' && !infoData.docs.corpus,
     '查询信息来自程序数据，不指向旧语料 MD', JSON.stringify(infoData && infoData.docs));

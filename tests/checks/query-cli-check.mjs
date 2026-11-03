@@ -63,6 +63,12 @@ expect(!fs.existsSync(legacyCorpusPath), '旧 docs/查询语料.md 已删除，�
 expect(info.sourceOfTruth.some((item) => item.includes('entries.mjs')) && !info.sourceOfTruth.some((item) => item.includes('查询语料')),
   'info.sourceOfTruth 指向 manifests + entries.mjs + docs/examples', JSON.stringify(info.sourceOfTruth));
 expect(info.commands && info.commands.search && info.commands.show, 'info 给出真实命令入口');
+expect(info.start && info.start.entry === 'authoring:start' &&
+  info.start.command === 'node scripts/query.mjs show authoring:start' && /跨区域/.test(info.start.hint),
+  'info 提供 authoring:start 开工入口', JSON.stringify(info.start));
+const infoText = run(['info']);
+expect(infoText.status === 0 && /authoring:start/.test(infoText.stdout) && /跨区域/.test(infoText.stdout),
+  'info 文本输出提示 authoring:start 开工包', infoText.stdout.slice(0, 600));
 
 const d01Manifest = queryComponents.find((item) => item.entry.id === 'D01');
 expect(queryComponentCount === 23 && d01Manifest && d01Manifest.entry.query &&
@@ -110,6 +116,13 @@ expect(searchStageTrack.ok === true && searchStageTrack.results.some((item) => i
 const searchPacketFlow = json(run(['search', '消息流', '--json']));
 expect(searchPacketFlow.ok === true && searchPacketFlow.results.some((item) => item.id === 'D08'),
   '“消息流”命中 D08', JSON.stringify(searchPacketFlow.results.map((item) => item.id)));
+const switchSearch = json(run(['search', '交换机 交换表 帧 转发', '--json']));
+expect(switchSearch.ok === true && switchSearch.results.some((item) => item.id === 'authoring:start'),
+  '“交换机 交换表 帧 转发”命中 authoring:start 开工包', JSON.stringify(switchSearch.results.map((item) => item.id)));
+const tableRowSearch = json(run(['search', '表格 新行 表项', '--json']));
+expect(tableRowSearch.ok === true && tableRowSearch.results.some((item) => item.id === 'authoring:start') &&
+  tableRowSearch.results.some((item) => item.id === 'public:table-adapter'),
+  '“表格 新行 表项”命中开工包与 table adapter', JSON.stringify(tableRowSearch.results.map((item) => item.id)));
 const flowKit = json(run(['show', 'example:flow-kit', '--json']));
 const flowKitEntry = flowKit.entries && flowKit.entries[0];
 expect(flowKit.ok === true && flowKitEntry && flowKitEntry.resources.some((item) => item.key === 'example') && flowKitEntry.resources.some((item) => item.key === 'fragment'),
@@ -123,6 +136,29 @@ function resourceMap(entry) {
   for (const resource of entry.resources || []) map[resource.key] = resource;
   return map;
 }
+const startShow = json(run(['show', 'authoring:start', '--json']));
+const startEntry = startShow.entries && startShow.entries[0];
+const startResources = resourceMap(startEntry || { resources: [] });
+const startExpected = ['guide', 'example', 'fragment', 'minimal', 'api', 'verify', 'table'];
+expect(startShow.ok === true && startEntry && typeof startEntry.usage === 'string' &&
+  startEntry.usage.includes('authoring:start') && startEntry.usage.includes('diagramTable') &&
+  startEntry.usage.includes("groups:['row:r2']") && startEntry.runtime === 'authoring' &&
+  startEntry.limits.some((item) => item.includes("scene.bindings") && item.includes("mode:'cut'")) &&
+  !startEntry.limits.join(' ').includes('可不在 scene.bindings') &&
+  Array.isArray(startEntry.moduleDependencies) && startEntry.moduleDependencies.includes('demo-ui') &&
+  startEntry.regionDependencies && startEntry.regionDependencies.caller === true,
+  'show authoring:start 输出 usage/runtime/regionDependencies', JSON.stringify({ usage: startEntry && startEntry.usage, runtime: startEntry && startEntry.runtime, regions: startEntry && startEntry.regionDependencies }));
+expect(startExpected.every((key) => startResources[key]) &&
+  startResources.guide.path === 'docs/取用与组合.md' && startResources.guide.anchor === 'author-start' &&
+  startResources.example.path === 'examples/authoring/index.html' &&
+  startResources.fragment.path === 'examples/authoring/data.js' &&
+  startResources.minimal.path === 'examples/continuous-scene/minimal.html' &&
+  startResources.api.path === 'docs/公共编排层.md' && startResources.api.anchor === 'author-attention' &&
+  startResources.verify.anchor === 'author-inspect-note' && startResources.table.anchor === '5-1-内置-adapter-的视图与目标',
+  'authoring:start 资源覆盖文档/示例/片段/最小宿主/API/核对/table 章节', JSON.stringify(Object.fromEntries(Object.entries(startResources).map(([key, item]) => [key, [item.path, item.anchor || null]]))));
+const startShowText = run(['show', 'authoring:start']);
+expect(startShowText.status === 0 && /用法:/.test(startShowText.stdout) && /可读资源:/.test(startShowText.stdout) &&
+  /authoring:start/.test(startShowText.stdout), 'show authoring:start 文本输出 usage 与可读资源', startShowText.stdout.slice(0, 500));
 const adapterResources = resourceMap(continuousAdapterEntry);
 const adapterExpectedResources = ['api', 'guide', 'source', 'example', 'fragment', 'full'];
 expect(adapterExpectedResources.every((key) => adapterResources[key]) &&
@@ -195,6 +231,13 @@ expect(propagationEntry.ok === true && propagationEntry.entries && propagationEn
 const tableAdapterEntry = json(run(['show', 'public:table-adapter', '--json']));
 expect(tableAdapterEntry.ok === true && tableAdapterEntry.entries && tableAdapterEntry.entries[0] && tableAdapterEntry.entries[0].resources.some((item) => item.key === 'source'),
   'show public:table-adapter 返回源码资源', JSON.stringify(tableAdapterEntry.entries && tableAdapterEntry.entries[0] && tableAdapterEntry.entries[0].resources));
+const tableEntry = tableAdapterEntry.entries && tableAdapterEntry.entries[0];
+const tableResources = resourceMap(tableEntry || { resources: [] });
+expect(tableEntry && tableResources.full && tableResources.full.path === 'examples/authoring/index.html' &&
+  /row:<encodeURIComponent/.test(tableEntry.notes) && /opacity:0/.test(tableEntry.notes) &&
+  /独立 Binding/.test(tableEntry.notes) && /authoring/.test(tableEntry.notes) &&
+  /mode:'cut'/.test(tableEntry.notes) && !/可不在 scene.bindings/.test(tableEntry.notes),
+  'table adapter 标注独立 Binding row 组门控与 authoring 跨区域示例', JSON.stringify({ resources: Object.keys(tableResources), notes: tableEntry && tableEntry.notes }));
 const flowStageEntry = json(run(['show', 'public:flow-stage-adapter', '--json']));
 expect(flowStageEntry.ok === true && flowStageEntry.entries && flowStageEntry.entries[0] && flowStageEntry.entries[0].resources.some((item) => item.key === 'source'),
   'show public:flow-stage-adapter 返回源码资源', JSON.stringify(flowStageEntry.entries && flowStageEntry.entries[0] && flowStageEntry.entries[0].resources));
@@ -332,6 +375,15 @@ expect(attention.ok === true && attention.entries[0].contexts[0].refs.some((ref)
   attention.entries[0].contexts[0].refs.some((ref) => ref.anchor === 'author-scene-control') &&
   attentionRead.ok === true && attentionRead.content.startsWith('### 5.3 焦点、效果组') && attentionRead.content.includes('groups:[]'),
   'attention 直达分组与观察小节');
+const attentionEntry = attention.entries[0];
+const attentionResources = resourceMap(attentionEntry);
+const attentionLimits = (attentionEntry.limits || []).join(' ');
+expect(attentionResources.example.path === 'examples/authoring/index.html' &&
+  attentionResources.full.path === 'examples/continuous-scene/index.html' &&
+  /新行/.test(attentionEntry.notes) && /独立 Binding/.test(attentionEntry.notes) && /authoring/.test(attentionEntry.notes) &&
+  /mode:'cut'/.test(attentionEntry.notes) && !/可不在 scene.bindings/.test(attentionEntry.notes) &&
+  (attentionLimits.match(/local 支持/g) || []).length === 1,
+  'attention 指向跨区域示例、记录 table row 独立 Binding 门控并去重 local 段落', JSON.stringify({ resources: Object.fromEntries(Object.entries(attentionResources).map(([key, item]) => [key, item.path])), localCount: (attentionLimits.match(/local 支持/g) || []).length }));
 const attentionContext = json(run(['show', 'public:attention', '--context', 'scene', '--json']));
 expect(attentionContext.ok === false && attentionContext.missing[0].error === 'unknown_context' &&
   attentionContext.missing[0].availableContexts.some((item) => item.key === 'public') &&

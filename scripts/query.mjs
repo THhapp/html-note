@@ -86,6 +86,10 @@ function showProjection(entry) {
     demo: entry.demo || null,
     contexts: entry.contexts || [],
     resources: (entry.resources || []).map(publicResource),
+    usage: entry.usage || '',
+    runtime: entry.runtime || null,
+    moduleDependencies: (entry.moduleDependencies || []).slice(),
+    regionDependencies: entry.regionDependencies || null,
     notes: entry.notes || '',
     query: entry.query || null
   };
@@ -126,6 +130,11 @@ function commandInfo(catalog, options) {
       notDefault: '不索引 archive、测试残料、ZIP 或生成的单文件 HTML',
       status: '资料覆盖表示可检索范围；具体能力边界由对应文档和源码维护'
     },
+    start: {
+      entry: 'authoring:start',
+      command: 'node scripts/query.mjs show authoring:start',
+      hint: '无历史上下文的新作者先取这个开工包：跨区域依据→主要变化→结果、table 新行 row 组门控、完整示例与核对入口。'
+    },
     docs,
     loading: {
       wholeLibrary: ['dist/note-library.css', 'dist/note-library.js'],
@@ -152,6 +161,9 @@ function textInfo(data) {
   lines.push('');
   lines.push('现行文档入口:');
   for (const [key, value] of Object.entries(data.docs)) lines.push('  ' + key + ': ' + value);
+  lines.push('');
+  lines.push('作者开工: ' + data.start.command);
+  lines.push('  ' + data.start.hint);
   lines.push('');
   lines.push('加载方式:');
   lines.push('  整库: ' + data.loading.wholeLibrary.join(' + '));
@@ -258,6 +270,7 @@ function textShow(data) {
     lines.push('');
     lines.push('# ' + entry.id + ' · ' + entry.name + ' · ' + entry.type + ' · ' + entry.coverage);
     lines.push('用途: ' + entry.purpose);
+    if (entry.usage) lines.push('用法: ' + entry.usage);
     if (entry.category) lines.push('类别: ' + entry.category + (entry.module ? ' / 模块 ' + entry.module : ''));
     lines.push('资料覆盖: ' + (entry.coverage === 'curated' ? '精选资料（有作者用途/别名/边界）' : '基础清单（仅 ID、名称、用途、接口摘要）'));
     for (const context of entry.contexts) {
@@ -391,6 +404,7 @@ function printHelp(json) {
       'node scripts/query.mjs info',
       'node scripts/query.mjs search 矩阵 --json',
       'node scripts/query.mjs show D01',
+      'node scripts/query.mjs show authoring:start',
       'node scripts/query.mjs show recipe:focusWorkbench --context recipe',
       'node scripts/query.mjs show public:progress',
       'node scripts/query.mjs read public:progress api',

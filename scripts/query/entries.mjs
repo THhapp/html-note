@@ -4,6 +4,100 @@
  */
 export const TOPICS = [
   {
+    "id": "authoring:start",
+    "name": "作者开工包 authoring:start",
+    "cn": "作者跨区域开工",
+    "type": "作者开工",
+    "category": "作者入口；非组件，一次取得取用文档、示例、API 与核对方法。",
+    "purpose": "用一次查询取得跨区域作者开工所需的依据→主要变化→结果接法、table 新行门控、完整示例、最小宿主与核对入口。",
+    "limits": [
+      "不推断知识重点；自然引导（对象运动、对齐窗口、范围变化）可单独成立。只有跨区域依据/结果无法直接对应、主要变化需要寻找时，才需要公共 attention。",
+      "table 新行可由独立 Binding 的 attention row 组门控（已用 authoring 第四示范核对）；辅助状态若视图变化，也必须在 scene.bindings 中列出，用 mode:'cut' 同步提交，不放进 attention、不逐项巡视。"
+    ],
+    "terms": [
+      "作者开工",
+      "跨区域",
+      "依据",
+      "结果",
+      "承接",
+      "焦点",
+      "attention",
+      "表格",
+      "新行",
+      "表项",
+      "独立 Binding",
+      "自定义 scene",
+      "交换机",
+      "交换表",
+      "帧",
+      "转发",
+      "端口",
+      "结果表",
+      "先看依据",
+      "row 组"
+    ],
+    "aliases": [
+      "authoring:start",
+      "开工包",
+      "作者入口",
+      "跨区域承接",
+      "表格新行",
+      "表项出现",
+      "独立Binding",
+      "scene.attention",
+      "帧转发",
+      "依据→结果",
+      "table row",
+      "先看依据再展开",
+      "作者跨区域开工",
+      "row:<key>"
+    ],
+    "resources": [
+      {
+        "path": "docs/取用与组合.md",
+        "anchor": "author-start",
+        "key": "guide"
+      },
+      {
+        "path": "examples/authoring/index.html",
+        "key": "example"
+      },
+      {
+        "path": "examples/authoring/data.js",
+        "key": "fragment"
+      },
+      {
+        "path": "examples/continuous-scene/minimal.html",
+        "key": "minimal"
+      },
+      {
+        "path": "docs/公共编排层.md",
+        "anchor": "author-attention",
+        "key": "api"
+      },
+      {
+        "path": "docs/公共编排层.md",
+        "anchor": "author-inspect-note",
+        "key": "verify"
+      },
+      {
+        "path": "docs/公共编排层.md",
+        "anchor": "5-1-内置-adapter-的视图与目标",
+        "key": "table"
+      }
+    ],
+    "runtime": "authoring",
+    "moduleDependencies": [
+      "demo-ui"
+    ],
+    "usage": "`node scripts/query.mjs show authoring:start`；`diagramTable({ diagram:{slot:'evidence'}, table:{slot:'table',options:{rowKey:'id',stableStateLabels:false}}, status:{slot:'status'} })`；`scene.attention.targets=[{binding:'evidence',query:{part:'value'}},{binding:'table',query:{row:'r2'},groups:['row:r2'],holdDuration:0}]`。",
+    "notes": "实际可运行的第四示范见 `examples/authoring/index.html`（evidence→table 跨区域）；数据片段在 `examples/authoring/data.js`；最小宿主见 `examples/continuous-scene/minimal.html`；API 与核对方法用 api/verify 资源。",
+    "regionDependencies": {
+      "caller": true,
+      "groups": []
+    }
+  },
+  {
     "id": "recipe:focusWorkbench",
     "name": "NoteDemoRecipes.focusWorkbench",
     "cn": "依据—处理—读数区域配方",
@@ -137,7 +231,7 @@ export const TOPICS = [
     "category": "I07 接入主题；scene.attention、效果组与观察范围。",
     "purpose": "作者明确观察目标及关联内容，公共层在真实到达后启动对应效果，按实际可承接状态交接视线。",
     "limits": [
-      "groups 省略、空数组、非空数组分别有不同含义；仅声明效果组的 Adapter 支持组级放行。工具不推断教学重点，观察范围应指向真实内容，不能默认一项动效必配一次焦点移动。local 支持绝对 dx/dy/width/height 或相对 outset/inset（CSS px，二选一）；union refs 可声明 optional:true；display:none、断开等无效布局不参与几何，不退化整屏。local 支持绝对 dx/dy/width/height 或相对 outset/inset（CSS px，二选一）；union refs 可声明 optional:true；display:none/断开等无效布局不参与几何，不退化整屏。"
+      "groups 省略、空数组、非空数组分别有不同含义；仅声明效果组的 Adapter 支持组级放行。工具不推断教学重点，观察范围应指向真实内容，不能默认一项动效必配一次焦点移动。local 支持绝对 dx/dy/width/height 或相对 outset/inset（CSS px，二选一）；union refs 可声明 optional:true；display:none、断开等无效布局不参与几何，不退化整屏。"
     ],
     "terms": [
       "注意顺序",
@@ -175,12 +269,16 @@ export const TOPICS = [
         "key": "source"
       },
       {
-        "path": "examples/continuous-scene/index.html",
+        "path": "examples/authoring/index.html",
         "key": "example"
       },
       {
         "path": "examples/continuous-scene/demo.js",
         "key": "fragment"
+      },
+      {
+        "path": "examples/continuous-scene/index.html",
+        "key": "full"
       },
       {
         "path": "docs/公共编排层.md",
@@ -193,7 +291,7 @@ export const TOPICS = [
       "demo-runtime"
     ],
     "usage": "`scene: { bindings:[...], attention:{ targets:[{binding,query,groups?,holdDuration?,range?}], stepDuration? } }`；groups 省略=整 Binding 门控、`[]`=只观察、非空=按组放行。",
-    "notes": "`examples/continuous-scene/demo.js` 是双组按焦点放行的接入片段；传播 `demo.js` 是另一条真实观察路线示例；受控内容的 CSS transition 由公共 Binding 容器统一接管，不靠 Adapter 或示例自己暂停。独立 Focus 组件不等于已协调内容启动。"
+    "notes": "`examples/continuous-scene/demo.js` 是双组按焦点放行的接入片段；`examples/authoring/index.html` 的第四示范是 evidence→table 跨区域完整示例；传播 `demo.js` 是另一条真实观察路线示例。table 新行可由独立 Binding 的 attention row 目标（`groups:['row:<key>']`）门控：新行在组放行前 opacity:0，目标到达后才 ready→finished（已用 authoring table demo 核对）。辅助状态若视图变化，也必须在 scene.bindings 中列出，用 mode:'cut' 同步提交，不放进 attention、不逐项巡视。受控内容的 CSS transition 由公共 Binding 容器统一接管，不靠 Adapter 或示例自己暂停。"
   },
   {
     "id": "public:handoff",
@@ -774,6 +872,10 @@ export const TOPICS = [
       "cell",
       "target",
       "row",
+      "row 组",
+      "新行",
+      "表项",
+      "独立 Binding",
       "emptyText",
       "局部更新"
     ],
@@ -787,11 +889,16 @@ export const TOPICS = [
       "cell",
       "target",
       "row",
+      "新行",
+      "表项",
+      "row 组",
+      "独立 Binding",
       "emptyText",
       "局部更新",
       "Adapter 表",
       "C06",
-      "流程组合示例"
+      "流程组合示例",
+      "跨区域结果表"
     ],
     "resources": [
       {
@@ -806,6 +913,10 @@ export const TOPICS = [
       {
         "path": "examples/flow-composition/index.html",
         "key": "example"
+      },
+      {
+        "path": "examples/authoring/index.html",
+        "key": "full"
       }
     ],
     "runtime": "public",
@@ -814,7 +925,7 @@ export const TOPICS = [
       "ui-content"
     ],
     "usage": "Binding 写 `{ adapter:'table', slot:'table', options:{ rowKey:'key' } }`；视图 `{columns,rows,sort,emphasis,caption,empty,dense,maxHeight}`。",
-    "notes": "scene 接入，不是新组件；完整示例见流程组合。"
+    "notes": "scene 接入，不是新组件。row 组名 `row:<encodeURIComponent(rowKey)>`；新行 row-enter 在组放行前以 opacity:0 暂停，独立 Binding 的 attention row 目标（`query:{row:'r2'}`、`groups:['row:r2']`）到达后才 ready→finished（已用 authoring 第四示范核对）。辅助状态若视图变化，也必须在 scene.bindings 中列出，用 mode:'cut' 同步提交，不放进 attention、不逐项巡视。跨区域 table row demo 见 `examples/authoring/index.html`；流程组合示例保留在 example 资源。"
   },
   {
     "id": "public:flow-stage-adapter",

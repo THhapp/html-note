@@ -8,9 +8,9 @@
 
 ## 文件
 
-- `data.js`：可替换内容。矩阵乘法与逐项读数都返回 `NoteDemoRecipes.focusWorkbench` 的配置；`steps[].scene.attention.targets` 是作者给出的观察顺序。
+- `data.js`：可替换内容。矩阵乘法与逐项读数都返回 `NoteDemoRecipes.focusWorkbench` 的配置；第四例返回 `NoteDemoRecipes.diagramTable` 的 bindings/initial/steps。`steps[].scene.attention.targets` 是作者给出的观察顺序。
 - `handoff-demo.js`：第三个普通 DOM 交接小例。自定义 Adapter 只使用公开契约（Definition / Adapter / PreparedChange / EffectSpec / scene.attention），包含来源标签与目标标签，使用 `PreparedChange.sourceElements()` 与 `EffectSpec.handoff:'hold'`；不读取 `NoteDemoInternals`，不自建播放器、计时器或清理框架。
-- `boot.js`：唯一启动文件，负责 mount 三个会话、把 `session.getState().phase` 写到状态位；不实现播放器、字幕、计时或动画。
+- `boot.js`：唯一启动文件，负责 mount 四个会话（前三例 + diagramTable 跨区域例）、把 `session.getState().phase` 写到状态位；不实现播放器、字幕、计时或动画。
 - `authoring.css`：页面外壳与内容排版；通用区域骨架来自 `src/demo/recipes.css`。
 - `index.html`：开发入口，也是自包含预览的模板。
 
@@ -50,6 +50,15 @@
 
 适配器只需要公开契约；`mount(host)` 中的 DOM 只含来源/目标标签，播放、ready、清理与补间句柄都由公共 scene 负责。DOM 钩子：`.handoff-demo__stage` 的 `data-stage="source|handoff"`、`[data-adapter-part="source|target"]`。
 
+## 跨区域依据 → 结果（diagramTable）
+
+第四例把“当前依据”和“结果表”拆成两个区域：`evidence` 是普通 DOM Binding，`table` 是独立 table Binding，`status` 是辅助状态。
+
+- step A/B 的 `scene.attention.targets` 都先到 `evidence`，再到达 table 的行目标（`{row:'r1'}` / `{row:'r2'}`，`groups:['row:<key>']`）。
+- table 新行在 commit 时进入 DOM，但 row-enter WAAPI 以 `opacity:0` 暂停；表目标到达后才 ready→finished，已有行不重播。该行为已由真实 Edge 探针与本 focused check 核对。
+- `status` 的视图变化也必须列入 `scene.bindings`（compile 不允许视图变化但不列入 scene）；用 `mode:'cut'` 同步提交，不写 attention target，因此不会被 Focus 巡视。
+- 跨区域只在“依据/结果无法直接对应、主要变化需要寻找”时使用公共 attention；顺序由作者给出，工具不猜重点。
+
 ## 依赖
 
 `demo-ui` 模块（包含 `NoteDemo.mount`、默认舞台、`NoteDemoRecipes.focusWorkbench` 与 `NoteDemo.effects` 作者工具）；整库已包含。配方源码在 `src/demo/recipes.js`，运行核心在 `src/demo`。
@@ -63,4 +72,4 @@ node scripts/build.mjs --final --release
 node scripts/build-demo-preview.mjs --template examples/authoring/index.html --output dist/作者装配与聚焦-预览.html
 ~~~
 
-默认静止，使用演示下方控件推进。前两例的完整 Definition 仍可通过 `NoteDemo.compile` 输出或把 `demo.definition` 交给 `NoteDemo.create` 检查；第三例可直接查看 `handoff-demo.js` 中的 `definition()`。
+默认静止，使用演示下方控件推进。前两例的完整 Definition 仍可通过 `NoteDemo.compile` 输出或把 `demo.definition` 交给 `NoteDemo.create` 检查；第三例可直接查看 `handoff-demo.js` 中的 `definition()`；第四例由 `diagramTable` 配方生成，`recipe.definition` / `recipe.layout` 可直接读取。

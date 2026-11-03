@@ -80,6 +80,8 @@ function resourceLabel(key, file) {
   if (key === 'full') return '完整示例';
   if (key === 'minimal') return '最小示例';
   if (key === 'guide') return '接入文档';
+  if (key === 'verify') return '本地核对入口';
+  if (key === 'table') return '表格目标与行组';
   if (key === 'example') return /minimal\.html$/i.test(file) ? '最小示例' : '完整示例';
   return key;
 }
@@ -201,6 +203,8 @@ function buildComponent(entry, moduleName, modules, query, root) {
 
 function topicResourceLabel(key, file) {
   if (key === 'api') return '完整契约 / 用法文档';
+  if (key === 'verify') return '本地核对入口';
+  if (key === 'table') return '表格目标与行组';
   if (key === 'source') return '实现源码';
   if (key === 'fragment') return '局部接入片段';
   if (key === 'control') return '受控视觉接管说明';

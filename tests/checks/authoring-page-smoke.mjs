@@ -33,7 +33,7 @@ async function openPage(options = {}) {
   page.on('console', (message) => { if (message.type() === 'error') pageErrors.push('console: ' + message.text()); });
   page.on('request', (request) => { if (/^https?:/i.test(request.url())) external.push(request.url()); });
   await page.goto(pageUrl, { waitUntil: 'load' });
-  await page.waitForFunction(() => Array.isArray(window.AuthoringSessions) && window.AuthoringSessions.length >= 3, null, { timeout: 15000 }).catch(() => {});
+  await page.waitForFunction(() => Array.isArray(window.AuthoringSessions) && window.AuthoringSessions.length >= 4, null, { timeout: 15000 }).catch(() => {});
   return { context, page, pageErrors, external };
 }
 
@@ -60,7 +60,7 @@ async function openPage(options = {}) {
       sessionFrame: session ? session.getState().settledFrameId : ''
     };
   });
-  check('作者装配页：第三例与三会话就绪', state.sessions === 3 && state.phases === 3 && state.hasHandoff && state.hasHost, JSON.stringify(state));
+  check('作者装配页：第三例与四会话就绪', state.sessions === 4 && state.phases === 4 && state.hasHandoff && state.hasHost, JSON.stringify(state));
   check('作者装配页：默认 DOM 交接例可见状态', state.stage === 'source' && state.sourceOpacity > 0.9 && state.targetOpacity < 0.1 &&
     state.sessionPhase === 'idle', JSON.stringify(state));
   check('作者装配页：无外部网络请求', external.length === 0, JSON.stringify(external.slice(0, 5)));

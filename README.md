@@ -42,7 +42,7 @@ NoteDemo.mount(document.querySelector('[data-demo-host]'), {
 | --- | --- |
 | 看全部组件 | [离线组件预览](dist/组件库-预览.html) · [gallery](gallery/index.html) |
 | 看公共编排层 | [整合预览](dist/公共编排层-整合预览.html) · [矩阵乘法对照](dist/公共层复用验证-矩阵乘法.html) |
-| 作者装配与聚焦 | [作者入口](examples/authoring/index.html) · [作者预览](dist/作者装配与聚焦-预览.html) · [配方源码](src/demo/recipes.js) |
+| 作者开工（含跨区域承接） | `node scripts/query.mjs show authoring:start` · [开工指南](docs/取用与组合.md#author-start) · [作者入口](examples/authoring/index.html) · [跨区域数据片段](examples/authoring/data.js) · [attention API](docs/公共编排层.md#author-attention) |
 | 自定义画面接入 | [接入参考](docs/取用与组合.md#author-custom-scene) · [最小可运行宿主](examples/continuous-scene/minimal.html) · [最小接入预览](dist/自定义画面-最小接入预览.html) · [完整连续示例](examples/continuous-scene/index.html) |
 | 自定义图形接入（传播） | [传播示例入口](examples/propagation/index.html) · [传播预览](dist/传播过程与局部过渡-预览.html) · [接入说明](examples/propagation/README.md) |
 | 流程与连接图形 | [中性示例入口](examples/flow-kit/index.html) · [中性示例预览](dist/图形扩展-中性示例.html) · [接入说明](examples/flow-kit/README.md) |
@@ -61,6 +61,7 @@ NoteDemo.mount(document.querySelector('[data-demo-host]'), {
 
 ```powershell
 node scripts/query.mjs info
+node scripts/query.mjs show authoring:start --json
 node scripts/query.mjs search 矩阵
 node scripts/query.mjs search dialog --json
 node scripts/query.mjs show D01
@@ -76,7 +77,7 @@ node scripts/query.mjs read D01 api
 node scripts/query.mjs read D01 source --limit 80
 ```
 
-`info` 是接手入口，`search` 用于按名称/ID/用途/别名找候选，`show` 一次取多个条目的开工包，`read` 再沿条目引用读取完整 API 小节、源码或示例；`progress`/`attention` 直接进入作者小节，`guide`/`full`/`minimal` 等资源键按条目实际声明。使用 `--json` 得到稳定 JSON；退出码 `0` 成功、`1` 未找到/读取失败、`2` 参数错误。数据来自 `src/manifests/*.json` 的 `query` 元数据和 `scripts/query/entries.mjs`，不再有独立查询语料文件。实际参数见 `node scripts/query.mjs --help`，使用接法见[取用与组合](docs/取用与组合.md#查询与本地观察)。
+`info` 是接手入口，`search` 用于按名称/ID/用途/别名找候选，`show` 一次取多个条目的开工包（作者开工先 `show authoring:start`），`read` 再沿条目引用读取完整 API 小节、源码或示例；`progress`/`attention` 直接进入作者小节，`guide`/`full`/`minimal` 等资源键按条目实际声明。使用 `--json` 得到稳定 JSON；退出码 `0` 成功、`1` 未找到/读取失败、`2` 参数错误。数据来自 `src/manifests/*.json` 的 `query` 元数据和 `scripts/query/entries.mjs`，不再有独立查询语料文件。实际参数见 `node scripts/query.mjs --help`，使用接法见[取用与组合](docs/取用与组合.md#查询与本地观察)。
 
 本地验证可用 `node scripts/inspect-note.mjs "<成品.html>" --json` 一次打开并收集观察结果；需要截图或作品专属量测时加 `--screenshot`/`--probe`，要看指定停点用 `--frame <frameId> --session <表达式>`。它复用工程现有 `playwright-core` 与本机 Edge，不启动常驻服务，也不把打开成功写成验收通过。详见[观察入口](docs/公共编排层.md#author-inspect-note)。
 
@@ -84,7 +85,7 @@ node scripts/query.mjs read D01 source --limit 80
 
 | 文档 | 回答什么 |
 | --- | --- |
-| [取用与组合](docs/取用与组合.md) | 选入口、加载、查询、观察、自定义连续画面接入、组合与交付 |
+| [取用与组合](docs/取用与组合.md) | 作者一次开工、选入口、跨区域承接、加载、观察与自定义画面；详细 API 见公共编排层 |
 | [公共编排层 API](docs/公共编排层.md) | NoteDemo 的 Definition、scene、Adapter、会话 API、生命周期与已知限制 |
 | [流程与连接图形](docs/viz-flow.md) | D07–D10 的加载、独立 mount/update/getTarget、路径采样与边界 |
 | [架构与接口](docs/架构与接口.md) | 源码布局、分层职责、数据流、公开接口与维护源边界 |

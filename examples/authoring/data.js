@@ -271,4 +271,90 @@
       result: { slot: 'result', title: '结果' }
     };
   };
+
+  /* 第四例：diagramTable 跨区域承接——先辨认依据，确认后结果表才出现新行。
+   * evidence 是观察/内容目标，table 用独立 Binding + row:<key> 组门控新行；
+   * status 只是辅助状态：作为 cut 参与者同步提交（compile 要求视图变化必须列入 scene），
+   * 不写 attention target，所以不被 Focus 巡视。 */
+  var CROSS_COLUMNS = [
+    { key: 'source', label: '来源' },
+    { key: 'port', label: '入端口' }
+  ];
+  function crossTableView(rows) {
+    return { columns: CROSS_COLUMNS, rows: rows, caption: '', dense: true };
+  }
+  function crossEvidence(text) {
+    return { text: text };
+  }
+  function crossStatus(text) {
+    return { text: text };
+  }
+  var CROSS_EVIDENCE_INITIAL = '等待依据';
+  var CROSS_STATUS_INITIAL = '已提交 0 条';
+  AuthoringDemos.crossRegion = function () {
+    return {
+      bindings: {
+        evidence: { adapter: 'dom', slot: 'evidence', options: { label: '当前依据' } },
+        table: { adapter: 'table', slot: 'table', options: { rowKey: 'id', stableStateLabels: false, density: 'compact' } },
+        status: { adapter: 'dom', slot: 'status', options: { label: '已提交状态' } }
+      },
+      initial: {
+        id: 'start',
+        caption: '先看左侧依据；确认后，右侧结果表才出现对应行。顶部已提交状态只同步更新，不单独巡视。',
+        views: {
+          evidence: crossEvidence(CROSS_EVIDENCE_INITIAL),
+          table: crossTableView([]),
+          status: crossStatus(CROSS_STATUS_INITIAL)
+        }
+      },
+      steps: [
+        {
+          id: 'step-a',
+          caption: '依据 A 进入端口 1：先辨认左侧依据，确认后结果表才出现 r1。',
+          replace: {
+            evidence: crossEvidence('依据 A · 入端口 1'),
+            table: crossTableView([{ id: 'r1', source: 'A', port: '1' }]),
+            status: crossStatus('已提交 1 条')
+          },
+          scene: {
+            /* status 是辅助状态：compile 要求视图变化的 Binding 必须列入 scene，
+             * 这里用 cut 同步提交，不写 attention target，因此不会被 Focus 巡视。 */
+            bindings: [{ binding: 'evidence' }, { binding: 'table' }, { binding: 'status', mode: 'cut' }],
+            timing: { enterDuration: 420, easing: 'linear' },
+            attention: {
+              stepDuration: 360,
+              targets: [
+                { binding: 'evidence', query: { part: 'value' } },
+                { binding: 'table', query: { row: 'r1' }, groups: ['row:r1'], holdDuration: 0 }
+              ]
+            }
+          }
+        },
+        {
+          id: 'step-b',
+          caption: '依据 B 进入端口 2：确认后结果表追加 r2，已有行 r1 保持不变。',
+          replace: {
+            evidence: crossEvidence('依据 B · 入端口 2'),
+            table: crossTableView([
+              { id: 'r1', source: 'A', port: '1' },
+              { id: 'r2', source: 'B', port: '2' }
+            ]),
+            status: crossStatus('已提交 2 条')
+          },
+          scene: {
+            bindings: [{ binding: 'evidence' }, { binding: 'table' }, { binding: 'status', mode: 'cut' }],
+            timing: { enterDuration: 420, easing: 'linear' },
+            attention: {
+              stepDuration: 360,
+              targets: [
+                { binding: 'evidence', query: { part: 'value' } },
+                { binding: 'table', query: { row: 'r2' }, groups: ['row:r2'], holdDuration: 0 }
+              ]
+            }
+          }
+        }
+      ]
+    };
+  };
+
 })(window);
