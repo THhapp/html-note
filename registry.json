@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "generatedBy": "scripts/build.mjs",
   "build": {
-    "time": "2026-11-03T09:08:22.048Z",
+    "time": "2026-11-03T11:50:38.268Z",
     "mode": "final",
     "command": "node scripts/build.mjs --final --release",
     "moduleOrder": [
