@@ -1,11 +1,9 @@
 /* 场景 A 的内容、公式、矩阵与换数据核对。
    node scripts/check-a.mjs */
-import { ROOT, edgeExecutable, loadChromium } from './paths.mjs';
+import { ROOT, generatedPageUrl, edgeExecutable, loadChromium } from './paths.mjs';
 const chromium = await loadChromium();
 const EDGE = edgeExecutable();
-import { pathToFileURL } from 'node:url';
-
-const URL_A = pathToFileURL(ROOT + '/src/page-a.html').href;
+const URL_A = generatedPageUrl('a');
 
 const results = [];
 function check(name, ok, detail) {

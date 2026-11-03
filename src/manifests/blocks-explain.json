@@ -110,7 +110,7 @@
       "name": "NoteBlocks.FrameFields",
       "cn": "位串与字段结构",
       "category": "可复用组合块",
-      "purpose": "把宿主提供的位串、字段范围和字段说明组合起来，并用可聚焦字段行同步序列关注，帮助读者核对字段边界、顺序、单位和值。",
+      "purpose": "把宿主提供的位串、字段范围和字段说明组合起来，以可聚焦字段行同步序列关注，帮助核对字段边界、顺序、单位和值。",
       "inputs": [
         "items",
         "fields",
@@ -176,7 +176,34 @@
         "K13"
       ],
       "docs": "docs/blocks-explain.md#B06",
-      "notes": "组合 NoteViz.Sequence、NoteUI.Stack、Badge 与 Notice；字段按钮只改变关注和选中状态，滚动区与序列滚动均由基础组件负责。"
+      "notes": "组合 NoteViz.Sequence、NoteUI.Stack、Badge 与 Notice；字段按钮只改变关注和选中状态，滚动区与序列滚动均由基础组件负责。",
+      "query": {
+        "terms": [
+          "字段结构",
+          "位段",
+          "字段范围",
+          "字段说明",
+          "frame",
+          "fields",
+          "bit"
+        ],
+        "aliases": [
+          "B06",
+          "NoteBlocks.FrameFields",
+          "位串与字段结构",
+          "字段结构",
+          "位段",
+          "字段范围",
+          "字段说明",
+          "frame",
+          "fields",
+          "bit",
+          "位串与字段说明组合",
+          "FrameFields"
+        ],
+        "boundary": "字段语义由作者提供；内部采用序列，不是按字节数伸缩的真实比例长度条，也不校验协议规则。",
+        "resources": []
+      }
     },
     {
       "id": "B07",

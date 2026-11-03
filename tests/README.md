@@ -11,7 +11,7 @@
 | `tests/lib/src-sources.mjs` | Node 共享 harness：按 `src/manifests/*.json` 推导经典脚本/样式加载清单 | 只读 |
 | `tests/lib/test-output.mjs` | 生成物路径 helper：统一写 `tests/.cache/` | 只写 .cache |
 | `tests/tools/` | 本地 playwright-core（勿在检查中重装浏览器或加运行时依赖） | 输入 |
-| `tests/consumer/` | 独立消费测试记录；`runtime/` 是 `dist/modules` 的逐字节副本，页面由脚本生成 | 混合，见下 |
+| `tests/consumer/` | 独立消费测试输入与固定证据；运行时副本在测试准备时从当前 `dist/modules` 临时生成到 `tests/.cache/consumer-runtime/`，不长期提交 | 输入与生成物，见下 |
 | `tests/.cache/` | 浏览器检查的截图、结果 JSON、日志、临时构建副本 | 纯生成物，打包排除 |
 
 ## 源码加载清单（防止模块拆分漏载）
@@ -30,12 +30,20 @@
 
 - 检查产生的截图、结果 JSON、日志、临时构建副本一律写 `tests/.cache/<check>/`（用 `test-output.mjs`），不要写回 `tests/checks`、`tests/demo` 或仓库根。
 - `tests/checks` 保留现行检查、模块自检与夹具；不再把一次性截图/日志/结果作为检查输入，这些输出统一写 `tests/.cache/`。
-- `tests/consumer/组件库取用与组装/runtime/` 是 `dist/modules` 的逐字节副本，`runtime/SOURCES.md` 记录哈希。重建 dist 后先刷新副本，再重生成页面：
+- 消费测试不再提交长期 `runtime/` 副本，也不维护 `SOURCES.md`。每次准备测试时从当前 `dist/modules`、`vendor/*/LICENSE`、`THIRD_PARTY_NOTICES.md` 逐字节生成临时副本到 `tests/.cache/consumer-runtime/`（每次 prepare 先清空），并生成自包含测试页面到 `tests/.cache/consumer-pages/`：
 
   ```powershell
-  node tests/consumer/组件库取用与组装/scripts/verify-runtime.mjs --sync
-  node tests/consumer/组件库取用与组装/scripts/build-pages.mjs
+  cd tests/consumer/组件库取用与组装
+  node scripts/verify-runtime.mjs          # prepare：刷新 tests/.cache/consumer-runtime（可用 --check 只核对）
+  node scripts/build-pages.mjs             # 生成 tests/.cache/consumer-pages/page-a.html|page-b.html
+  node scripts/check-a.mjs                 # 之后的所有 check/smoke 使用生成页面，不读遗留 runtime
+  node scripts/check-b.mjs
+  node scripts/smoke.mjs
   ```
+
+  `tests/.cache/` 整目录打包排除，可在任意时刻删除重生成；`scripts/verify-runtime.mjs --check` 用于确认临时副本仍与当前 dist 一致（输出哈希，不写长期文件）。
+
+- 固定证据保持原含义：`01-矩阵转置.html`、`02-序列变化.html` 与 `evidence/*.png` 是某一构建的固定快照，`build-pages` 不重写它们；`evidence/step-player-probe.html` 会引用临时 runtime，运行前先 prepare。`check-offline.mjs` 验证的是保留的 01/02 自包含证据，不是当前 dist 的运行时快照。
 
 ## 常用命令
 
@@ -44,6 +52,7 @@ node scripts/check.mjs
 node tests/checks/source-loaders-check.mjs
 node tests/checks/query-cli-check.mjs   # 真实 CLI 查询，不启动浏览器
 node tests/checks/query-closure-host-check.mjs
+node tests/checks/skill-independent-check.mjs   # Skill 复制到仓库外，用 --root 调真实查询/观察帮助
 node tests/checks/public-transition-check.mjs
 node tests/checks/focus-continuity-check.mjs
 node tests/checks/groups-check.mjs
@@ -65,6 +74,20 @@ node tests/demo/core-check.mjs
 node tests/demo/adapters-check.mjs
 node tests/demo/ui-check.mjs
 node tests/demo/integration-check.mjs
+```
+
+消费测试（固定证据 01/02 与 `evidence/` 保留；`build-pages` 只重生成 `tests/.cache/consumer-pages/`，不改 01/02）：
+
+```powershell
+cd tests/consumer/组件库取用与组装
+node scripts/verify-runtime.mjs
+node scripts/build-pages.mjs
+node scripts/check-a.mjs
+node scripts/check-b.mjs
+node scripts/check-lifecycle.mjs
+node scripts/check-migration.mjs
+node scripts/check-offline.mjs     # 验证保留的固定证据 01/02 自包含
+node scripts/smoke.mjs
 ```
 
 浏览器检查需要本机 `C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe`；`inspect-note-check` 和 `scripts/inspect-note.mjs` 同样复用该浏览器与 `tests/tools/playwright-core`，不自动安装或下载。构建、静态核对、`source-loaders-check` 与 `query-cli-check` 不依赖浏览器。

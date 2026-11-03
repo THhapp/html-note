@@ -12,7 +12,7 @@ const files = {
   runHtml: path.join(root, 'examples', 'run.html'),
   composedHtml: path.join(root, 'examples', 'composed.html'),
   exampleCss: path.join(root, 'examples', 'example.css'),
-  docs: path.join(root, 'docs', '预览与示例.md')
+  docs: path.join(root, 'README.md')
 };
 const checks = [];
 function check(name, ok, detail = '') {
@@ -131,7 +131,7 @@ for (const [name, source] of [['gallery.css', galleryCss], ['example.css', examp
   check(`${name} no external url()`, !/url\(\s*['"]?https?:/i.test(source));
   check(`${name} uses --hnv tokens`, /--hnv-/.test(source));
 }
-check('docs describes gallery/run/composed', /gallery\/index\.html/.test(docs) && /examples\/run\.html/.test(docs) && /examples\/composed\.html/.test(docs));
+check('README describes gallery/run/composed', /gallery\/index\.html/.test(docs) && /examples\/run\.html/.test(docs) && /examples\/composed\.html/.test(docs));
 
 const missingDemos = expectedRunDemos.filter((rel) => {
   const absolute = path.resolve(root, 'examples', rel.replace(/^\.\.\//, '../'));

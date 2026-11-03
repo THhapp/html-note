@@ -5,6 +5,30 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const LIBRARY_ROOT = resolve(ROOT, '..', '..', '..');
+/* 运行时副本与生成页面只在 tests/.cache 临时存在：由 scripts/verify-runtime.mjs
+ * 从当前 dist/modules + vendor 许可 + THIRD_PARTY_NOTICES 生成，不长期提交。 */
+export const CACHE_ROOT = resolve(LIBRARY_ROOT, 'tests', '.cache');
+export const RUNTIME_ROOT = resolve(CACHE_ROOT, 'consumer-runtime');
+export const RUNTIME_MODULES = resolve(RUNTIME_ROOT, 'modules');
+export const GENERATED_ROOT = resolve(CACHE_ROOT, 'consumer-pages');
+
+export function generatedPage(id) {
+  if (id !== 'a' && id !== 'b') throw new Error('generatedPage(id) 只接受 a/b，收到：' + id);
+  return resolve(GENERATED_ROOT, 'page-' + id + '.html');
+}
+
+export function generatedPageUrl(id) {
+  return pathToFileURL(generatedPage(id)).href;
+}
+
+export function requireGeneratedPages() {
+  for (const id of ['a', 'b']) {
+    if (!existsSync(generatedPage(id))) {
+      throw new Error('缺少生成页面 ' + generatedPage(id) +
+        '；请先运行 node scripts/verify-runtime.mjs 与 node scripts/build-pages.mjs（在 ' + ROOT + ' 下）。');
+    }
+  }
+}
 
 export function ownedPath(value) {
   const target = resolve(ROOT, value);

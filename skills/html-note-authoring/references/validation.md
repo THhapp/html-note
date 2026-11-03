@@ -1,6 +1,6 @@
 # 验证与观察
 
-正文同步自库内 `docs/提示词撰写.md` 的验证与观察章节。修改维护源后运行本 Skill 的 `scripts/sync-references.mjs`，不逐份手改副本。工具参数以库内 `scripts/inspect-note.mjs --help` 为准。
+本文件是 Skill 自带的验证与观察指导，供仓库内外的制作任务直接使用；不依赖项目专项文档。工具参数以目标库的 `inspect-note --help` 和实际返回为准，库位置通过 `--root` 给出。
 
 ## 7. 验证与观察
 

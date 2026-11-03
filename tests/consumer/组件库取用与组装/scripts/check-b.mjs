@@ -1,11 +1,9 @@
 /* 场景 B 的交互与动效核对：状态、字幕、标记、按钮边界、回退/重看/重来、换标签、减少动效。
    node scripts/check-b.mjs */
-import { ROOT, edgeExecutable, loadChromium } from './paths.mjs';
+import { ROOT, generatedPageUrl, edgeExecutable, loadChromium } from './paths.mjs';
 const chromium = await loadChromium();
 const EDGE = edgeExecutable();
-import { pathToFileURL } from 'node:url';
-
-const URL_B = pathToFileURL(ROOT + '/src/page-b.html').href;
+const URL_B = generatedPageUrl('b');
 
 const results = [];
 function check(name, ok, detail) {

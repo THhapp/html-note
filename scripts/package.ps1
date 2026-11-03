@@ -40,8 +40,6 @@ function Should-SkipFile([string]$relative, [string]$fullName) {
   if ($relative -match '\.(zip|7z|log|out|tmp)$') { return $true }
   # 历史检查输出若再次出现也不入分发包。
   if ($relative -eq 'tests/checks/build-release-check.html') { return $true }
-  # 任务输入设计稿不随公开分发包发布；是否保留为项目文档由维护者另行决定。
-  if ($relative -eq 'docs/作者入口与观察效率设计.md') { return $true }
   # 工程检查生成的截图/结果 JSON 不是构建输入；检查输出统一写 tests/.cache（已整目录排除）。
   if ($relative -match '^tests/checks/.*\.(png|json)$') { return $true }
   if ($relative -match '^tests/demo/.*\.(json|png)$') { return $true }
@@ -99,10 +97,10 @@ try {
   }
   $required = @(
     'README.md', 'registry.json', 'THIRD_PARTY_NOTICES.md',
-    'docs/公共编排层.md', 'docs/构建与分发.md', 'docs/架构与接口.md', 'docs/组件目录.md',
-    'docs/取用与组合.md', 'docs/自定义画面接入.md', 'docs/查询CLI.md', 'docs/查询语料.md', 'docs/提示词撰写.md', 'docs/viz-flow.md',
+    'docs/公共编排层.md', 'docs/构建与分发.md', 'docs/架构与接口.md',
+    'docs/取用与组合.md', 'docs/设计共识.md', 'docs/viz-flow.md',
     'scripts/build.mjs', 'scripts/check.mjs', 'scripts/build-demo-preview.mjs',
-    'scripts/query.mjs', 'scripts/query/catalog.mjs', 'scripts/inspect-note.mjs',
+    'scripts/query.mjs', 'scripts/query/catalog.mjs', 'scripts/query/entries.mjs', 'scripts/inspect-note.mjs',
     'scripts/lib/note-browser.mjs', 'scripts/lib/inspect-session.mjs', 'tests/checks/query-cli-check.mjs',
     'tests/checks/expand-ui-check.mjs', 'tests/checks/flow-kit-check.mjs',
     'tests/checks/scene-adapter-check.mjs', 'tests/checks/expand-graphics-check.mjs',
@@ -112,6 +110,14 @@ try {
     'tests/checks/density-config-check.mjs', 'tests/checks/density-screen-check.mjs',
     'tests/checks/minimal-scene-check.mjs',
     'tests/checks/query-closure-host-check.mjs',
+    'tests/checks/skill-independent-check.mjs',
+    'skills/html-note-authoring/SKILL.md',
+    'skills/html-note-authoring/references/principles.md',
+    'skills/html-note-authoring/references/task-brief.md',
+    'skills/html-note-authoring/references/library-usage.md',
+    'skills/html-note-authoring/references/validation.md',
+    'skills/html-note-authoring/scripts/query.mjs',
+    'skills/html-note-authoring/scripts/inspect-note.mjs',
     'scripts/package.ps1', 'scripts/expected-ids.json', 'scripts/lib/source-order.mjs',
     'gallery/index.html', 'gallery/gallery.js', 'gallery/gallery.css',
     'examples/authoring/index.html', 'examples/demo-runtime/index.html',

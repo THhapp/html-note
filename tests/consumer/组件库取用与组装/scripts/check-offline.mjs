@@ -79,4 +79,6 @@ await run(OUT + '/02.html', 'offline-b', async (page) => {
 const failed = results.filter((r) => !r.ok);
 console.log('\n' + (results.length - failed.length) + '/' + results.length + ' 通过');
 await browser.close();
+/* 证据副本只在本次检查期间存在，不留在固定 evidence/ 目录。 */
+rmSync(OUT, { recursive: true, force: true });
 if (failed.length) process.exitCode = 1;

@@ -24,7 +24,7 @@
       "name": "NoteViz.Flow.StageTrack",
       "cn": "阶段轨",
       "category": "图形与数据对象",
-      "purpose": "按宿主阶段顺序呈现当前、完成、跳过与失败状态，并显示作者显式声明的旁路端点；不自动播放，也不推断分支剧情。",
+      "purpose": "按宿主顺序显示阶段及当前/完成/跳过/失败状态，并画出显式 from→to 旁路端点。不自动播放，也不推断分支剧情。",
       "inputs": [
         "stages",
         "current",
@@ -71,14 +71,47 @@
       ],
       "docs": "docs/viz-flow.md#D07",
       "preview": "examples/flow-kit/index.html",
-      "notes": "getTarget(id) 返回阶段行；'track'/'bypasses' 返回轨道容器；更新按阶段 ID 复用节点。"
+      "notes": "getTarget(id) 返回阶段行；'track'/'bypasses' 返回轨道容器；更新按阶段 ID 复用节点。",
+      "query": {
+        "terms": [
+          "阶段",
+          "阶段轨",
+          "当前阶段",
+          "完成",
+          "跳过",
+          "失败",
+          "旁路",
+          "阶段状态",
+          "stage",
+          "track",
+          "bypass"
+        ],
+        "aliases": [
+          "D07",
+          "NoteViz.Flow.StageTrack",
+          "阶段轨",
+          "阶段",
+          "当前阶段",
+          "完成",
+          "跳过",
+          "失败",
+          "旁路",
+          "阶段状态",
+          "stage",
+          "track",
+          "bypass",
+          "StageTrack"
+        ],
+        "boundary": "状态与旁路端点由作者传入；不自动播放、不推进业务状态、不推断分支剧情。",
+        "resources": []
+      }
     },
     {
       "id": "D08",
       "name": "NoteViz.Flow.PacketFlow",
       "cn": "消息流图",
       "category": "图形与数据对象",
-      "purpose": "以参与者、方向和稳定消息 ID 呈现报文/消息交换，由宿主控制可见条数或显现集合，不内置播放器。",
+      "purpose": "以稳定参与者和消息 ID 呈现消息方向与报文/消息交换，并由宿主控制显现条数或集合。不推断请求/响应或协议语义，不内置播放器。",
       "inputs": [
         "participants",
         "messages",
@@ -120,14 +153,50 @@
       ],
       "docs": "docs/viz-flow.md#D08",
       "preview": "examples/flow-kit/index.html",
-      "notes": "getTarget(messageId) 返回消息组；参与者与消息均按 id 复用 DOM。"
+      "notes": "getTarget(messageId) 返回消息组；参与者与消息均按 id 复用 DOM。",
+      "query": {
+        "terms": [
+          "报文",
+          "消息",
+          "消息流",
+          "序列图",
+          "参与者",
+          "方向",
+          "逐步显现",
+          "消息交换",
+          "packet",
+          "flow",
+          "sequence",
+          "diagram"
+        ],
+        "aliases": [
+          "D08",
+          "NoteViz.Flow.PacketFlow",
+          "消息流图",
+          "报文",
+          "消息",
+          "消息流",
+          "序列图",
+          "参与者",
+          "方向",
+          "逐步显现",
+          "消息交换",
+          "packet",
+          "flow",
+          "sequence",
+          "diagram",
+          "PacketFlow"
+        ],
+        "boundary": "方向由 from/to 与参与者顺序表达；不推断请求/响应、协议或接受语义，不创建计时器或播放器。",
+        "resources": []
+      }
     },
     {
       "id": "D09",
       "name": "NoteViz.Flow.SegmentBar",
       "cn": "分段长度条",
       "category": "图形与数据对象",
-      "purpose": "把真实数值、显示尺度和最小可读宽度分开表达，支持零长度、字段插入/移除、标签和范围目标。",
+      "purpose": "分离真实值、显示尺度和最小可读宽度，显示字段长度及连续范围目标。支持零长度、字段插入/移除和标签。",
       "inputs": [
         "segments",
         "scaleMax",
@@ -169,14 +238,50 @@
       ],
       "docs": "docs/viz-flow.md#D09",
       "preview": "examples/flow-kit/index.html",
-      "notes": "getTarget(fieldId) 返回字段节点；'track' 返回整条；范围 id 返回边界/区域节点（如有）。"
+      "notes": "getTarget(fieldId) 返回字段节点；'track' 返回整条；范围 id 返回边界/区域节点（如有）。",
+      "query": {
+        "terms": [
+          "长度条",
+          "分段",
+          "字段",
+          "比例",
+          "零长度",
+          "字节",
+          "插入",
+          "移除",
+          "segment",
+          "bar",
+          "proportional",
+          "length"
+        ],
+        "aliases": [
+          "D09",
+          "NoteViz.Flow.SegmentBar",
+          "分段长度条",
+          "长度条",
+          "分段",
+          "字段",
+          "比例",
+          "零长度",
+          "字节",
+          "插入",
+          "移除",
+          "segment",
+          "bar",
+          "proportional",
+          "length",
+          "SegmentBar"
+        ],
+        "boundary": "最小宽度会使显示长度偏离严格比例，真实值仍保留；不计算协议字段、填充或帧长。",
+        "resources": []
+      }
     },
     {
       "id": "D10",
       "name": "NoteViz.Flow.DeviceLinks",
       "cn": "设备连接图",
       "category": "图形与数据对象",
-      "purpose": "以稳定 ID 呈现设备、命名端口和连接关系，支持状态、目标查询、连接路径和路径点采样。",
+      "purpose": "以稳定设备/端口/连接 ID 呈现关系，查询连接 path 并采样路径点，供宿主实现传播。支持状态、目标查询、连接路径和路径点采样。",
       "inputs": [
         "devices",
         "links",
@@ -216,7 +321,43 @@
       ],
       "docs": "docs/viz-flow.md#D10",
       "preview": "examples/flow-kit/index.html",
-      "notes": "getTarget(id) 支持设备/端口/连接；getLinkPath(id) 返回 SVG path；pointAt(id, ratio) 返回 {x,y,angle,length,total}（SVG 用户坐标与弧度）。"
+      "notes": "getTarget(id) 支持设备/端口/连接；getLinkPath(id) 返回 SVG path；pointAt(id, ratio) 返回 {x,y,angle,length,total}（SVG 用户坐标与弧度）。",
+      "query": {
+        "terms": [
+          "设备",
+          "端口",
+          "链路",
+          "连接",
+          "连接路径",
+          "拓扑",
+          "传播",
+          "采样",
+          "device",
+          "links",
+          "port",
+          "path"
+        ],
+        "aliases": [
+          "D10",
+          "NoteViz.Flow.DeviceLinks",
+          "设备连接图",
+          "设备",
+          "端口",
+          "链路",
+          "连接",
+          "连接路径",
+          "拓扑",
+          "传播",
+          "采样",
+          "device",
+          "links",
+          "port",
+          "path",
+          "DeviceLinks"
+        ],
+        "boundary": "只做有限默认/手动排布，不自动路由、避障或推断网络接受规则；传播运动仍由作者/公共进度组织。",
+        "resources": []
+      }
     }
   ]
 }

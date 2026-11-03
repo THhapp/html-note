@@ -215,7 +215,7 @@
       "name": "NoteUI.Notice",
       "cn": "常驻说明",
       "category": "复用与接入",
-      "purpose": "复用常驻说明块，把必要解释放在正常阅读路径；标题、正文与语气可更新，正文支持纯文本或 DOM 节点。",
+      "purpose": "承载常驻说明，内容可用文本、单个 DOM 节点或节点数组，保持标题/语气/操作区一致。把必要解释放在正常阅读路径，正文支持纯文本或 DOM 节点。",
       "inputs": [
         "title",
         "content（文本或单个 DOM 节点；数组/普通对象抛 TypeError）",
@@ -264,7 +264,31 @@
         "K16"
       ],
       "docs": "docs/legacy.md#R04",
-      "notes": "数组按顺序插入为兄弟节点，null 项跳过；数组中的非法项会在写入前失败，不破坏旧内容。"
+      "notes": "数组按顺序插入为兄弟节点，null 项跳过；数组中的非法项会在写入前失败，不破坏旧内容。",
+      "query": {
+        "terms": [
+          "提示",
+          "通知",
+          "说明块",
+          "节点数组",
+          "Notice",
+          "fallback"
+        ],
+        "aliases": [
+          "R04",
+          "NoteUI.Notice",
+          "常驻说明",
+          "提示",
+          "通知",
+          "说明块",
+          "节点数组",
+          "Notice",
+          "fallback",
+          "Notice 节点内容"
+        ],
+        "boundary": "非法对象/节点数组项在写入前失败，不破坏旧内容；不生成弹窗或自动消失。",
+        "resources": []
+      }
     },
     {
       "id": "R05",
@@ -391,7 +415,7 @@
       "name": "NoteExpr.Focus",
       "cn": "关注与范围标记",
       "category": "复用与接入",
-      "purpose": "复用既有目标关注标记：元素外扩框选、文本子串逐行下划线，以及多个目标之间的关注迁移。",
+      "purpose": "框选真实元素或标记文本范围，并在目标之间迁移；公共舞台可用它承接连续观察位置。以元素外扩框选、文本子串逐行下划线实现。",
       "inputs": [
         "motion",
         "zIndex",
@@ -444,14 +468,40 @@
         "K16"
       ],
       "docs": "docs/legacy.md#R07",
-      "notes": "未修改源码；原验证范围与限制沿用 archive/prototypes 中的原验证记录。"
+      "notes": "未修改源码；原验证范围与限制沿用 archive/prototypes 中的原验证记录。",
+      "query": {
+        "terms": [
+          "焦点框",
+          "框选",
+          "注意力",
+          "下划线",
+          "focus",
+          "highlight",
+          "attention"
+        ],
+        "aliases": [
+          "R07",
+          "NoteExpr.Focus",
+          "关注与范围标记",
+          "焦点框",
+          "框选",
+          "注意力",
+          "下划线",
+          "focus",
+          "highlight",
+          "attention",
+          "当前关注与框选"
+        ],
+        "boundary": "独立使用是 show/hide/refresh，不是统一 update；视觉标记不替代正文解释。目标要有可用几何，隐藏或消失对象不能假定为有效观察目标。",
+        "resources": []
+      }
     },
     {
       "id": "R08",
       "name": "NoteExpr.Range",
       "cn": "范围注释与分组说明",
       "category": "复用与接入",
-      "purpose": "复用一组目标外侧的括线与就近说明，用于表达分组范围或一条说明针对哪一段；更新用 show，布局变化用 refresh。",
+      "purpose": "在一组真实对象外侧绘制括线及说明，表达这些对象共同属于这一说明，或表达分组范围/一条说明针对哪一段。更新用 show，布局变化用 refresh。",
       "inputs": [
         "motion",
         "zIndex",
@@ -506,14 +556,40 @@
         "K16"
       ],
       "docs": "docs/legacy.md#R08",
-      "notes": "V05 增补可选 show({ offset })（默认 10，只读 range.offset，非法值抛 NoteExpr.Range 错误）；原 show/hide/refresh 语义与视觉不变。原验证范围与限制沿用 archive/prototypes 中的原验证记录。"
+      "notes": "V05 增补可选 show({ offset })（默认 10，只读 range.offset，非法值抛 NoteExpr.Range 错误）；原 show/hide/refresh 语义与视觉不变。原验证范围与限制沿用 archive/prototypes 中的原验证记录。",
+      "query": {
+        "terms": [
+          "范围",
+          "括线",
+          "分组说明",
+          "区间批注",
+          "range",
+          "bracket",
+          "annotation"
+        ],
+        "aliases": [
+          "R08",
+          "NoteExpr.Range",
+          "范围注释与分组说明",
+          "范围",
+          "括线",
+          "分组说明",
+          "区间批注",
+          "range",
+          "bracket",
+          "annotation",
+          "范围括线与就近说明"
+        ],
+        "boundary": "只提供视觉标记；不生成数据分组或推断字段语义，不宣称解决任意多层标注和复杂避让。",
+        "resources": []
+      }
     },
     {
       "id": "R09",
       "name": "NoteExpr.Link",
       "cn": "对象关系连线",
       "category": "复用与接入",
-      "purpose": "复用两端对象之间的曲线、箭头与关系文字，用于关系、映射与局部流程；端点和方向可替换。",
+      "purpose": "连接两个对象锚点，配合方向、曲线、箭头与关系文字表达关系、映射与局部流程；端点和方向可替换。",
       "inputs": [
         "motion",
         "zIndex",
@@ -567,14 +643,39 @@
         "K16"
       ],
       "docs": "docs/legacy.md#R09",
-      "notes": "未修改源码；原验证范围与限制沿用 archive/prototypes 中的原验证记录。"
+      "notes": "未修改源码；原验证范围与限制沿用 archive/prototypes 中的原验证记录。",
+      "query": {
+        "terms": [
+          "对应关系",
+          "连线",
+          "箭头",
+          "映射",
+          "link",
+          "connector",
+          "mapping"
+        ],
+        "aliases": [
+          "R09",
+          "NoteExpr.Link",
+          "对象关系连线",
+          "对应关系",
+          "连线",
+          "箭头",
+          "映射",
+          "link",
+          "connector",
+          "mapping"
+        ],
+        "boundary": "关系含义由宿主给出；不是完整关系图引擎，也不由连线推断因果、计算或教学顺序。",
+        "resources": []
+      }
     },
     {
       "id": "R10",
       "name": "SeqInsert",
       "cn": "序列插入与让位",
       "category": "复用与接入",
-      "purpose": "复用第二轮序列插入代表组件，展示既有序列中一处插入、右侧对象让位、撤回、重看及内容替换；保留原接口与 keepState 语义。",
+      "purpose": "展示单一插入点的新对象落位与既有对象让位，并支持恢复、重看和换内容。保留原接口与 keepState 语义。",
       "inputs": [
         "sequence",
         "insert",
@@ -633,7 +734,34 @@
         "K16"
       ],
       "docs": "docs/legacy.md#R10",
-      "notes": "未修改源码；原验证范围与限制沿用 archive/prototypes 中的原验证记录。"
+      "notes": "未修改源码；原验证范围与限制沿用 archive/prototypes 中的原验证记录。",
+      "query": {
+        "terms": [
+          "插入",
+          "让位",
+          "撤回",
+          "序列扩张",
+          "insert",
+          "shift",
+          "restore"
+        ],
+        "aliases": [
+          "R10",
+          "SeqInsert",
+          "序列插入与让位",
+          "插入",
+          "让位",
+          "撤回",
+          "序列扩张",
+          "insert",
+          "shift",
+          "restore"
+        ],
+        "boundary": "已测原序列 1–5 项、单插入点；不扩大解释为任意长列表、多处编辑或多行插入。旧接口是 insert/restore/replay/setData 等，保留 keepState 的实际语义。",
+        "resources": []
+      },
+      "adapter": "sequence-insert",
+      "adapterLabel": "插入 Adapter"
     },
     {
       "id": "I06",

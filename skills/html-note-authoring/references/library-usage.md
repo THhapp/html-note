@@ -45,7 +45,51 @@ node <Skill目录>/scripts/query.mjs show tool:inspect-note --json
 
 按模块加载时加载 `dist/modules` 下目标模块及其真实声明依赖。`NoteDemo.mount` 使用默认舞台，依赖 `demo-ui` 及其传递闭包；`NoteDemo.create` 使用自备 presentation，依赖止于 `demo-runtime`，不能只按 create 的依赖推 mount。
 
-普通自定义连续画面优先使用 `NoteDemo.sceneAdapter.define`：作者负责领域视图、绘图/恢复、目标解析和局部变化计划，helper 组织 Adapter 契约、commit 顺序、减少动效和最终 timing。加载、Definition、挂载、组放行、来源视觉、恢复与 reduced 的最小接法见[自定义画面接入](../../docs/自定义画面接入.md)，可运行源为 `examples/continuous-scene/minimal.html`；更丰富的双组交接看同目录 `index.html`。需要直接控制原生 BindingHandle 时，查[公共编排层](../../docs/公共编排层.md#author-scene-adapter)中的完整 API 和两种入口差异；不要把 helper 的 `restore(model, view)` 与原生 `restore(view)` 混用。
+## 自定义连续画面接入
+
+普通自定义连续画面优先使用 `NoteDemo.sceneAdapter.define`：作者负责领域视图、绘制/恢复、目标解析和局部变化计划，helper 组织 Adapter 契约、commit 顺序、减少动效和最终 timing。加载、Definition 与最小接法可直接运行：
+
+```text
+node <Skill目录>/scripts/query.mjs show public:continuous-adapter --root <库目录>
+node <Skill目录>/scripts/query.mjs show example:continuous-scene --root <库目录>
+node <Skill目录>/scripts/query.mjs read example:continuous-scene minimal --root <库目录>
+```
+
+整库加载时，helper 随 `demo-runtime` 提供；`NoteDemo.mount` 默认舞台还需要 `demo-ui` 及其传递依赖。最小 Definition 只需两三个停点和一次局部变化：
+
+```js
+var definition = {
+  initialFrameId: 'initial',
+  bindings: { scene: { adapter: 'my-scene', slot: 'scene' } },
+  frames: [
+    { id: 'initial', caption: '初始状态', views: { scene: { value: 0 } } },
+    { id: 'changed', caption: '一次局部变化', views: { scene: { value: 1 } } }
+  ],
+  transitions: [{
+    from: 'initial', to: 'changed',
+    scene: {
+      bindings: [{ binding: 'scene', mode: 'update' }],
+      attention: { targets: [{ binding: 'scene', query: { part: 'value' }, groups: ['value'] }] }
+    }
+  }]
+};
+var session = NoteDemo.mount(host, {
+  definition: definition,
+  adapters: { 'my-scene': myAdapter },
+  layout: function (container) { /* 建 slot[data-demo-slot="scene"]，返回 { root, slots } */ }
+});
+window.__inspectSession = session; // 可选：让 inspect-note 默认找到会话
+```
+
+`sceneAdapter.define(spec)` 的常用字段：
+
+- `name` 与 Definition 的 `adapter` 一致；`sceneModes` 常用 `['update']`，`defaultSceneMode` 必须在列表中；`sceneTimingDefaults` 可给稀疏 timing。
+- `normalizeView(input, options)` 返回 model，或完整的 `{ model, cues }`。
+- `mount(host, options)` 返回作者实例，至少提供 `restore(model, view)`、`readModel()`、`target(query)`、`planStep(input)`、`destroy()`。
+
+`planStep(input)` 可同步返回计划或返回 Promise；`commit()` 必须同步提交完整目标。计划可带 `groups()`、`targets()`、`effects(timing, meta)`、`sourceElements()`、`cleanup()`。`effects` 只在非 reduced 时调用，收到的 timing 已是最终值；每个 spec 的 group 必须属于 `groups()`。commit 后未放行组保持来源视觉，放行组才由 progress 推进到目标；reduced 会跳过 effects，commit 应直接呈现目标终态。`cleanup()` 只释放本步临时资源，不承担最终显示。
+
+需要直接控制原生 BindingHandle 时，使用 `restore(view)` 与 `PreparedChange.effects(ctx)`，时序取 `ctx.timing`；helper 的 `restore(model, view)` 与原生 `restore(view)` 不能混用。可运行最小宿主和更丰富的双组交接分别在目标库的 `examples/continuous-scene/minimal.html` 与 `examples/continuous-scene/index.html`（路径相对库根）。
 
 ## 读数与提交语义
 
@@ -56,9 +100,9 @@ node <Skill目录>/scripts/query.mjs show tool:inspect-note --json
 成品能打开后，用库内观察入口做一次性的本地检查；它复用工程现有 `playwright-core` 与本机浏览器，默认无头、执行后退出，不安装依赖、不起服务、不默认写文件：
 
 ```text
-node <Skill目录>/scripts/inspect-note.mjs "<成品HTML绝对路径>" --json
-node <Skill目录>/scripts/inspect-note.mjs "<成品HTML绝对路径>" --frame <frameId> --session "<页面内会话表达式>" --json
-node <Skill目录>/scripts/inspect-note.mjs "<成品HTML绝对路径>" --probe "<probe模块绝对路径>" --json
+node <Skill目录>/scripts/inspect-note.mjs "<成品HTML绝对路径>" --root <库目录> --json
+node <Skill目录>/scripts/inspect-note.mjs "<成品HTML绝对路径>" --frame <frameId> --session "<页面内会话表达式>" --root <库目录> --json
+node <Skill目录>/scripts/inspect-note.mjs "<成品HTML绝对路径>" --probe "<probe模块绝对路径>" --root <库目录> --json
 ```
 
 - 页面需要驱动时设置 `window.__inspectSession = session`，或用 `--session` 指定明确表达式。
@@ -73,4 +117,4 @@ node <Skill目录>/scripts/inspect-note.mjs "<成品HTML绝对路径>" --probe "
 
 普通调用先取当前用法和必要契约；资料冲突、接口缺项或具体故障再深入实现。公共协调按真实句柄执行，作者不要另建播放器或用等待时间替代完成关系，也不用私有暂停层代替公共接管。
 
-需要交付独立离线 HTML 时，查询 `tool:demo-preview` 的现行用法；内联器只内联模板已列出的资源。库维护检查（构建、打包、回归命令）在 `docs/构建与分发.md`，不进入每篇笔记的制作要求；制作时按本次实际风险验证，不为通过模板收集无关证据。
+需要交付独立离线 HTML 时，查询 `tool:demo-preview` 的现行用法；内联器只内联模板已列出的资源。库维护检查（构建、打包、回归命令）属于库维护，不进入每篇笔记的制作要求；制作时按本次实际风险验证，不为通过模板收集无关证据。

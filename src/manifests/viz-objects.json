@@ -23,7 +23,7 @@
       "name": "NoteViz.Sequence",
       "cn": "序列与位串",
       "category": "图形与数据对象",
-      "purpose": "以稳定对象 ID 呈现位串、字节或盒子序列，支持索引、分组、局部关注与本步变化，并保持更新后的对象身份。",
+      "purpose": "排列带稳定 ID 的位、字节和盒子对象，显示分组、当前关注和本步变化。支持索引，并保持更新后的对象身份。",
       "inputs": [
         "items",
         "variant",
@@ -79,14 +79,62 @@
         "K12"
       ],
       "docs": "docs/viz-objects.md#D01",
-      "notes": "getTarget(id) 返回对象单元；同 id 更新复用 DOM；关注与变化同时出现时合并为一条状态摘要与单一外框。"
+      "notes": "getTarget(id) 返回对象单元；同 id 更新复用 DOM；关注与变化同时出现时合并为一条状态摘要与单一外框。",
+      "query": {
+        "terms": [
+          "序列",
+          "比特串",
+          "字节",
+          "顺序对象",
+          "sequence",
+          "bits",
+          "bytes"
+        ],
+        "aliases": [
+          "D01",
+          "NoteViz.Sequence",
+          "序列与位串",
+          "序列",
+          "比特串",
+          "字节",
+          "顺序对象",
+          "sequence",
+          "bits",
+          "bytes"
+        ],
+        "boundary": "独立组件更新直接呈现状态；过程动效需公共层接入或具体机制。等宽单元不适合表示真实字段长度比例。",
+        "resources": [
+          {
+            "key": "api",
+            "path": "docs/viz-objects.md",
+            "anchor": "D01"
+          },
+          {
+            "key": "source",
+            "path": "src/viz/objects-sequence-matrix.js"
+          },
+          {
+            "key": "example",
+            "path": "examples/run.html"
+          }
+        ],
+        "scene": {
+          "modes": [
+            "layout",
+            "cut",
+            "reveal"
+          ],
+          "defaultMode": "layout",
+          "note": "sequence Adapter 默认 layout，支持 cut/reveal。"
+        }
+      }
     },
     {
       "id": "D02",
       "name": "NoteViz.Matrix",
       "cn": "矩阵与网格数据",
       "category": "图形与数据对象",
-      "purpose": "用原生表格语义呈现带行列标签的矩阵，支持行列、单元和范围的关注/变化、可替换单元渲染与大尺寸局部滚动。",
+      "purpose": "用原生表格语义呈现有行列标签的数据，以公开目标查询和 cues 支持行、列及单元关注与变化；支持范围的关注/变化、可替换单元渲染与大尺寸局部滚动。",
       "inputs": [
         "rows",
         "columns",
@@ -142,14 +190,49 @@
         "K12"
       ],
       "docs": "docs/viz-objects.md#D02",
-      "notes": "表格使用 table/thead/tbody/th scope；行列与单元标记有文字状态；更新保留同 key 的单元格 DOM。"
+      "notes": "表格使用 table/thead/tbody/th scope；行列与单元标记有文字状态；更新保留同 key 的单元格 DOM。",
+      "query": {
+        "terms": [
+          "矩阵",
+          "行列",
+          "单元格",
+          "二维数据",
+          "matrix",
+          "row",
+          "column",
+          "cell"
+        ],
+        "aliases": [
+          "D02",
+          "NoteViz.Matrix",
+          "矩阵与网格数据",
+          "矩阵",
+          "行列",
+          "单元格",
+          "二维数据",
+          "matrix",
+          "row",
+          "column",
+          "cell"
+        ],
+        "boundary": "数值和计算由宿主提供；当前公共接入支持 cut/update，不能据此推断已有行列重排或转置布局动画。",
+        "resources": [],
+        "scene": {
+          "modes": [
+            "cut",
+            "update"
+          ],
+          "defaultMode": "update",
+          "note": "matrix Adapter 仅支持 cut/update，默认 update；不支持 layout/reveal 与行列重排。"
+        }
+      }
     },
     {
       "id": "D03",
       "name": "NoteViz.Graph",
       "cn": "节点与关系图",
       "category": "图形与数据对象",
-      "purpose": "按宿主提供的节点、边与分组绘制 SVG 关系图，支持基础分层或手动坐标、方向箭头、边标签和局部关注/变化。",
+      "purpose": "在节点/边稳定 ID 基础上查询边目标、路径、长度和采样点，并分别表达节点与边状态。按宿主节点、边与分组绘制 SVG 关系图，支持基础分层或手动坐标、方向箭头、边标签。",
       "inputs": [
         "nodes",
         "edges",
@@ -208,7 +291,43 @@
         "K12"
       ],
       "docs": "docs/viz-objects.md#D03",
-      "notes": "SVG 渲染；每个实例生成唯一箭头 marker id；getTarget 返回节点 <g>，更新复用节点 g。 getEdgeTarget/getEdgePath/getEdgeLength/getEdgePoint/getEdgePointAt/getEdgePointClient/getEdgeEndpoints/getEdgeInfo 提供边目标、路径长度、比例点、距离点、视口点和端点；更新复用边 g/path。"
+      "notes": "SVG 渲染；每个实例生成唯一箭头 marker id；getTarget 返回节点 <g>，更新复用节点 g。 getEdgeTarget/getEdgePath/getEdgeLength/getEdgePoint/getEdgePointAt/getEdgePointClient/getEdgeEndpoints/getEdgeInfo 提供边目标、路径长度、比例点、距离点、视口点和端点；更新复用边 g/path。",
+      "query": {
+        "terms": [
+          "关系图",
+          "节点",
+          "边",
+          "边目标",
+          "路径",
+          "长度",
+          "关注边",
+          "变化边",
+          "graph",
+          "edge",
+          "target",
+          "path"
+        ],
+        "aliases": [
+          "D03",
+          "NoteViz.Graph",
+          "节点与关系图",
+          "关系图",
+          "节点",
+          "边",
+          "边目标",
+          "路径",
+          "长度",
+          "关注边",
+          "变化边",
+          "graph",
+          "edge",
+          "target",
+          "path",
+          "图节点与边目标"
+        ],
+        "boundary": "边是作者声明的直连路径，不自动避障；直线边以 SVG path 绘制，局部/视口坐标语义分开。",
+        "resources": []
+      }
     },
     {
       "id": "D04",

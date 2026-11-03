@@ -22,7 +22,7 @@
       "name": "NoteBlocks.DemoStage",
       "cn": "演示舞台",
       "category": "可复用组合块",
-      "purpose": "组织宿主提供的演示画面、位置稳定的字幕与基本控制，不规定统一尺寸，也不安装整页主题。",
+      "purpose": "组织宿主给出的画面、字幕和基本控件，为演示提供阅读区域。位置稳定的字幕不规定统一尺寸，也不安装整页主题。",
       "inputs": [
         "title",
         "stage",
@@ -79,7 +79,42 @@
         "K13"
       ],
       "docs": "docs/blocks-stage.md#B01",
-      "notes": "B01 已拆到 demo-stage 模块，组合 NoteUI.Stack、Inline 与 Button；返回 stageEl/captionEl，供 StepPlayer 和宿主复用。"
+      "notes": "B01 已拆到 demo-stage 模块，组合 NoteUI.Stack、Inline 与 Button；返回 stageEl/captionEl，供 StepPlayer 和宿主复用。",
+      "query": {
+        "terms": [
+          "舞台",
+          "字幕",
+          "控制条",
+          "演示容器",
+          "静态舞台",
+          "静态步进",
+          "步进组件",
+          "demo",
+          "stage",
+          "caption",
+          "controls"
+        ],
+        "aliases": [
+          "B01",
+          "NoteBlocks.DemoStage",
+          "演示舞台",
+          "舞台",
+          "字幕",
+          "控制条",
+          "演示容器",
+          "静态舞台",
+          "静态步进",
+          "步进组件",
+          "demo",
+          "stage",
+          "caption",
+          "controls",
+          "演示画面、字幕与操作区",
+          "DemoStage"
+        ],
+        "boundary": "独立舞台不生成停点、动效或业务状态，也不替宿主销毁放入其中的子组件。B02 等静态步进组件只负责步骤显示，不拥有完成、取消和恢复。NoteDemo 默认舞台叠加会话、字幕预留及控件协调，二者需区分。",
+        "resources": []
+      }
     }
   ]
 }

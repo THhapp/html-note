@@ -1,13 +1,11 @@
 /* 动效取样：正常速度下对象是否连续移动、时长与停稳是否可追踪。
    node scripts/motion-b.mjs */
-import { ROOT, edgeExecutable, loadChromium } from './paths.mjs';
+import { ROOT, generatedPageUrl, edgeExecutable, loadChromium } from './paths.mjs';
 const chromium = await loadChromium();
 const EDGE = edgeExecutable();
-import { pathToFileURL } from 'node:url';
-
 const browser = await chromium.launch({ headless: true, executablePath: EDGE });
 const page = await browser.newPage({ viewport: { width: 1280, height: 860 } });
-await page.goto(pathToFileURL(ROOT + '/src/page-b.html').href);
+await page.goto(generatedPageUrl('b'));
 await page.waitForTimeout(400);
 
 const stage = page.locator('.nblk-demo-stage');

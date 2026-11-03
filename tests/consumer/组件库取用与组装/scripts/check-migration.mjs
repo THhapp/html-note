@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { mkdirSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
-import { ROOT, ownedPath, edgeExecutable, loadChromium } from './paths.mjs';
+import { ROOT, ownedPath, generatedPageUrl, edgeExecutable, loadChromium } from './paths.mjs';
 
 const chromium = await loadChromium();
 const browser = await chromium.launch({ headless: true, executablePath: edgeExecutable() });
@@ -12,20 +12,28 @@ const findings = [];
 const errors = [];
 const external = [];
 
-async function open(file, viewport = { width: 1280, height: 800 }) {
+async function openUrl(url, viewport = { width: 1280, height: 800 }) {
   const context = await browser.newContext({ viewport });
   await context.route('**/*', route => route.request().url().startsWith('file:') ? route.continue() : route.abort());
   const page = await context.newPage();
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
   page.on('request', request => { if (!request.url().startsWith('file:')) external.push(request.url()); });
-  await page.goto(pathToFileURL(ownedPath(file)).href);
+  await page.goto(url);
   await page.waitForTimeout(200);
   return { context, page };
 }
 
+async function open(file, viewport) {
+  return openUrl(pathToFileURL(ownedPath(file)).href, viewport);
+}
+
+async function openGenerated(id, viewport) {
+  return openUrl(generatedPageUrl(id), viewport);
+}
+
 try {
-  const a = await open('src/page-a.html');
+  const a = await openGenerated('a');
   assert.equal(await a.page.locator('.katex').count(), 1);
   assert.equal(await a.page.locator('.nviz-matrix').count(), 2);
   assert.equal(await a.page.locator('.nviz-matrix tbody td').count(), 12);
@@ -36,7 +44,7 @@ try {
   findings.push('A 模块宿主：公式、矩阵与换数据正常');
   await a.context.close();
 
-  const b = await open('src/page-b.html');
+  const b = await openGenerated('b');
   const state = () => b.page.evaluate(() => window.__sceneB.state());
   assert.equal((await state()).sequence.join(''), 'abcde');
   await b.page.getByRole('button', { name: '下一步' }).click();

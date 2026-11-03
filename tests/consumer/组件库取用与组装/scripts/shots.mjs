@@ -1,12 +1,10 @@
 /* 重拍代表截图（交付用的 evidence/*.png）。
    node scripts/shots.mjs */
-import { ROOT, edgeExecutable, loadChromium } from './paths.mjs';
+import { ROOT, generatedPageUrl, edgeExecutable, loadChromium } from './paths.mjs';
 const chromium = await loadChromium();
 const EDGE = edgeExecutable();
-import { pathToFileURL } from 'node:url';
-
-const A = pathToFileURL(ROOT + '/src/page-a.html').href;
-const B = pathToFileURL(ROOT + '/src/page-b.html').href;
+const A = generatedPageUrl('a');
+const B = generatedPageUrl('b');
 
 const browser = await chromium.launch({ headless: true, executablePath: EDGE });
 

@@ -43,16 +43,16 @@ NoteDemo.mount(document.querySelector('[data-demo-host]'), {
 | 看全部组件 | [离线组件预览](dist/组件库-预览.html) · [gallery](gallery/index.html) |
 | 看公共编排层 | [整合预览](dist/公共编排层-整合预览.html) · [矩阵乘法对照](dist/公共层复用验证-矩阵乘法.html) |
 | 作者装配与聚焦 | [作者入口](examples/authoring/index.html) · [作者预览](dist/作者装配与聚焦-预览.html) · [配方源码](src/demo/recipes.js) |
-| 自定义画面接入 | [接入参考](docs/自定义画面接入.md) · [最小可运行宿主](examples/continuous-scene/minimal.html) · [最小接入预览](dist/自定义画面-最小接入预览.html) · [完整连续示例](examples/continuous-scene/index.html) |
+| 自定义画面接入 | [接入参考](docs/取用与组合.md#author-custom-scene) · [最小可运行宿主](examples/continuous-scene/minimal.html) · [最小接入预览](dist/自定义画面-最小接入预览.html) · [完整连续示例](examples/continuous-scene/index.html) |
 | 自定义图形接入（传播） | [传播示例入口](examples/propagation/index.html) · [传播预览](dist/传播过程与局部过渡-预览.html) · [接入说明](examples/propagation/README.md) |
 | 流程与连接图形 | [中性示例入口](examples/flow-kit/index.html) · [中性示例预览](dist/图形扩展-中性示例.html) · [接入说明](examples/flow-kit/README.md) |
 | 流程组合配方（compact 同屏） | [组合示例入口](examples/flow-composition/index.html) · [组合预览](dist/流程组合-预览.html) · [说明](examples/flow-composition/README.md) |
 | 连续画面完整示例 | [示例入口](examples/continuous-scene/index.html) · [最小接入](examples/continuous-scene/minimal.html) · [离线预览](dist/连续画面局部变化-预览.html) · [说明](examples/continuous-scene/README.md) |
-| 查能力与依赖 | `node scripts/query.mjs` · [组件目录](docs/组件目录.md) · [registry](registry.json) |
+| 查能力与依赖 | `node scripts/query.mjs` · [registry](registry.json) · [取用与组合](docs/取用与组合.md#查询与本地观察) |
 | 本地打开与量测 | `node scripts/inspect-note.mjs <成品.html> --json` · [观察入口说明](docs/公共编排层.md#author-inspect-note) |
 | 学会调用与组装 | [取用与组合](docs/取用与组合.md) · [公共编排层 API](docs/公共编排层.md) |
-| 制作指导 | [制作 Skill](skills/html-note-authoring/SKILL.md) · [制作底稿](docs/提示词撰写.md) |
-| 看实际源码用法 | [作者入口](examples/authoring/index.html) · [scene 示例](examples/demo-scene/index.html) · [矩阵示例](examples/reuse-matrix-product/index.html) · [单项示例](examples/run.html?id=L01) |
+| 制作指导 | [制作 Skill](skills/html-note-authoring/SKILL.md)（独立执行包） |
+| 看实际源码用法 | [作者入口](examples/authoring/index.html) · [scene 示例](examples/demo-scene/index.html) · [矩阵示例](examples/reuse-matrix-product/index.html) · [单项示例](examples/run.html?id=L01) · [组合简写](examples/composed.html) |
 | 下载完整资料 | GitHub 的 Code → Download ZIP；本地离线分发包通过 `scripts/package.ps1` 生成 |
 
 ## 查资料（查询 CLI）
@@ -76,7 +76,7 @@ node scripts/query.mjs read D01 api
 node scripts/query.mjs read D01 source --limit 80
 ```
 
-`info` 是接手入口，`search` 用于按名称/ID/用途/别名找候选，`show` 一次取多个条目的开工包，`read` 再沿条目引用读取完整 API 小节、源码或示例；`progress`/`attention` 直接进入作者小节，`example`/`fragment`/`source` 分别表示完整示例、局部片段和实现源码。使用 `--json` 得到稳定 JSON；退出码 `0` 成功、`1` 未找到/读取失败、`2` 参数错误。实际参数、资料覆盖、维护方式和代表包见[查询 CLI](docs/查询CLI.md)，作者检索元数据见[查询语料](docs/查询语料.md)。
+`info` 是接手入口，`search` 用于按名称/ID/用途/别名找候选，`show` 一次取多个条目的开工包，`read` 再沿条目引用读取完整 API 小节、源码或示例；`progress`/`attention` 直接进入作者小节，`guide`/`full`/`minimal` 等资源键按条目实际声明。使用 `--json` 得到稳定 JSON；退出码 `0` 成功、`1` 未找到/读取失败、`2` 参数错误。数据来自 `src/manifests/*.json` 的 `query` 元数据和 `scripts/query/entries.mjs`，不再有独立查询语料文件。实际参数见 `node scripts/query.mjs --help`，使用接法见[取用与组合](docs/取用与组合.md#查询与本地观察)。
 
 本地验证可用 `node scripts/inspect-note.mjs "<成品.html>" --json` 一次打开并收集观察结果；需要截图或作品专属量测时加 `--screenshot`/`--probe`，要看指定停点用 `--frame <frameId> --session <表达式>`。它复用工程现有 `playwright-core` 与本机 Edge，不启动常驻服务，也不把打开成功写成验收通过。详见[观察入口](docs/公共编排层.md#author-inspect-note)。
 
@@ -84,19 +84,12 @@ node scripts/query.mjs read D01 source --limit 80
 
 | 文档 | 回答什么 |
 | --- | --- |
-| [取用与组合](docs/取用与组合.md) | 怎么选入口、加载、调用和组合；模块依赖与宿主责任 |
-| [自定义画面接入](docs/自定义画面接入.md) | 默认 helper 的最小加载、Definition、契约、组放行、来源视觉、恢复与 reduced |
-| [查询 CLI](docs/查询CLI.md) | 实际命令、JSON、上下文、结构化依赖闭包、分页、资料覆盖与维护方式 |
-| [查询语料](docs/查询语料.md) | 作者别名、用途、适用边界与引用；CLI 的检索元数据 |
-| [提示词撰写](docs/提示词撰写.md) | 将 MD 预留组织为制作任务，提供通用底稿和按需条款 |
+| [取用与组合](docs/取用与组合.md) | 选入口、加载、查询、观察、自定义连续画面接入、组合与交付 |
 | [公共编排层 API](docs/公共编排层.md) | NoteDemo 的 Definition、scene、Adapter、会话 API、生命周期与已知限制 |
 | [流程与连接图形](docs/viz-flow.md) | D07–D10 的加载、独立 mount/update/getTarget、路径采样与边界 |
-| [公共过渡能力设计](docs/公共过渡能力设计.md) | 公共层为什么这样分工、执行契约、timing/焦点交接与引擎取舍 |
-| [组件目录](docs/组件目录.md) | 按类别定位组件，链接到模块文档与示例 |
-| [架构与接口](docs/架构与接口.md) | 源码布局、分层职责、数据流与公开接口边界 |
-| [构建与分发](docs/构建与分发.md) | 真实命令、产物、模块顺序、离线预览与打包边界 |
+| [架构与接口](docs/架构与接口.md) | 源码布局、分层职责、数据流、公开接口与维护源边界 |
+| [构建与分发](docs/构建与分发.md) | 真实命令、产物、模块顺序、离线预览、查询维护与打包边界 |
 | [设计共识](docs/设计共识.md) | 阅读目标与设计原则 |
-| [公共库扩充与作者体验设计](docs/公共库扩充与作者体验设计.md) | 扩充图形、机制、接入与工具的目标、职责和协同边界；具体可用接口仍查模块 API |
 | 模块 API（`docs/ui-*.md` 等） | 各组件的实际参数、状态、事件与限制 |
 | 研究材料（`docs/*研究*.md`、`docs/公共层开源*`） | 设计取舍与源码证据；不是现行 API |
 
@@ -124,7 +117,7 @@ pwsh -NoProfile -File scripts/package.ps1
 
 `dist/` 与根 `registry.json` 都是构建产物，不手改。开发模式可先跑 `node scripts/build.mjs`，缺失项只警告；`--final` 与 `check.mjs` 严格失败。浏览器检查复用本机 Edge 与 `tests/tools` 中已有的 playwright-core，不下载另一套浏览器，也不需要新增 `npm test` 工具链。
 
-依赖闭包与稳定布局的定向入口：`node tests/checks/query-cli-check.mjs`、`node tests/checks/query-closure-host-check.mjs`（按语料 `模块依赖` 生成最小宿主）、`node tests/checks/flow-kit-check.mjs`、`node tests/checks/flow-scene-check.mjs`、`node tests/checks/flow-geometry-check.mjs`（StageTrack/PacketFlow 几何）、`node tests/checks/stable-layout-check.mjs`（流程组合多宽度/多停点）、`node tests/checks/density-config-check.mjs`（compact 真实几何/运行时密度重测）、`node tests/checks/density-screen-check.mjs`（1366×768/1280×900 section 起点同屏）、`node tests/checks/attention-composition-check.mjs`（当前报文 attention）。`examples/flow-composition` 两段使用 compact：1366×768 对齐 section 起点时上段 host top≈46.3、next bottom≈753.6；下段 host top≈46.1、next bottom≈622.4；1280×900 上段 next bottom≈753.6，两段同屏。t2 的 stage 顶对齐 715.1 仅作另一口径；密度变化后重跑 `density-config-check.mjs`、`density-screen-check.mjs`、`stable-layout-check.mjs` 并重新量测。Table 的 `stableStateLabels` 在独立 Table 默认 `false`、`table` Adapter 默认 `true`（每行常驻隐藏槽，5 行表约 261→361px）；PacketFlow `layoutCount` 与 StageTrack 同源几何在 `examples/flow-kit/index.html`、`examples/flow-composition/index.html` 中直接观察。
+定向检查入口见[构建与分发 §8.2](docs/构建与分发.md#82-浏览器交互检查)；制作与使用不需要先跑库回归。
 
 ## 目录
 
@@ -133,7 +126,7 @@ src/          唯一维护源、manifest 与技术状态
 dist/         整库、模块包、当前预览与完整包
 examples/     可执行开发宿主、独立用法与作者入口
 gallery/      组件浏览外壳与各模块真实演示
-docs/         现行 API、设计取舍、组件目录与工程说明
+docs/         现行 API、设计取舍、工程维护与分发说明
 tests/        工程检查、公共层检查与可复现消费测试
 scripts/      构建、核对、预览内联与打包
 skills/       制作 Skill、参考正文与必要脚本

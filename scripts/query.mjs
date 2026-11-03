@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { load, showCatalog, search, find, resolveEntryResource, readFilePage, paths } from './query/catalog.mjs';
+import { load, showCatalog, search, find, resolveEntryResource, readFilePage } from './query/catalog.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const defaultRoot = path.resolve(scriptDir, '..');
@@ -87,7 +87,7 @@ function showProjection(entry) {
     contexts: entry.contexts || [],
     resources: (entry.resources || []).map(publicResource),
     notes: entry.notes || '',
-    curated: entry.curated ? { q: entry.curated.q, title: entry.curated.title, reads: entry.curated.reads, related: entry.curated.related } : null
+    query: entry.query || null
   };
 }
 
@@ -96,15 +96,15 @@ function commandInfo(catalog, options) {
   const docs = {
     readme: 'README.md',
     usage: 'docs/取用与组合.md',
-    design: 'docs/查询CLI.md',
-    corpus: paths.CORPUS_PATH,
-    publicApi: 'docs/公共编排层.md'
+    publicApi: 'docs/公共编排层.md',
+    queryEntries: 'scripts/query/entries.mjs'
   };
+  const curatedRecords = curatedComponents + catalog.topics.length;
   const commands = {
     info: 'node scripts/query.mjs info [--json]',
     search: 'node scripts/query.mjs search <中文/英文名称或用途> [--type <类型>] [--module m] [--limit n] [--json]',
     show: 'node scripts/query.mjs show <id|公开名|别名> [更多条目...] [--context independent|scene|create|mount|recipe|public|authoring|tool] [--json]',
-    read: 'node scripts/query.mjs read <条目> <资源键|api|source|demo> [--offset n] [--limit n] [--file path] [--json]'
+    read: 'node scripts/query.mjs read <条目> <资源键|api|source|example|fragment|full|minimal|guide|demo> [--offset n] [--limit n] [--file path] [--json]'
   };
   return {
     ok: true,
@@ -114,7 +114,7 @@ function commandInfo(catalog, options) {
       manifests: 'src/manifests/*.json',
       modules: catalog.modules.size,
       components: catalog.components.length,
-      curatedRecords: catalog.corpus.length,
+      curatedRecords,
       curatedComponents,
       topicEntries: catalog.topics.length,
       totalEntries: catalog.entries.length
@@ -135,7 +135,7 @@ function commandInfo(catalog, options) {
       note: 'NoteDemo.create 使用 demo-runtime + 自备 presentation；NoteDemo.mount 使用 demo-ui 及其传递依赖，不能只按 create 的依赖加载。'
     },
     commands,
-    sourceOfTruth: ['src/manifests/*.json', paths.CORPUS_PATH, 'docs/*.md', '当前源码与 examples'],
+    sourceOfTruth: ['src/manifests/*.json', 'scripts/query/entries.mjs', 'docs/*.md', '当前源码与 examples'],
     generated: 'registry.json 与 dist 是构建生成物；CLI 不修改它们，也不在查询时自动构建。',
     exit: '0 正常；1 未找到/资源读取失败/上下文不匹配；2 参数错误'
   };

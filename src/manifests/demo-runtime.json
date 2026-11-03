@@ -46,7 +46,7 @@
       "name": "NoteDemo",
       "cn": "公共演示编排层",
       "category": "共享基础与交付",
-      "purpose": "在浏览器端统一管理演示停点、组件命令过渡与 scene 完整目标画面过渡、字幕、受控标记和操作控件；组件实例常驻，内容与动作职责分开，成品运行不需要 Agent、LLM 或网络服务。",
+      "purpose": "按作者定义的停点管理推进、回退、取消及完成；mount 另外提供默认舞台、字幕和控件，create 供自备舞台使用。它承担运行层，不是只做静态步骤显示。另统一管理组件命令过渡与 scene 完整目标画面过渡、受控标记和操作控件；组件实例常驻，内容与动作职责分开，成品运行不需要 Agent、LLM 或网络服务。",
       "inputs": [
         "definition",
         "slots",
@@ -127,7 +127,63 @@
         "K16"
       ],
       "docs": "docs/公共编排层.md",
-      "notes": "I07 只计一次公共能力；matrix、sequence、sequence-edit、sequence-insert、dom 适配器、scene 执行文件与 demo-ui 分发模块不另计组件 ID。mount 默认舞台依赖 demo-ui 及其传递依赖；只加载 demo-runtime 时使用 create 并自备 presentation port。"
+      "notes": "I07 只计一次公共能力；matrix、sequence、sequence-edit、sequence-insert、dom 适配器、scene 执行文件与 demo-ui 分发模块不另计组件 ID。mount 默认舞台依赖 demo-ui 及其传递依赖；只加载 demo-runtime 时使用 create 并自备 presentation port。",
+      "query": {
+        "terms": [
+          "下一步",
+          "停点",
+          "上一步",
+          "重看",
+          "重来",
+          "分步演示",
+          "步骤控制",
+          "逐步演示",
+          "公共播放器",
+          "session",
+          "step-by-step",
+          "stepper",
+          "step",
+          "navigation"
+        ],
+        "aliases": [
+          "I07",
+          "NoteDemo",
+          "公共演示编排层",
+          "下一步",
+          "停点",
+          "上一步",
+          "重看",
+          "重来",
+          "分步演示",
+          "步骤控制",
+          "逐步演示",
+          "公共播放器",
+          "session",
+          "step-by-step",
+          "stepper",
+          "step",
+          "navigation",
+          "使用公共舞台与会话推进",
+          "NoteDemo.mount",
+          "NoteDemo.create"
+        ],
+        "boundary": "状态、知识内容和表达路线由作者提供；不自动产生动画、教学停点或任意视频时间轴。末步下一步禁用不能作为判断仍在执行的依据。",
+        "resources": [
+          {
+            "key": "api",
+            "path": "docs/公共编排层.md",
+            "anchor": "3-会话-api"
+          },
+          {
+            "key": "source",
+            "path": "src/demo/index.js"
+          },
+          {
+            "key": "example",
+            "path": "examples/demo-scene/index.html"
+          }
+        ]
+      }
     }
   ]
 }

@@ -11,6 +11,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { TOPICS } from '../../scripts/query/entries.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
@@ -33,21 +34,62 @@ function expect(condition, message, detail) { if (condition) pass(message); else
 const manifestDir = path.join(root, 'src', 'manifests');
 let componentCount = 0;
 const moduleNames = new Set();
+const manifestEntries = [];
 for (const name of fs.readdirSync(manifestDir).filter((item) => item.endsWith('.json'))) {
   const data = JSON.parse(fs.readFileSync(path.join(manifestDir, name), 'utf8'));
   if (typeof data.module === 'string') moduleNames.add(data.module);
-  if (Array.isArray(data.entries)) componentCount += data.entries.length;
+  if (Array.isArray(data.entries)) {
+    componentCount += data.entries.length;
+    for (const entry of data.entries) manifestEntries.push({ manifest: name, module: data.module, entry });
+  }
 }
 const moduleCount = moduleNames.size;
-const corpusHeadingCount = [...fs.readFileSync(path.join(root, 'docs', '查询语料.md'), 'utf8').matchAll(/^### Q\d+\s+/gm)].length;
+const queryComponents = manifestEntries.filter((item) => item.entry.query);
+const queryComponentCount = queryComponents.length;
+const legacyCorpusPath = path.join(root, 'docs', '查询语料.md');
 
 const infoResult = run(['info', '--json']);
 const info = json(infoResult);
 expect(infoResult.status === 0 && info.ok === true, 'info JSON 可解析且成功', infoResult.stderr);
 expect(path.resolve(info.library.root) === root, 'info 返回实际库位置', info.library.root);
 expect(info.library.components === componentCount && info.library.modules === moduleCount, 'info 计数复用源清单', JSON.stringify(info.library));
-expect(info.library.curatedRecords === corpusHeadingCount, 'info 精选条数与语料记录一致', String(info.library.curatedCompacts));
+expect(info.library.curatedRecords === queryComponentCount + TOPICS.length &&
+  info.library.curatedComponents === queryComponentCount &&
+  info.library.topicEntries === TOPICS.length,
+  'info 精选计数由 manifest query 与 entries.mjs 计算',
+  JSON.stringify({ curatedRecords: info.library.curatedRecords, curatedComponents: info.library.curatedComponents, topicEntries: info.library.topicEntries, expected: queryComponentCount + TOPICS.length }));
+expect(!fs.existsSync(legacyCorpusPath), '旧 docs/查询语料.md 已删除，查询不再依赖 MD 语料');
+expect(info.sourceOfTruth.some((item) => item.includes('entries.mjs')) && !info.sourceOfTruth.some((item) => item.includes('查询语料')),
+  'info.sourceOfTruth 指向 manifests + entries.mjs + docs/examples', JSON.stringify(info.sourceOfTruth));
 expect(info.commands && info.commands.search && info.commands.show, 'info 给出真实命令入口');
+
+const d01Manifest = queryComponents.find((item) => item.entry.id === 'D01');
+expect(queryComponentCount === 23 && d01Manifest && d01Manifest.entry.query &&
+  Array.isArray(d01Manifest.entry.query.terms) && d01Manifest.entry.query.terms.includes('序列') &&
+  typeof d01Manifest.entry.query.boundary === 'string' && d01Manifest.entry.query.boundary.includes('等宽单元') &&
+  typeof d01Manifest.entry.purpose === 'string' && d01Manifest.entry.purpose.includes('稳定 ID'),
+  '23 个组件 query 元数据已进入 manifest（terms/boundary/purpose）', JSON.stringify({ count: queryComponentCount, d01: d01Manifest && { purpose: d01Manifest.entry.purpose, boundary: d01Manifest.entry.query.boundary, terms: d01Manifest.entry.query.terms } }));
+const sceneComponents = queryComponents.filter((item) => item.entry.query.scene).map((item) => item.entry.id).sort();
+expect(JSON.stringify(sceneComponents) === JSON.stringify(['C13', 'D01', 'D02']), '组件 scene 声明仅来自 manifest query.scene', JSON.stringify(sceneComponents));
+const d01Show = json(run(['show', 'D01', '--json']));
+expect(d01Show.ok === true && d01Show.entries[0].purpose === d01Manifest.entry.purpose &&
+  d01Show.entries[0].limits.some((item) => item.includes('等宽单元')), 'show 使用 manifest purpose 与 query.boundary', JSON.stringify({ purpose: d01Show.entries[0].purpose, limits: d01Show.entries[0].limits }));
+
+const i07Manifest = queryComponents.find((item) => item.entry.id === 'I07');
+expect(i07Manifest && /scene/.test(i07Manifest.entry.purpose) && /受控标记/.test(i07Manifest.entry.purpose) &&
+  /常驻/.test(i07Manifest.entry.purpose) && /Agent/.test(i07Manifest.entry.purpose),
+  '合并 purpose 保留 I07 的 scene/受控标记/常驻实例/运行边界', i07Manifest && i07Manifest.entry.purpose);
+const allStructured = [];
+for (const item of queryComponents) {
+  allStructured.push({ owner: item.entry.id, terms: item.entry.query.terms, aliases: item.entry.query.aliases });
+}
+for (const topic of TOPICS) allStructured.push({ owner: topic.id, terms: topic.terms, aliases: topic.aliases });
+const punctuation = /[。．，,、；;：:！？!?]$/;
+const dirty = allStructured.filter((item) => item.terms.some((value) => punctuation.test(value)) || item.aliases.some((value) => punctuation.test(value)));
+const duplicates = allStructured.filter((item) => new Set(item.terms.map((value) => value.toLowerCase())).size !== item.terms.length ||
+  new Set(item.aliases.map((value) => value.toLowerCase())).size !== item.aliases.length);
+expect(dirty.length === 0 && duplicates.length === 0, '组件与主题的 terms/aliases 已清尾标点并去重',
+  JSON.stringify({ dirty: dirty.map((item) => item.owner), duplicates: duplicates.map((item) => item.owner) }));
 
 const searchMatrix = json(run(['search', '矩阵', '--json']));
 expect(searchMatrix.ok === true && searchMatrix.results.some((item) => item.id === 'D02' && item.coverage === 'curated'), '中文用途“矩阵”命中 D02 且标为精选', JSON.stringify(searchMatrix.results.map((item) => item.id)));
@@ -84,7 +126,7 @@ const adapterResources = resourceMap(continuousAdapterEntry);
 const adapterExpectedResources = ['api', 'guide', 'source', 'example', 'fragment', 'full'];
 expect(adapterExpectedResources.every((key) => adapterResources[key]) &&
   adapterResources.api.path === 'docs/公共编排层.md' && adapterResources.api.anchor === 'author-scene-adapter' && adapterResources.api.label === '完整契约 / 用法文档' &&
-  adapterResources.guide.path === 'docs/自定义画面接入.md' && adapterResources.guide.label === '接入文档' &&
+  adapterResources.guide.path === 'docs/取用与组合.md' && adapterResources.guide.anchor === 'author-custom-scene' && adapterResources.guide.label === '接入文档' &&
   adapterResources.example.path === 'examples/continuous-scene/minimal.html' &&
   adapterResources.example.label === '最小示例' &&
   adapterResources.fragment.path === 'examples/continuous-scene/adapter.js' &&
@@ -104,7 +146,7 @@ const continuousExample = json(run(['show', 'example:continuous-scene', '--json'
 const continuousExampleEntry = continuousExample.entries && continuousExample.entries[0];
 const continuousResources = resourceMap(continuousExampleEntry);
 expect(continuousExample.ok === true && continuousResources.minimal && continuousResources.minimal.path === 'examples/continuous-scene/minimal.html' &&
-  continuousResources.guide.path === 'docs/自定义画面接入.md' && continuousResources.guide.label === '接入文档' &&
+  continuousResources.guide.path === 'docs/取用与组合.md' && continuousResources.guide.anchor === 'author-custom-scene' && continuousResources.guide.label === '接入文档' &&
   continuousResources.api.path === 'docs/公共编排层.md' && continuousResources.api.anchor === 'author-continuous-example' &&
   continuousResources.example.path === 'examples/continuous-scene/index.html' &&
   continuousResources.minimal.label === '最小示例',
@@ -114,15 +156,15 @@ expect(continuousMinimalRead.ok === true && continuousMinimalRead.resource.path 
   continuousMinimalRead.source.path === 'examples/continuous-scene/minimal.html', 'read example:continuous-scene minimal 可读取最小宿主', continuousMinimalRead.source && continuousMinimalRead.source.path);
 const inspectEntryForResources = json(run(['show', 'tool:inspect-note', '--json'])).entries[0];
 const inspectResources = resourceMap(inspectEntryForResources);
-expect(inspectEntryForResources.contexts[0].usage.includes('--frame') && inspectResources.guide.path === 'docs/自定义画面接入.md' &&
+expect(inspectEntryForResources.contexts[0].usage.includes('--frame') && inspectResources.guide.path === 'docs/公共编排层.md' && inspectResources.guide.anchor === 'author-inspect-note' &&
   inspectResources.example.path === 'examples/continuous-scene/minimal.html',
   'tool:inspect-note 补 --frame、接入文档与观察入口', JSON.stringify({ usage: inspectEntryForResources.contexts[0].usage, resources: Object.keys(inspectResources) }));
 const inspectFrameSearch = json(run(['search', 'frame', '--json']));
 expect(inspectFrameSearch.ok === true && inspectFrameSearch.results.some((item) => item.id === 'tool:inspect-note'),
   'tool:inspect-note 的通用检索词可命中 --frame/停点', JSON.stringify(inspectFrameSearch.results.map((item) => item.id)));
 const inspectGuideRead = json(run(['read', 'tool:inspect-note', 'guide', '--json']));
-expect(inspectGuideRead.ok === true && inspectGuideRead.resource.path === 'docs/自定义画面接入.md' &&
-  inspectGuideRead.source.path === 'docs/自定义画面接入.md', 'read tool:inspect-note guide 指向接入文档', inspectGuideRead.source && inspectGuideRead.source.path);
+expect(inspectGuideRead.ok === true && inspectGuideRead.resource.path === 'docs/公共编排层.md' &&
+  inspectGuideRead.source.path === 'docs/公共编排层.md', 'read tool:inspect-note guide 指向接入文档', inspectGuideRead.source && inspectGuideRead.source.path);
 const customScreenSearch = json(run(['search', '自定义画面', '--json']));
 const adapterSearchResult = customScreenSearch.results.find((item) => item.id === 'public:continuous-adapter');
 const continuousSearchResult = customScreenSearch.results.find((item) => item.id === 'example:continuous-scene');

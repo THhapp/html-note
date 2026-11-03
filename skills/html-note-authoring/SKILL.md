@@ -26,8 +26,8 @@ description: 使用 html-note 组件库和公共演示层，将指定知识、MD
 | 新制作、将 MD 预留组织成任务，或需要完整制作要求 | [制作底稿与按任务条款](references/task-brief.md) |
 | 安排整体阅读、字幕、状态和动效，或判断视觉取舍 | [阅读与演示共识](references/principles.md) |
 | 找库、选资产、取接口与示例，或核对加载和公共接入 | [查询与组件取用](references/library-usage.md) |
-| 自定义连续画面或 Adapter 接入 | 先读 [自定义画面接入](../../docs/自定义画面接入.md)，打开 [最小可运行宿主](../../examples/continuous-scene/minimal.html)（或 `show public:continuous-adapter`）；完整双组示例见 [连续画面示例](../../examples/continuous-scene/index.html)。使用内置 Adapter 或配方时查 `public:table-adapter`、`flow-stage/flow-packet/flow-segment/flow-device` 与 `recipe:composition` |
-| 阶段轨、消息流、分段长度条、设备连接、沿路径传播 | 先取 [流程图形中性示例](../../examples/flow-kit/index.html) 或运行 `node scripts/query.mjs show example:flow-kit`；组合阶段/报文/状态表时取 [流程组合示例](../../examples/flow-composition/index.html) 或 `show example:flow-composition` |
+| 自定义连续画面或 Adapter 接入 | 先读 [查询与组件取用](references/library-usage.md#自定义连续画面接入)；用 `node scripts/query.mjs show public:continuous-adapter --root <库目录>` 取 helper 接法，`show example:continuous-scene` 取完整示例入口。使用内置 Adapter 或配方时查 `public:table-adapter`、`flow-stage/flow-packet/flow-segment/flow-device` 与 `recipe:composition` |
+| 阶段轨、消息流、分段长度条、设备连接、沿路径传播 | 运行 `node scripts/query.mjs show example:flow-kit --root <库目录>` 取中性示例；组合阶段/报文/状态表时运行 `show example:flow-composition --root <库目录>`；具体接口再按 `read` 继续 |
 | 验证实际打开、过渡、焦点/内容放行或时序疑点 | [验证与观察](references/validation.md)；指定停点用 `inspect-note --frame <id>`，过程用 `next()/replay()` |
 
 已有有效上下文继续使用，局部修改只补相关信息。参考文件按任务读取，不把所有文档加载一遍。
@@ -43,6 +43,7 @@ description: 使用 html-note 组件库和公共演示层，将指定知识、MD
 
 ## 随附脚本
 
-- [query.mjs](scripts/query.mjs)：定位库并转调现有 CLI，保留原参数和输出；独立使用本 Skill 时可通过 `--root` 指定库。
-- [inspect-note.mjs](scripts/inspect-note.mjs)：定位库并转调现有本地观察入口；浏览器实现不复制到 Skill。
-- [sync-references.mjs](scripts/sync-references.mjs)：维护本 Skill 的参考正文时使用，从库内 `docs/设计共识.md`、`docs/提示词撰写.md` 同步；制作笔记时不需要运行，也不要把库维护回归写进制作步骤。
+- [query.mjs](scripts/query.mjs)：定位库并转调现有查询 CLI，保留原参数和输出；在仓库外使用时用 `--root <库目录>` 指定库。
+- [inspect-note.mjs](scripts/inspect-note.mjs)：定位库并转调现有本地观察入口；同样支持 `--root <库目录>`，浏览器实现不复制到 Skill。
+
+Skill 可整体复制到仓库外使用；两个脚本是薄调用，不携带第二套查询或浏览器实现。库维护检查（构建、打包、回归）属于库自身职责，不进入制作步骤。

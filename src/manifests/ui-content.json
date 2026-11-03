@@ -23,7 +23,7 @@
       "name": "NoteUI.Typography",
       "cn": "排版",
       "category": "文字与知识内容",
-      "purpose": "用共享字号、行高和语义标签组织标题、正文、引导语与辅助说明，同时提供可直接写在宿主标记上的作用域类。",
+      "purpose": "通过语义标签和作用域样式组织文字层级，可独立挂载，也可直接采用静态样式类。用共享字号、行高和语义标签组织标题、正文、引导语与辅助说明。",
       "inputs": [
         "variant",
         "content",
@@ -60,7 +60,35 @@
         "K13"
       ],
       "docs": "docs/ui-content.md#C01",
-      "notes": "可直接用 .nui-type-h1/.nui-type-h2/.nui-type-h3/.nui-type-body/.nui-type-lead/.nui-type-caption，无需 JS。"
+      "notes": "可直接用 .nui-type-h1/.nui-type-h2/.nui-type-h3/.nui-type-body/.nui-type-lead/.nui-type-caption，无需 JS。",
+      "query": {
+        "terms": [
+          "标题",
+          "正文",
+          "引导语",
+          "辅助说明",
+          "文字层级",
+          "typography",
+          "body",
+          "text"
+        ],
+        "aliases": [
+          "C01",
+          "NoteUI.Typography",
+          "排版",
+          "标题",
+          "正文",
+          "引导语",
+          "辅助说明",
+          "文字层级",
+          "typography",
+          "body",
+          "text",
+          "标题与正文排版"
+        ],
+        "boundary": "调整文字表现；章节外部间距由宿主或布局组件安排，字符串不按 HTML 解析。必要解释不能仅因名为“辅助说明”就缩到难以发现。",
+        "resources": []
+      }
     },
     {
       "id": "C02",
@@ -249,7 +277,7 @@
       "name": "NoteUI.Table",
       "cn": "表格",
       "category": "文字与知识内容",
-      "purpose": "呈现宿主提供的行列数据，支持表头、对齐、行列强调、空态、可选本地排序和宽表局部滚动。",
+      "purpose": "按行键/列键更新值和状态，查询行或单元格 target，保留已有行与单元节点。呈现宿主行列数据，支持表头、对齐、行列强调、空态、可选本地排序和宽表局部滚动。",
       "inputs": [
         "columns",
         "rows",
@@ -306,7 +334,38 @@
         "K13"
       ],
       "docs": "docs/ui-content.md#C06",
-      "notes": "onSort(info, event) 的 info 含 key、direction、column、rows；只在用户点击表头时触发。列可额外传 sortable:false。 状态渲染为 data-row-state/data-cell-state 与 nui-table__row--state-<type>/nui-table__cell--state-<type>；只有显式 label 才生成可见状态标签。getState() 返回当前显示顺序的行、单元格、状态、排序与强调快照。"
+      "notes": "onSort(info, event) 的 info 含 key、direction、column、rows；只在用户点击表头时触发。列可额外传 sortable:false。 状态渲染为 data-row-state/data-cell-state 与 nui-table__row--state-<type>/nui-table__cell--state-<type>；只有显式 label 才生成可见状态标签。getState() 返回当前显示顺序的行、单元格、状态、排序与强调快照。",
+      "query": {
+        "terms": [
+          "表格",
+          "行状态",
+          "单元状态",
+          "行键",
+          "单元格",
+          "局部更新",
+          "table",
+          "row",
+          "state",
+          "cell"
+        ],
+        "aliases": [
+          "C06",
+          "NoteUI.Table",
+          "表格",
+          "行状态",
+          "单元状态",
+          "行键",
+          "单元格",
+          "局部更新",
+          "table",
+          "row",
+          "state",
+          "cell",
+          "表格行/单元状态"
+        ],
+        "boundary": "状态由作者提供，不推断关注/变化；结构和排序规则仍按组件接口。独立 Table 的 `stableStateLabels` 默认 `false`；开启后每行常驻隐藏状态标签槽，label 显隐不改变行高，无固定 min-height、不裁切正文；5 行示例表约 261→361px。scene `table` Adapter 默认开启，可在 binding options 设 false。",
+        "resources": []
+      }
     },
     {
       "id": "C07",
@@ -418,7 +477,7 @@
       "name": "NoteUI.Math",
       "cn": "公式",
       "category": "文字与知识内容",
-      "purpose": "用本地 KaTeX 渲染行内或块级公式，支持替换 TeX，并在错误时给出原因和原始公式。",
+      "purpose": "以本地 KaTeX 渲染宿主给出的完整 TeX，出错时显示原因和原始输入。支持替换 TeX，覆盖行内或块级公式。",
       "inputs": [
         "tex",
         "display",
@@ -458,7 +517,32 @@
         "K13"
       ],
       "docs": "docs/ui-content.md#C09",
-      "notes": "构建把 KaTeX CSS 字体转换为内嵌 data URI；组件 CSS 不发起网络字体请求。"
+      "notes": "构建把 KaTeX CSS 字体转换为内嵌 data URI；组件 CSS 不发起网络字体请求。",
+      "query": {
+        "terms": [
+          "公式",
+          "TeX",
+          "LaTeX",
+          "行内数学",
+          "块级公式",
+          "math",
+          "equation"
+        ],
+        "aliases": [
+          "C09",
+          "NoteUI.Math",
+          "公式",
+          "TeX",
+          "LaTeX",
+          "行内数学",
+          "块级公式",
+          "math",
+          "equation",
+          "公式排版"
+        ],
+        "boundary": "适合呈现公式；不进行代数推导、计算或公式对象自动配对。分项变化的组织由作者在公共层中安排。",
+        "resources": []
+      }
     },
     {
       "id": "C10",
@@ -554,7 +638,7 @@
       "name": "NoteUI.Metric",
       "cn": "指标读数",
       "category": "文字与知识内容",
-      "purpose": "呈现宿主提供的标签、数值、单位、辅助解释与变化方向，用等宽数字和稳定布局支持程序更新。",
+      "purpose": "组合宿主提供的标签、数值、单位和必要解释，以稳定数字排版支持更新。呈现变化方向，用等宽数字和稳定布局支持程序更新。",
       "inputs": [
         "label",
         "value",
@@ -598,14 +682,40 @@
         "K13"
       ],
       "docs": "docs/ui-content.md#C12",
-      "notes": "变化提示同时有箭头、方向文字和宿主标签，不只依赖颜色。"
+      "notes": "变化提示同时有箭头、方向文字和宿主标签，不只依赖颜色。",
+      "query": {
+        "terms": [
+          "数值",
+          "单位",
+          "指标",
+          "结果读数",
+          "累计值",
+          "metric",
+          "readout"
+        ],
+        "aliases": [
+          "C12",
+          "NoteUI.Metric",
+          "指标读数",
+          "数值",
+          "单位",
+          "指标",
+          "结果读数",
+          "累计值",
+          "metric",
+          "readout",
+          "指标与结果读数"
+        ],
+        "boundary": "适合局部数据读数；不计算结果或推断趋势，也不承担解释当前整步的字幕职责。",
+        "resources": []
+      }
     },
     {
       "id": "C13",
       "name": "NoteUI.Expression",
       "cn": "表达式项",
       "category": "文字与知识内容",
-      "purpose": "用稳定 id 组织一段可更新的数学表达式：文本项和完整 TeX 项各有身份，静态组件只负责排版与查询，过渡由公共层负责。",
+      "purpose": "以稳定 ID 组织文本项和完整 TeX 项，提供项级或整体内容区域目标，便于公共层协调变化。静态组件只负责排版与查询，过渡由公共层负责。",
       "inputs": [
         "parts",
         "focus",
@@ -648,7 +758,43 @@
         "K13"
       ],
       "docs": "docs/ui-content.md#C13",
-      "notes": "本组件放在 ui-content 模块，复用 C09 NoteUI.Math，不新增运行时依赖模块。"
+      "notes": "本组件放在 ui-content 模块，复用 C09 NoteUI.Math，不新增运行时依赖模块。",
+      "query": {
+        "terms": [
+          "算式",
+          "表达式",
+          "逐项相加",
+          "公式项",
+          "expression",
+          "term",
+          "stable",
+          "id"
+        ],
+        "aliases": [
+          "C13",
+          "NoteUI.Expression",
+          "表达式项",
+          "算式",
+          "表达式",
+          "逐项相加",
+          "公式项",
+          "expression",
+          "term",
+          "stable",
+          "id",
+          "有身份的表达式项"
+        ],
+        "boundary": "适合作者明确知道哪些项保留、出现或换值的表达式；不解析公式含义或自动生成推导。组件负责呈现，过渡由公共层 Adapter 提供。",
+        "resources": [],
+        "scene": {
+          "modes": [
+            "layout",
+            "cut"
+          ],
+          "defaultMode": "layout",
+          "note": "expression Adapter 支持 layout/cut，默认 layout。"
+        }
+      }
     }
   ]
 }

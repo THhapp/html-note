@@ -1,10 +1,8 @@
 /* 多实例、清理与互不影响的最小核对（在已加载的两页上追加临时容器）。
    node scripts/check-lifecycle.mjs */
-import { ROOT, edgeExecutable, loadChromium } from './paths.mjs';
+import { ROOT, generatedPageUrl, edgeExecutable, loadChromium } from './paths.mjs';
 const chromium = await loadChromium();
 const EDGE = edgeExecutable();
-import { pathToFileURL } from 'node:url';
-
 const browser = await chromium.launch({ headless: true, executablePath: EDGE });
 const results = [];
 function check(name, ok, detail) {
@@ -14,7 +12,7 @@ function check(name, ok, detail) {
 
 /* A：第三个矩阵与第三个表格的挂载/更新/销毁 */
 const pageA = await browser.newPage({ viewport: { width: 1280, height: 900 } });
-await pageA.goto(pathToFileURL(ROOT + '/src/page-a.html').href);
+await pageA.goto(generatedPageUrl('a'));
 await pageA.waitForTimeout(400);
 const a = await pageA.evaluate(() => {
   const host = document.createElement('div');
@@ -41,7 +39,7 @@ check('A 清理：destroy 后宿主无残留', a.left === 0, a.left);
 
 /* B：第二个序列编辑与标记的挂载/动作/销毁 */
 const pageB = await browser.newPage({ viewport: { width: 1280, height: 900 } });
-await pageB.goto(pathToFileURL(ROOT + '/src/page-b.html').href);
+await pageB.goto(generatedPageUrl('b'));
 await pageB.waitForTimeout(400);
 const b = await pageB.evaluate(async () => {
   const host = document.createElement('div');
@@ -75,7 +73,7 @@ check('B 清理：页面的演示仍可继续操作', stillWorks === 'abde', sti
 
 /* 125% 缩放等效（B） */
 const zoom = await browser.newPage({ viewport: { width: 1024, height: 640 }, deviceScaleFactor: 1.25 });
-await zoom.goto(pathToFileURL(ROOT + '/src/page-b.html').href);
+await zoom.goto(generatedPageUrl('b'));
 await zoom.waitForTimeout(400);
 const zoomInfo = await zoom.evaluate(() => ({
   pageW: document.documentElement.scrollWidth,

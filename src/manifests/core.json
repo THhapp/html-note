@@ -22,7 +22,7 @@
       "name": "HNV Tokens",
       "cn": "共享设计值与资源映射",
       "category": "共享基础与交付",
-      "purpose": "集中提供组件共用的 --hnv-* 候选设计值、字号与间距预设，并允许宿主在任意作用域覆盖。",
+      "purpose": "统一组件使用的颜色、字号、行高、间距等候选值，并允许在宿主范围覆盖。集中提供 --hnv-* 候选设计值、字号与间距预设。",
       "inputs": [
         "--hnv-* 自定义属性",
         "data-hnv-type=standard|readable",
@@ -62,7 +62,39 @@
       ],
       "docs": "docs/core.md#I01",
       "notes": "保留基础视觉试排的候选原值与预设；扩展值同为可覆盖默认值。",
-      "demo": "gallery/demos/core.js#I01"
+      "demo": "gallery/demos/core.js#I01",
+      "query": {
+        "terms": [
+          "设计值",
+          "字号",
+          "间距",
+          "配色变量",
+          "阅读密度",
+          "design",
+          "tokens",
+          "readable",
+          "spacing"
+        ],
+        "aliases": [
+          "I01",
+          "HNV Tokens",
+          "共享设计值与资源映射",
+          "设计值",
+          "字号",
+          "间距",
+          "配色变量",
+          "阅读密度",
+          "design",
+          "tokens",
+          "readable",
+          "spacing",
+          "共享观看基础与设计值",
+          "HNV",
+          "C01"
+        ],
+        "boundary": "适合协调一篇笔记的视觉基础；当前不是可自动选择的多主题系统，也不冻结页面尺寸、动画时间或步数。",
+        "resources": []
+      }
     },
     {
       "id": "I02",
