@@ -7,7 +7,7 @@
 | 路径 | 定位 | 输入/输出 |
 | --- | --- | --- |
 | `tests/demo/` | 公共编排层浏览器检查：core-check、adapters-check、ui-check、integration-check | 脚本是输入；结果只打印或写 .cache |
-| `tests/checks/` | `public-transition-check.mjs`、`source-loaders-check.mjs`、`query-cli-check.mjs`、`focus-continuity-check.mjs`、`groups-check.mjs`、`v05-assembly-check.mjs`、`handoff-check.mjs`、`propagation-example-check.mjs`、`continuous-scene-check.mjs`、`minimal-scene-check.mjs`、`inspect-note-check.mjs`、`authoring-page-smoke.mjs` 与各模块补充自检；HTML 文件是测试夹具 | HTML 夹具与脚本是输入 |
+| `tests/checks/` | 现行检查与各模块补充自检；现行浏览器入口以 `docs/构建与分发.md` §8.2 为准，包括 public-transition、focus-continuity、groups、handoff、flow-kit、flow-scene、flow-geometry、stable-layout、attention-composition、minimal-scene、inspect-note、query 等；HTML 文件是测试夹具 | HTML 夹具与脚本是输入 |
 | `tests/lib/src-sources.mjs` | Node 共享 harness：按 `src/manifests/*.json` 推导经典脚本/样式加载清单 | 只读 |
 | `tests/lib/test-output.mjs` | 生成物路径 helper：统一写 `tests/.cache/` | 只写 .cache |
 | `tests/tools/` | 本地 playwright-core（勿在检查中重装浏览器或加运行时依赖） | 输入 |
@@ -29,7 +29,7 @@
 ## 生成物规则
 
 - 检查产生的截图、结果 JSON、日志、临时构建副本一律写 `tests/.cache/<check>/`（用 `test-output.mjs`），不要写回 `tests/checks`、`tests/demo` 或仓库根。
-- `tests/checks` 保留历史自检脚本与夹具；历史截图/日志/结果已在待清理清单中，由用户确认删除。
+- `tests/checks` 保留现行检查、模块自检与夹具；不再把一次性截图/日志/结果作为检查输入，这些输出统一写 `tests/.cache/`。
 - `tests/consumer/组件库取用与组装/runtime/` 是 `dist/modules` 的逐字节副本，`runtime/SOURCES.md` 记录哈希。重建 dist 后先刷新副本，再重生成页面：
 
   ```powershell
@@ -43,6 +43,7 @@
 node scripts/check.mjs
 node tests/checks/source-loaders-check.mjs
 node tests/checks/query-cli-check.mjs   # 真实 CLI 查询，不启动浏览器
+node tests/checks/query-closure-host-check.mjs
 node tests/checks/public-transition-check.mjs
 node tests/checks/focus-continuity-check.mjs
 node tests/checks/groups-check.mjs
@@ -51,6 +52,13 @@ node tests/checks/handoff-check.mjs
 node tests/checks/authoring-page-smoke.mjs   # 需要先重建 dist/
 node tests/checks/propagation-example-check.mjs   # 需要先重建 dist/
 node tests/checks/continuous-scene-check.mjs   # 完整连续示例；需要先重建 dist/
+node tests/checks/flow-kit-check.mjs
+node tests/checks/flow-scene-check.mjs
+node tests/checks/flow-geometry-check.mjs
+node tests/checks/stable-layout-check.mjs
+node tests/checks/attention-composition-check.mjs
+node tests/checks/density-config-check.mjs
+node tests/checks/density-screen-check.mjs
 node tests/checks/minimal-scene-check.mjs   # 最小接入宿主；需要先重建 dist/
 node tests/checks/inspect-note-check.mjs   # 实际启动本机 Edge；会创建并清理 .cache 中的截图/probe
 node tests/demo/core-check.mjs

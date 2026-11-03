@@ -30,7 +30,7 @@ node <Skill目录>/scripts/query.mjs show recipe:composition --json
 node <Skill目录>/scripts/query.mjs show tool:inspect-note --json
 ```
 
-`show` 返回该条目真实可用的上下文；上下文不匹配时按返回的可用上下文重试，不套用其他入口。完整示例用 `authoring` context，不要传不存在的 `example` context。`read` 的 `api/source/example/fragment` 分别指向完整文档、实现源码、完整示例和局部片段。依赖闭包来自语料的 `模块依赖/运行入口/区域组件依赖`，按 manifest 展开；搜索无精确命中时，结果会单独给出基于真实拆词命中的 `suggestions`，不要把它当成精确匹配，也不要把空结果当成库没有能力。
+`show` 返回该条目真实可用的上下文；上下文不匹配时按返回的可用上下文重试，不套用其他入口。完整示例用 `authoring` context，不要传不存在的 `example` context。`read` 的资源键按条目实际声明：`api`/`source`/`guide`/`example`/`fragment`/`full`/`minimal`/`control` 等；`example` 是该条目的示例入口，最小与完整可用 `minimal`/`full` 区分，不要把最小宿主一律当完整示例。依赖闭包来自语料的 `模块依赖/运行入口/区域组件依赖`，按 manifest 展开；搜索无精确命中时，结果会单独给出基于真实拆词命中的 `suggestions`，不要把它当成精确匹配，也不要把空结果当成库没有能力。
 
 ## 加载与接法选择
 

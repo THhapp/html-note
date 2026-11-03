@@ -158,7 +158,7 @@ show 是减少反复查询的重点。默认围绕已选资产返回一个紧凑
 
 `wholeLibrary` 只表示“整库入口可作为补充”，不参与闭包计算；工具条目 `wholeLibrary` 为 `null`，`模块依赖` 为 `none`，不混入 demo-runtime 或整库。
 
-`public:table-adapter` 的 `stableStateLabels` 默认 `true`（独立 Table 默认 `false`）：每行常驻隐藏状态标签槽，label 显隐不改变行高，无固定 min-height/不裁切正文，5 行表约 261→361px；canonical/getState/readModel 不变。真实验证入口：`node tests/checks/stable-layout-check.mjs`（流程组合预览稳定布局）、`node tests/checks/attention-composition-check.mjs`（当前报文 attention）、`node tests/checks/flow-geometry-check.mjs`（StageTrack/PacketFlow 几何）。
+`public:table-adapter` 的 `stableStateLabels` 默认 `true`（独立 Table 默认 `false`）：每行常驻隐藏状态标签槽，label 显隐不改变行高，无固定 min-height/不裁切正文，5 行表约 261→361px；canonical/getState/readModel 不变。真实验证入口：`node tests/checks/stable-layout-check.mjs`（流程组合预览稳定布局）、`node tests/checks/density-config-check.mjs` / `density-screen-check.mjs`（紧凑密度与同屏）、`node tests/checks/attention-composition-check.mjs`（当前报文 attention）、`node tests/checks/flow-geometry-check.mjs`（StageTrack/PacketFlow 几何）。
 
 `read` 的文档章节以显式锚点所属标题为起点，兼容锚点在标题前或标题后；读到下一条同级或更高级标题为止，不把后续无关章节混入。`public:progress` / `public:attention` 已指向各自的作者小节锚点（`author-progress` / `author-attention`），`control` 资源指向 `author-scene-control` 的受控视觉接管生命周期；不会从整个 Adapter 大章开头开始，分页与继续读取仍保留。
 
@@ -230,13 +230,13 @@ Skill 主体及参考正文继续承接[既有提示词与共识](提示词撰�
 ## 资料覆盖与维护
 
 - 查询语料以 Markdown 为唯一检索元数据，组件身份来自 `src/manifests`；配方、公共接法、作者辅助、构建/验证工具与完整示例有独立条目 ID，不增加组件计数。
-- `show` 的 api/source/demo/example/fragment/control 资源来自 manifest 和语料引用；`read` 从维护文档、源码、examples 读取，不执行代码、不启动浏览器。
+- `show` 的资源键来自 manifest 和语料引用，常见有 api/source/guide/example/fragment/full/minimal/demo/control；`read` 从维护文档、源码、examples 读取，不执行代码、不启动浏览器。
 - 用 `tests/checks/query-cli-check.mjs` 检查真实查询、JSON、依赖闭包、context key、工程外调用和失败路径；用 `tests/checks/query-closure-host-check.mjs` 按 JSON 声明的闭包生成最小宿主，实际只加载对应 `dist/modules` 并验证 Propagation / flow-kit / table Adapter / flow-packet Adapter 能运行。
 
 ## 已知限制
 
 - 查询语料覆盖 23 个组件和 19 个主题/工具/示例条目；其余 82 个条目的名称、ID、类别和用途能查，但没有补充别名/适用边界。
-- 搜索是本地子串与少量身份/前缀排序，不做中文分词、语义检索或课程主题推荐；未命中不代表库缺能力。
+- 精确搜索仍是本地子串、身份/前缀与检索词排序，不做语义检索或课程主题推荐；仅当精确结果为 0 时，零结果 suggestions 才按空白/标点、Intl.Segmenter 与中文 2–3 字窗口做真实拆词子搜索，不把候选伪装成精确命中。未命中不代表库缺能力。
 - 资源引用失效时 `read` 明确失败，不会回退到另一接口；条目跨文档的完整参数仍由现行 API 文档维护。
 - `read` 按行分页，超长代码/小节需要继续读取；不提供全文归档或浏览器运行结果。
 - `public:timing-facts` 的 `watch()` 按会话 `session.__sessionId` 隔离，只收同一会话事实；`collect()` 是全局收集并保留 `sessionId`，两者都默认关闭、只在内存、不写文件。

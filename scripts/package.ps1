@@ -24,10 +24,12 @@ function Should-SkipDirectory([string]$relative, [string]$name) {
   if ($name -match '^(browser-profile|profiles?)(-|$)') { return $true }
   # Headless Edge sometimes resolves its user-data-dir into a literal '%SystemDrive%' folder under the project.
   if ($relative -eq '%SystemDrive%' -or $relative.StartsWith('%SystemDrive%/')) { return $true }
+  if ($relative -eq '.local' -or $relative.StartsWith('.local/')) { return $true }
   if ($relative -eq 'tests/.cache' -or $relative.StartsWith('tests/.cache/')) { return $true }
   if ($relative -eq 'archive/private' -or $relative.StartsWith('archive/private/')) { return $true }
   if ($relative -eq 'archive/rejected' -or $relative.StartsWith('archive/rejected/')) { return $true }
   if ($relative -eq 'archive/packages' -or $relative.StartsWith('archive/packages/')) { return $true }
+  if ($relative -eq 'archive/tasks' -or $relative.StartsWith('archive/tasks/')) { return $true }
   if ($relative -eq 'archive/prototypes/序列插入-第二轮-原始独立交付' -or $relative.StartsWith('archive/prototypes/序列插入-第二轮-原始独立交付/')) { return $true }
   if ($relative -eq 'archive/prototypes/公共编排层首版' -or $relative.StartsWith('archive/prototypes/公共编排层首版/')) { return $true }
   return $false
@@ -38,6 +40,8 @@ function Should-SkipFile([string]$relative, [string]$fullName) {
   if ($relative -match '\.(zip|7z|log|out|tmp)$') { return $true }
   # 历史检查输出若再次出现也不入分发包。
   if ($relative -eq 'tests/checks/build-release-check.html') { return $true }
+  # 任务输入设计稿不随公开分发包发布；是否保留为项目文档由维护者另行决定。
+  if ($relative -eq 'docs/作者入口与观察效率设计.md') { return $true }
   # 工程检查生成的截图/结果 JSON 不是构建输入；检查输出统一写 tests/.cache（已整目录排除）。
   if ($relative -match '^tests/checks/.*\.(png|json)$') { return $true }
   if ($relative -match '^tests/demo/.*\.(json|png)$') { return $true }
@@ -96,7 +100,7 @@ try {
   $required = @(
     'README.md', 'registry.json', 'THIRD_PARTY_NOTICES.md',
     'docs/公共编排层.md', 'docs/构建与分发.md', 'docs/架构与接口.md', 'docs/组件目录.md',
-    'docs/取用与组合.md', 'docs/查询CLI.md', 'docs/查询语料.md', 'docs/提示词撰写.md', 'docs/viz-flow.md',
+    'docs/取用与组合.md', 'docs/自定义画面接入.md', 'docs/查询CLI.md', 'docs/查询语料.md', 'docs/提示词撰写.md', 'docs/viz-flow.md',
     'scripts/build.mjs', 'scripts/check.mjs', 'scripts/build-demo-preview.mjs',
     'scripts/query.mjs', 'scripts/query/catalog.mjs', 'scripts/inspect-note.mjs',
     'scripts/lib/note-browser.mjs', 'scripts/lib/inspect-session.mjs', 'tests/checks/query-cli-check.mjs',
@@ -117,13 +121,13 @@ try {
     'examples/propagation/README.md',
     'examples/continuous-scene/index.html', 'examples/continuous-scene/style.css',
     'examples/continuous-scene/scene.js', 'examples/continuous-scene/adapter.js',
-    'examples/continuous-scene/demo.js', 'examples/continuous-scene/README.md',
+    'examples/continuous-scene/demo.js', 'examples/continuous-scene/minimal.html', 'examples/continuous-scene/README.md',
     'examples/flow-kit/index.html', 'examples/flow-kit/flow-kit.css', 'examples/flow-kit/flow-kit.js', 'examples/flow-kit/README.md',
     'examples/flow-composition/index.html', 'examples/flow-composition/flow-composition.css',
     'examples/flow-composition/flow-composition.js', 'examples/flow-composition/README.md',
     'dist/note-library.js', 'dist/note-library.css', 'dist/registry.js',
     'dist/组件库-预览.html', 'dist/作者装配与聚焦-预览.html',
-    'dist/传播过程与局部过渡-预览.html', 'dist/连续画面局部变化-预览.html', 'dist/图形扩展-中性示例.html',
+    'dist/传播过程与局部过渡-预览.html', 'dist/连续画面局部变化-预览.html', 'dist/自定义画面-最小接入预览.html', 'dist/图形扩展-中性示例.html',
     'dist/流程组合-预览.html',
     'dist/modules/demo-runtime.js', 'dist/modules/demo-ui.js'
   ) + @($manifestRequired | Select-Object -Unique)
