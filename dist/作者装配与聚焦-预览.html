@@ -15902,8 +15902,8 @@ body {
       <p class="authoring-kicker">NOTE DEMO · AUTHORING ENTRY</p>
       <h1 class="authoring-title">作者装配与聚焦</h1>
       <p class="authoring-lede">
-        前两个内容从同一个普通 JavaScript 配方 <code>NoteDemoRecipes.focusWorkbench</code> 进入，第三个是只使用公开契约的自定义 Adapter（普通 DOM 交接），
-        第四个用 <code>NoteDemoRecipes.diagramTable</code> 把“当前依据”和“结果表”分成两个区域，演示跨区域承接。
+        矩阵乘法与逐项读数从同一个普通 JavaScript 配方 <code>NoteDemoRecipes.focusWorkbench</code> 进入；普通 DOM 交接示例使用只依赖公开契约的自定义 Adapter；
+        跨区域承接示例用 <code>NoteDemoRecipes.diagramTable</code> 把“当前依据”和“结果表”分成两个区域。
         作者给出内容视图、场景参与者、观察目标与按顺序的关注意图；运行层负责焦点框
         <strong>弱化保留、原处承接、按真实到达放行内容</strong>，以及推进、回退、取消与减少动效。
       </p>
@@ -15914,7 +15914,8 @@ body {
         // step.scene.attention.targets = [{ binding, query, groups: [], holdDuration }]<br>
         // 跨区域：先 evidence，再 table row；table 新行组名为 row:<encodeURIComponent(key)><br>
         // handoff-demo.js: PreparedChange.sourceElements() → [来源标签]<br>
-        //                  EffectSpec { group: 'reveal', handoff: 'hold' } → 目标标签淡入后保持</p>
+        //                  EffectSpec { group: 'reveal', handoff: 'hold' } → 目标标签淡入后保持<br>
+        // 会话入口：window.AuthoringSessions 数组 / window.AuthoringDemoSessions = { matrix, sequence, handoff, crossRegion }</p>
     </header>
 
     <section class="authoring-demo">
@@ -15953,7 +15954,7 @@ body {
       <p>画面默认静止；请使用演示下方控件推进。离线单文件与开发入口使用同一份作者入口（整库 JS/CSS）。</p>
       <p><strong>末步按钮禁用不等于正在运行。</strong>“下一步”禁用只表示没有下一停点；“上一步/重看”在运行中还可取消当前步骤。需要判断是否运行时，读 <code>session.getState().phase</code>（idle / running / error / disposed）；本页状态文字由 <code>boot.js</code> 的 <code>subscribe</code> 写出，未新增播放器或公共 API。默认舞台控制容器上的 <code>data-demo-running</code> / <code>aria-busy</code> 只用于样式与读屏提示，同样不代替 phase 判断。</p>
       <p>观察目标与内容目标分开：<code>groups: []</code> 只观察、不启动内容；省略 <code>groups</code> 时按整个 Binding 在真实到达后启动（当前内置 Adapter 未细分效果组）。<code>holdDuration</code> 对观察目标是停留时长，对内容目标是 ready 后的额外等待，0 是有效值；最后落点不加倒计时。</p>
-      <p><strong>跨区域依据／结果使用公共 attention 顺序。</strong>第四例把 evidence 的 DOM 与 table 独立 Binding 分开；attention 先到达依据，再到达 <code>row:r1</code>／<code>row:r2</code>。table 的新行在 commit 时进入 DOM、行级 WAAPI 先以 <code>opacity:0</code> 暂停，表目标到达后才 ready→finished；已有行不重播。辅助 status 视图变化必须列入 <code>scene.bindings</code>，这里用 <code>mode:'cut'</code> 同步提交，不进入 attention targets，因此不会被 Focus 巡视。</p>
+      <p><strong>跨区域依据／结果使用公共 attention 顺序。</strong>跨区域承接示例把 evidence 的 DOM 与 table 独立 Binding 分开；attention 先到达依据，再到达 <code>row:r1</code>／<code>row:r2</code>。table 的新行在 commit 时进入 DOM、行级 WAAPI 先以 <code>opacity:0</code> 暂停，表目标到达后才 ready→finished；已有行不重播。辅助 status 视图变化必须列入 <code>scene.bindings</code>，这里用 <code>mode:'cut'</code> 同步提交，不进入 attention targets，因此不会被 Focus 巡视。</p>
       <p><strong>普通 DOM 交接使用自定义 Adapter（<code>handoff-demo.js</code>）。</strong>commit 隐藏来源标签、预置目标标签 opacity 0；<code>PreparedChange.sourceElements()</code> 让来源标签在观察期保持可见，直到本步第一个内容效果轨道启动才释放；目标标签的 WAAPI 淡入声明 <code>handoff:'hold'</code>，结束后末帧保持到 scene 收束，避免先回落到预置隐藏值再等清理。自定义 Adapter 只使用公开契约（Definition / Adapter / PreparedChange / EffectSpec / scene.attention），不读取 <code>NoteDemoInternals</code>。</p>
       <p>完整 Definition 仍是高级入口；例如可将 <code>demo.definition</code> 交给 <code>NoteDemo.create</code> 或保存后检查。字幕和操作位置由公共舞台维护。</p>
     </footer>
@@ -70827,7 +70828,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     };
   };
 
-  /* 第四例：diagramTable 跨区域承接——先辨认依据，确认后结果表才出现新行。
+  /* 跨区域承接示例：diagramTable——先辨认依据，确认后结果表才出现新行。
+   * 本示例的 enterDuration:420 / stepDuration:360 只是观感选择，不是公共标准。
    * evidence 是观察/内容目标，table 用独立 Binding + row:<key> 组门控新行；
    * status 只是辅助状态：作为 cut 参与者同步提交（compile 要求视图变化必须列入 scene），
    * 不写 attention target，所以不被 Focus 巡视。 */
@@ -71258,6 +71260,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
 
   var sessions = [];
   global.AuthoringSessions = sessions;
+  /* 稳定入口映射：名称不随页面顺序变化；AuthoringSessions 数组继续保留原顺序。 */
+  var demoSessions = {};
+  global.AuthoringDemoSessions = demoSessions;
 
   var PHASE_LABELS = {
     idle: '空闲',
@@ -71300,7 +71305,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     return session;
   }
 
-  /* 第四例：diagramTable 跨区域承接（依据区 + 结果表 + 辅助状态）。 */
+  /* 跨区域承接示例：diagramTable 把依据区、结果表与辅助状态分开。 */
   function mountCrossRegion(selector, title, label, phaseSelector) {
     var host = global.document.querySelector(selector);
     if (!host) throw new Error('找不到作者入口宿主：' + selector);
@@ -71332,7 +71337,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     return session;
   }
 
-  /* 第三例：普通 DOM 交接，自定义 Adapter 只使用公开契约（handoff-demo.js）。 */
+  /* 普通 DOM 交接示例：自定义 Adapter 只使用公开契约（handoff-demo.js）。 */
   function mountHandoff(selector, title, label, phaseSelector) {
     var host = global.document.querySelector(selector);
     if (!host) throw new Error('找不到作者入口宿主：' + selector);
@@ -71346,21 +71351,21 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   }
 
   function boot() {
-    mount('[data-author-demo="matrix"]', global.AuthoringDemos.matrix,
+    demoSessions.matrix = mount('[data-author-demo="matrix"]', global.AuthoringDemos.matrix,
       '矩阵乘法 C₁₂：先看一对来源，再看乘积', '作者装配：矩阵乘法',
       '[data-author-phase="matrix"]');
-    mount('[data-author-demo="sequence"]', global.AuthoringDemos.sequence,
+    demoSessions.sequence = mount('[data-author-demo="sequence"]', global.AuthoringDemos.sequence,
       '逐项读数：沿一行看，再汇总', '作者装配：逐项读数',
       '[data-author-phase="sequence"]');
-    mountHandoff('[data-author-demo="handoff"]',
+    demoSessions.handoff = mountHandoff('[data-author-demo="handoff"]',
       '普通 DOM 交接：来源保留到目标接住', '作者装配：普通 DOM 交接',
       '[data-author-phase="handoff"]');
-    mountCrossRegion('[data-author-demo="crossRegion"]',
+    demoSessions.crossRegion = mountCrossRegion('[data-author-demo="crossRegion"]',
       '跨区域承接：先辨认依据，结果表再出现', '作者装配：跨区域承接',
       '[data-author-phase="crossRegion"]');
   }
 
-  /* 只读辅助：控制台或临时检查脚本可读取四个会话的 phase。 */
+  /* 只读辅助：控制台或临时检查脚本可读取四个示例会话的 phase。 */
   global.AuthoringPhases = function () {
     return sessions.map(function (session) {
       var state = session.getState();
