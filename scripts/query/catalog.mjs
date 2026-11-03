@@ -125,8 +125,12 @@ function validateTopic(root, topic, modules, owner) {
   if (!topic || typeof topic !== 'object') throw new Error(owner + ' 必须是对象');
   const allowedRuntime = RUNTIME_VALUES;
   if (!allowedRuntime.has(topic.runtime)) throw new Error(owner + ' 的 runtime 非法：' + topic.runtime);
-  if (!Array.isArray(topic.moduleDependencies)) throw new Error(owner + ' 的 moduleDependencies 必须是数组');
-  for (const name of topic.moduleDependencies) if (!modules.has(name)) throw new Error(owner + ' 的模块不存在：' + name);
+  // 作者开工是路径导航，不声明运行依赖；其他主题仍必须有模块列表。
+  const isAuthoringStart = topic.type === '作者开工';
+  if (!Array.isArray(topic.moduleDependencies) && !isAuthoringStart) throw new Error(owner + ' 的 moduleDependencies 必须是数组');
+  if (Array.isArray(topic.moduleDependencies)) {
+    for (const name of topic.moduleDependencies) if (!modules.has(name)) throw new Error(owner + ' 的模块不存在：' + name);
+  }
   if (topic.regionDependencies) {
     const region = topic.regionDependencies;
     if (typeof region !== 'object' || !Array.isArray(region.groups)) throw new Error(owner + ' 的 regionDependencies 非法');
@@ -227,7 +231,8 @@ function buildTopic(topic) {
     kind: 'topic', id: topic.id, name: topic.name, cn: topic.cn, type: topic.type,
     category: topic.category, purpose: topic.purpose, coverage: 'curated',
     aliases: [...aliases], terms: (topic.terms || []).slice(), limits: (topic.limits || []).slice(),
-    resources, runtime: topic.runtime, moduleDependencies: topic.moduleDependencies.slice(),
+    resources, runtime: topic.runtime,
+    moduleDependencies: Array.isArray(topic.moduleDependencies) ? topic.moduleDependencies.slice() : [],
     regionDependencies: topic.regionDependencies || null, usageText: topic.usage || '',
     roleText: topic.notes || '', usage: topic.usage || '', notes: topic.notes || '',
     depsText: '', related: '', reads: '', contextText: ''
@@ -483,14 +488,21 @@ function regionDependencyView(entry) {
 }
 
 function buildTopicContext(catalog, entry, contextKey) {
-  if (!Array.isArray(entry.moduleDependencies)) throw new Error('主题条目 ' + entry.id + ' 缺少 moduleDependencies');
-  const moduleNames = entry.moduleDependencies;
+  const isAuthoringStart = entry.type === '作者开工';
+  if (!Array.isArray(entry.moduleDependencies) && !isAuthoringStart) {
+    throw new Error('主题条目 ' + entry.id + ' 缺少 moduleDependencies');
+  }
+  const moduleNames = isAuthoringStart ? [] : entry.moduleDependencies;
   const dependencies = catalog.moduleLoadingMany(moduleNames);
   const ctx = {
     key: topicContextKey(entry), label: entry.type, runtime: entry.runtime,
-    usage: entry.usageText || '', wholeLibrary: ['dist/note-library.css', 'dist/note-library.js'],
-    moduleDependencies: moduleNames.slice(), dependencies,
-    dependencySummary: dependencies.length ? loadingSummary(dependencies) : '无浏览器组件模块依赖',
+    usage: entry.usageText || '',
+    wholeLibrary: isAuthoringStart ? null : ['dist/note-library.css', 'dist/note-library.js'],
+    moduleDependencies: isAuthoringStart ? [] : moduleNames.slice(),
+    dependencies: isAuthoringStart ? [] : dependencies,
+    dependencySummary: isAuthoringStart
+      ? '导航入口：未选定组件，不声明运行依赖；按具体条目 dependencies 或整库浏览'
+      : (dependencies.length ? loadingSummary(dependencies) : '无浏览器组件模块依赖'),
     refs: refsOf(entry), notes: (entry.limits || []).concat(entry.roleText ? [entry.roleText] : [])
   };
   if (entry.type === '配方') {

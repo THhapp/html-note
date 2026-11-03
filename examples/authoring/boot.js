@@ -10,6 +10,9 @@
 
   var sessions = [];
   global.AuthoringSessions = sessions;
+  /* 稳定入口映射：名称不随页面顺序变化；AuthoringSessions 数组继续保留原顺序。 */
+  var demoSessions = {};
+  global.AuthoringDemoSessions = demoSessions;
 
   var PHASE_LABELS = {
     idle: '空闲',
@@ -52,7 +55,7 @@
     return session;
   }
 
-  /* 第四例：diagramTable 跨区域承接（依据区 + 结果表 + 辅助状态）。 */
+  /* 跨区域承接示例：diagramTable 把依据区、结果表与辅助状态分开。 */
   function mountCrossRegion(selector, title, label, phaseSelector) {
     var host = global.document.querySelector(selector);
     if (!host) throw new Error('找不到作者入口宿主：' + selector);
@@ -84,7 +87,7 @@
     return session;
   }
 
-  /* 第三例：普通 DOM 交接，自定义 Adapter 只使用公开契约（handoff-demo.js）。 */
+  /* 普通 DOM 交接示例：自定义 Adapter 只使用公开契约（handoff-demo.js）。 */
   function mountHandoff(selector, title, label, phaseSelector) {
     var host = global.document.querySelector(selector);
     if (!host) throw new Error('找不到作者入口宿主：' + selector);
@@ -98,21 +101,21 @@
   }
 
   function boot() {
-    mount('[data-author-demo="matrix"]', global.AuthoringDemos.matrix,
+    demoSessions.matrix = mount('[data-author-demo="matrix"]', global.AuthoringDemos.matrix,
       '矩阵乘法 C₁₂：先看一对来源，再看乘积', '作者装配：矩阵乘法',
       '[data-author-phase="matrix"]');
-    mount('[data-author-demo="sequence"]', global.AuthoringDemos.sequence,
+    demoSessions.sequence = mount('[data-author-demo="sequence"]', global.AuthoringDemos.sequence,
       '逐项读数：沿一行看，再汇总', '作者装配：逐项读数',
       '[data-author-phase="sequence"]');
-    mountHandoff('[data-author-demo="handoff"]',
+    demoSessions.handoff = mountHandoff('[data-author-demo="handoff"]',
       '普通 DOM 交接：来源保留到目标接住', '作者装配：普通 DOM 交接',
       '[data-author-phase="handoff"]');
-    mountCrossRegion('[data-author-demo="crossRegion"]',
+    demoSessions.crossRegion = mountCrossRegion('[data-author-demo="crossRegion"]',
       '跨区域承接：先辨认依据，结果表再出现', '作者装配：跨区域承接',
       '[data-author-phase="crossRegion"]');
   }
 
-  /* 只读辅助：控制台或临时检查脚本可读取四个会话的 phase。 */
+  /* 只读辅助：控制台或临时检查脚本可读取四个示例会话的 phase。 */
   global.AuthoringPhases = function () {
     return sessions.map(function (session) {
       var state = session.getState();

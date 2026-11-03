@@ -8,9 +8,9 @@
 
 ## 文件
 
-- `data.js`：可替换内容。矩阵乘法与逐项读数都返回 `NoteDemoRecipes.focusWorkbench` 的配置；第四例返回 `NoteDemoRecipes.diagramTable` 的 bindings/initial/steps。`steps[].scene.attention.targets` 是作者给出的观察顺序。
-- `handoff-demo.js`：第三个普通 DOM 交接小例。自定义 Adapter 只使用公开契约（Definition / Adapter / PreparedChange / EffectSpec / scene.attention），包含来源标签与目标标签，使用 `PreparedChange.sourceElements()` 与 `EffectSpec.handoff:'hold'`；不读取 `NoteDemoInternals`，不自建播放器、计时器或清理框架。
-- `boot.js`：唯一启动文件，负责 mount 四个会话（前三例 + diagramTable 跨区域例）、把 `session.getState().phase` 写到状态位；不实现播放器、字幕、计时或动画。
+- `data.js`：可替换内容。矩阵乘法与逐项读数都返回 `NoteDemoRecipes.focusWorkbench` 的配置；跨区域承接示例返回 `NoteDemoRecipes.diagramTable` 的 bindings/initial/steps。`steps[].scene.attention.targets` 是作者给出的观察顺序。
+- `handoff-demo.js`：普通 DOM 交接示例。自定义 Adapter 只使用公开契约（Definition / Adapter / PreparedChange / EffectSpec / scene.attention），包含来源标签与目标标签，使用 `PreparedChange.sourceElements()` 与 `EffectSpec.handoff:'hold'`；不读取 `NoteDemoInternals`，不自建播放器、计时器或清理框架。
+- `boot.js`：唯一启动文件，负责 mount 四个示例会话（矩阵乘法、逐项读数、普通 DOM 交接、跨区域承接），暴露稳定的 `window.AuthoringDemoSessions` 映射并把 `session.getState().phase` 写到状态位；不实现播放器、字幕、计时或动画。
 - `authoring.css`：页面外壳与内容排版；通用区域骨架来自 `src/demo/recipes.css`。
 - `index.html`：开发入口，也是自包含预览的模板。
 
@@ -34,13 +34,15 @@
 
 ## 运行状态
 
-按钮可用性不等于运行状态：末步的“下一步”禁用只表示没有下一停点，“上一步/重看”在运行中还能取消当前步骤。判断是否运行请读 `session.getState().phase`（`idle` / `running` / `error` / `disposed`）或 `session.subscribe`。默认舞台控制容器上的 `data-demo-running` / `aria-busy` 只用于样式与读屏提示，不代替 phase 判断。页面上的“状态：空闲/运行中”由 `boot.js` 订阅写出，`window.AuthoringPhases()` 可供控制台读取；没有新增公共 API。
+按钮可用性不等于运行状态：末步的“下一步”禁用只表示没有下一停点，“上一步/重看”在运行中还能取消当前步骤。判断是否运行请读 `session.getState().phase`（`idle` / `running` / `error` / `disposed`）或 `session.subscribe`。默认舞台控制容器上的 `data-demo-running` / `aria-busy` 只用于样式与读屏提示，不代替 phase 判断。页面上的“状态：空闲/运行中”由 `boot.js` 订阅写出，`window.AuthoringPhases()` 可供控制台读取。
+
+会话入口有两个：`window.AuthoringSessions` 是页面顺序数组；`window.AuthoringDemoSessions` 是稳定映射 `{ matrix, sequence, handoff, crossRegion }`，不依赖页面顺序。两者指向同一批会话，不是新的播放器/公共 API。
 
 自定义宿主按导航语义分别计算可用条件（默认舞台已经在做）：`prev`/`replay` 在 `running` 中可用于取消；`next` 在 `running` 或已到最后一帧时禁用；首帧的 `prev`/`replay` 与无帧的 `reset` 禁用。
 
 ## 普通 DOM 交接（自定义 Adapter）
 
-第三例演示“动画结束后由谁接住画面”和“来源对象保留到观察结束”。适配器对象与 Definition 都在 `handoff-demo.js`：
+普通 DOM 交接示例演示“动画结束后由谁接住画面”和“来源对象保留到观察结束”。适配器对象与 Definition 都在 `handoff-demo.js`：
 
 - 摄像机流程：初始 Frame `source` 显示来源标签；进入目标 Frame `handoff` 时 `commit()` 隐藏来源标签、预置目标标签 `opacity: 0`，并声明 `sourceElements() -> [来源标签]`。
 - attention：先观察来源标签（`groups: []`，观察目标），再到达目标标签（`groups: ['reveal']`，内容目标）。观察期来源标签保持可见；内容轨道启动时公共 scene 释放来源覆盖，来源标签退出。
@@ -52,12 +54,13 @@
 
 ## 跨区域依据 → 结果（diagramTable）
 
-第四例把“当前依据”和“结果表”拆成两个区域：`evidence` 是普通 DOM Binding，`table` 是独立 table Binding，`status` 是辅助状态。
+跨区域承接示例把“当前依据”和“结果表”拆成两个区域：`evidence` 是普通 DOM Binding，`table` 是独立 table Binding，`status` 是辅助状态。
 
 - step A/B 的 `scene.attention.targets` 都先到 `evidence`，再到达 table 的行目标（`{row:'r1'}` / `{row:'r2'}`，`groups:['row:<key>']`）。
-- table 新行在 commit 时进入 DOM，但 row-enter WAAPI 以 `opacity:0` 暂停；表目标到达后才 ready→finished，已有行不重播。该行为已由真实 Edge 探针与本 focused check 核对。
-- `status` 的视图变化也必须列入 `scene.bindings`（compile 不允许视图变化但不列入 scene）；用 `mode:'cut'` 同步提交，不写 attention target，因此不会被 Focus 巡视。
+- table 新行在 commit 时进入 DOM，但 row-enter WAAPI 以 `opacity:0` 暂停；表目标到达后才 ready→finished，已有行不重播。新行与已有行因此分别按表目标放行与保持。
+- `status` 的视图变化也必须列入 `scene.bindings`（compile 不允许视图变化但不列入 scene）；本示例用 `mode:'cut'` 做快照式同步、不写 attention target。提交方式（cut/update）与是否需要 Focus 巡视按事实和视觉需要分别判断，不要求一律 cut 或逐项巡视。
 - 跨区域只在“依据/结果无法直接对应、主要变化需要寻找”时使用公共 attention；顺序由作者给出，工具不猜重点。
+- 本示例的 `scene.timing.enterDuration: 420` / `easing: 'linear'` 与 attention `stepDuration: 360` 只是当前观感选择，不是公共标准；其他示例分别使用 440/400 等不同数值。复用时按目标读者与内容重新校准。
 
 ## 依赖
 
@@ -72,4 +75,4 @@ node scripts/build.mjs --final --release
 node scripts/build-demo-preview.mjs --template examples/authoring/index.html --output dist/作者装配与聚焦-预览.html
 ~~~
 
-默认静止，使用演示下方控件推进。前两例的完整 Definition 仍可通过 `NoteDemo.compile` 输出或把 `demo.definition` 交给 `NoteDemo.create` 检查；第三例可直接查看 `handoff-demo.js` 中的 `definition()`；第四例由 `diagramTable` 配方生成，`recipe.definition` / `recipe.layout` 可直接读取。
+默认静止，使用演示下方控件推进。矩阵乘法与逐项读数的完整 Definition 仍可通过 `NoteDemo.compile` 输出或把 `demo.definition` 交给 `NoteDemo.create` 检查；普通 DOM 交接示例可直接查看 `handoff-demo.js` 中的 `definition()`；跨区域承接示例由 `diagramTable` 配方生成，`recipe.definition` / `recipe.layout` 可直接读取。

@@ -272,7 +272,8 @@
     };
   };
 
-  /* 第四例：diagramTable 跨区域承接——先辨认依据，确认后结果表才出现新行。
+  /* 跨区域承接示例：diagramTable——先辨认依据，确认后结果表才出现新行。
+   * 本示例的 enterDuration:420 / stepDuration:360 只是观感选择，不是公共标准。
    * evidence 是观察/内容目标，table 用独立 Binding + row:<key> 组门控新行；
    * status 只是辅助状态：作为 cut 参与者同步提交（compile 要求视图变化必须列入 scene），
    * 不写 attention target，所以不被 Focus 巡视。 */

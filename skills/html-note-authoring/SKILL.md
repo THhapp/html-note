@@ -11,9 +11,9 @@ description: 使用 html-note 组件库和公共演示层，将指定知识、MD
 
 - 演示是视觉中心，必要前提、对象标签和解释沿正常阅读路径可见。用对齐、留白与层级组织信息。
 - 步骤演示采用有意义的停点，完成后保留依据与结果。字幕贴近画面下方，控件和阅读位置稳定，读者能够先后观看图形和说明。
-- 对象身份、当前关注和本步变化有主次且能对应。需要分别辨认的主要变化有先后承接，避免多处同时争抢注意。是否使用公共 Focus 按阅读需要决定：对象运动、对齐窗口、范围变化等自然引导已能对应依据与主要变化时，不必再叠框；只有跨区域依据/结果无法直接对应、主要变化需要寻找时才用。工具不猜知识重点。
-- 跨区域承接先确认依据，再让结果出现（例如表格新行）。任何 Binding 的视图变化都必须在 scene.bindings 中列出；辅助状态用 {binding:'status', mode:'cut'} 同步提交，不放进 attention targets，也不逐项巡视。table 新行可由独立 Binding 的 attention row 组（groups:['row:<key>']）放行：组放行前新行 opacity 0，目标到达后才 ready→finished；依据与结果不必在同一个 Binding。
-- 读数按语义更新：阶段、模式、目标参数可随提交；"已收到/已发出/已完成"等事实必须随领域事件或实际展示进度；预期值可提前显示但要标明目标/预期。是否巡视与何时更新分别判断，不强制所有计数分组或动画。
+- 对象身份、当前关注和本步变化有主次且能对应。需要分别辨认的主要变化有先后承接，避免多处同时争抢注意。是否使用公共 Focus 按阅读需要决定：对象运动、对齐窗口、范围变化等自然引导已能对应依据与主要变化时，不必再叠框；只有跨区域依据/结果无法直接对应、主要变化需要寻找时才用。局部高亮只是局部提示，不自动等同完整协调。知识重点由作者判断。
+- 跨区域承接先确认依据，再让结果出现。任何 Binding 的视图变化都必须在 scene.bindings 中列出，不能省略；具体放行方式（普通 update、快照式 cut、attention 分组等）按当前组件与返回值决定，不要求一律 cut。table 行组等具体接法只是分支，按 library-usage 与 public:table-adapter/public:attention 的当前返回使用，不作为通用 attention 前提。辅助状态如何提交与是否 Focus 巡视分别判断，不要求逐项巡视或数字动画。
+- 读数按语义更新：阶段、模式、目标参数摘要可随提交；"已收到/已发出/已完成"等事实必须随领域事件或实际展示进度；预期值可提前显示但要标明目标/预期。是否 Focus 巡视与何时更新是两个判断；不要求一律 cut、逐项巡视或数字动画。
 - 先定本步理解目标和主要阅读顺序：对象名称、数值、单位与必要短标注贴图，结果读数与状态记录集中，本步变化及意义由字幕解释，字段组成和推导归正文。
 - 效果组按有意义的局部变化划分，不机械按整页、整帧或每个微动作划分。groups:[] 是只观察的合法接法，但不能作为消除等待的通用替代。
 - 公共 scene 在提交前接管参与的 Binding 容器并暂停受控内容的 CSS transition；作者用 progress/WAAPI 表达变化，不另写 setSceneActive、示例私有暂停层或第二套动画。
@@ -26,10 +26,10 @@ description: 使用 html-note 组件库和公共演示层，将指定知识、MD
 | --- | --- |
 | 新制作、将 MD 预留组织成任务，或需要完整制作要求 | [制作底稿与按任务条款](references/task-brief.md) |
 | 安排整体阅读、字幕、状态和动效，或判断视觉取舍 | [阅读与演示共识](references/principles.md) |
-| 作者开工：选静态组件、配方、跨区域承接或自定义画面 | 先运行 `node <Skill目录>/scripts/query.mjs show authoring:start --root <库目录> --json`，按返回的 guide/example/fragment/minimal/api/verify/table 资源继续；缺具体能力再 show/read 单条 |
+| 作者开工：选静态组件、固定区域配方、跨区域协调或自定义画面 | 先运行 `node <Skill目录>/scripts/query.mjs show authoring:start --root <库目录> --json`，按返回的路径与资源继续；开工包不绑定具体组件，缺具体能力再 show/read 单条 |
 | 找库、选资产、取接口与示例，或核对加载和公共接入 | [查询与组件取用](references/library-usage.md) |
 | 自定义连续画面或 Adapter 接入 | [查询与组件取用](references/library-usage.md) + `show public:continuous-adapter`、`show example:continuous-scene`；完整契约按 `read` 继续 |
-| 跨区域/表格新行（table row） | `show authoring:start`、`show public:table-adapter`、`show public:attention`；接法见 library-usage 的跨区域最小接法 |
+| 跨区域协调与 Table 行组等具体分支 | `show public:table-adapter`、`show public:attention`；具体接法与依赖见 library-usage，示例直接取作者入口的跨区域承接示例 |
 | 阶段轨、消息流、分段长度条、设备连接、沿路径传播 | `show example:flow-kit`；组合阶段/报文/状态表时 `show example:flow-composition`；具体接口再按 `read` 继续 |
 | 验证实际打开、过渡、焦点/内容放行或时序疑点 | [验证与观察](references/validation.md)；指定停点用 `inspect-note --frame <id>`，过程用 `next()/replay()` |
 
@@ -37,7 +37,7 @@ description: 使用 html-note 组件库和公共演示层，将指定知识、MD
 
 ## 制作与收口
 
-1. 理解目标与观察关系：明确要回答的问题、对象、依据→主要变化→结果与必要边界，核对源材料、输出位置和本次改动范围；不替作者推断知识重点。
+1. 理解目标与观察关系：执行 Agent 是作者，应根据源材料判断要回答的问题、知识重点、对象、依据→主要变化→结果与必要边界，并核对输出位置和本次改动范围；查询、配方和运行层不自动推断这些判断。
 2. 取开工包与必要查询：先 `show authoring:start`；已知资产直接取用法，未知能力再 search/show/read。普通组件可独立使用，多停点协调采用现有公共层。
 3. 先贯通最不确定的代表过程：在实际成果中先做一个真实停点链，不先铺满页面；特殊图形可局部实现，不让内容迁就不适配组件。
 4. 正常速度观察：用 `next()/replay()` 观察依据、主要变化、结果承接和辅助状态；出现具体疑点再补 probe，`go()` 只恢复停点。保留已有正确内容，不自行把单篇任务扩大成共享库改造。

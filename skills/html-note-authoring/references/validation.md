@@ -36,7 +36,7 @@ node "<Skill目录>/scripts/inspect-note.mjs" --root "<库目录>" "D:/path/to/�
 
 ### 跨区域最小 probe
 
-针对“依据 → 结果表新行”的最小过程检查，不扩成固定矩阵或截图序列。打开作者入口第四例（会话 `window.AuthoringSessions[3]`，或页面实际暴露的第四会话），在 probe 内：
+针对“依据 → 结果表新行”的最小过程检查，不扩成固定矩阵或截图序列。打开作者入口的跨区域承接示例（会话 `window.AuthoringDemoSessions.crossRegion`，或页面实际暴露的稳定名称），在 probe 内：
 
 1. 初始表为空；`next()` 推进到依据步。
 2. 第一个 attention 目标阶段采样结果表新行：真实计算 `opacity` 应为 0（组未放行）；辅助状态文本已同步，但不在 attention targets 中。

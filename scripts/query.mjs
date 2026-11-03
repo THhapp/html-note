@@ -133,7 +133,7 @@ function commandInfo(catalog, options) {
     start: {
       entry: 'authoring:start',
       command: 'node scripts/query.mjs show authoring:start',
-      hint: '无历史上下文的新作者先取这个开工包：跨区域依据→主要变化→结果、table 新行 row 组门控、完整示例与核对入口。'
+      hint: '无历史上下文的新作者先取这个开工包：选择静态组件、配方、跨区域协调或自定义连续画面；具体条目再取依赖与接法。'
     },
     docs,
     loading: {

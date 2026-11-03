@@ -64,10 +64,10 @@ expect(info.sourceOfTruth.some((item) => item.includes('entries.mjs')) && !info.
   'info.sourceOfTruth 指向 manifests + entries.mjs + docs/examples', JSON.stringify(info.sourceOfTruth));
 expect(info.commands && info.commands.search && info.commands.show, 'info 给出真实命令入口');
 expect(info.start && info.start.entry === 'authoring:start' &&
-  info.start.command === 'node scripts/query.mjs show authoring:start' && /跨区域/.test(info.start.hint),
+  info.start.command === 'node scripts/query.mjs show authoring:start' && /静态组件|路径|依赖/.test(info.start.hint),
   'info 提供 authoring:start 开工入口', JSON.stringify(info.start));
 const infoText = run(['info']);
-expect(infoText.status === 0 && /authoring:start/.test(infoText.stdout) && /跨区域/.test(infoText.stdout),
+expect(infoText.status === 0 && /authoring:start/.test(infoText.stdout) && /静态组件|路径|依赖/.test(infoText.stdout),
   'info 文本输出提示 authoring:start 开工包', infoText.stdout.slice(0, 600));
 
 const d01Manifest = queryComponents.find((item) => item.entry.id === 'D01');
@@ -116,13 +116,15 @@ expect(searchStageTrack.ok === true && searchStageTrack.results.some((item) => i
 const searchPacketFlow = json(run(['search', '消息流', '--json']));
 expect(searchPacketFlow.ok === true && searchPacketFlow.results.some((item) => item.id === 'D08'),
   '“消息流”命中 D08', JSON.stringify(searchPacketFlow.results.map((item) => item.id)));
-const switchSearch = json(run(['search', '交换机 交换表 帧 转发', '--json']));
-expect(switchSearch.ok === true && switchSearch.results.some((item) => item.id === 'authoring:start'),
-  '“交换机 交换表 帧 转发”命中 authoring:start 开工包', JSON.stringify(switchSearch.results.map((item) => item.id)));
+const authoringStartSearch = json(run(['search', '作者开工 路径选择', '--json']));
+expect(authoringStartSearch.ok === true && authoringStartSearch.results.some((item) => item.id === 'authoring:start'),
+  '“作者开工 路径选择”命中 authoring:start 导航入口', JSON.stringify(authoringStartSearch.results.map((item) => item.id)));
+const crossRegionSearch = json(run(['search', '跨区域协调', '--json']));
+expect(crossRegionSearch.ok === true && crossRegionSearch.results.some((item) => item.id === 'authoring:start'),
+  '“跨区域协调”命中 authoring:start 路径入口', JSON.stringify(crossRegionSearch.results.map((item) => item.id)));
 const tableRowSearch = json(run(['search', '表格 新行 表项', '--json']));
-expect(tableRowSearch.ok === true && tableRowSearch.results.some((item) => item.id === 'authoring:start') &&
-  tableRowSearch.results.some((item) => item.id === 'public:table-adapter'),
-  '“表格 新行 表项”命中开工包与 table adapter', JSON.stringify(tableRowSearch.results.map((item) => item.id)));
+expect(tableRowSearch.ok === true && tableRowSearch.results.some((item) => item.id === 'public:table-adapter'),
+  '“表格 新行 表项”命中 public:table-adapter', JSON.stringify(tableRowSearch.results.map((item) => item.id)));
 const flowKit = json(run(['show', 'example:flow-kit', '--json']));
 const flowKitEntry = flowKit.entries && flowKit.entries[0];
 expect(flowKit.ok === true && flowKitEntry && flowKitEntry.resources.some((item) => item.key === 'example') && flowKitEntry.resources.some((item) => item.key === 'fragment'),
@@ -139,23 +141,36 @@ function resourceMap(entry) {
 const startShow = json(run(['show', 'authoring:start', '--json']));
 const startEntry = startShow.entries && startShow.entries[0];
 const startResources = resourceMap(startEntry || { resources: [] });
-const startExpected = ['guide', 'example', 'fragment', 'minimal', 'api', 'verify', 'table'];
-expect(startShow.ok === true && startEntry && typeof startEntry.usage === 'string' &&
-  startEntry.usage.includes('authoring:start') && startEntry.usage.includes('diagramTable') &&
-  startEntry.usage.includes("groups:['row:r2']") && startEntry.runtime === 'authoring' &&
-  startEntry.limits.some((item) => item.includes("scene.bindings") && item.includes("mode:'cut'")) &&
-  !startEntry.limits.join(' ').includes('可不在 scene.bindings') &&
-  Array.isArray(startEntry.moduleDependencies) && startEntry.moduleDependencies.includes('demo-ui') &&
-  startEntry.regionDependencies && startEntry.regionDependencies.caller === true,
-  'show authoring:start 输出 usage/runtime/regionDependencies', JSON.stringify({ usage: startEntry && startEntry.usage, runtime: startEntry && startEntry.runtime, regions: startEntry && startEntry.regionDependencies }));
-expect(startExpected.every((key) => startResources[key]) &&
+const startExpected = ['guide', 'example', 'fragment', 'minimal', 'source', 'full', 'verify'];
+const startUsage = (startEntry && startEntry.usage) || '';
+const startPurpose = (startEntry && startEntry.purpose) || '';
+const startContext = startEntry && startEntry.contexts && startEntry.contexts[0];
+expect(startShow.ok === true && startPurpose.includes('静态组件') && startPurpose.includes('配方') &&
+  startPurpose.includes('跨区域协调') && startPurpose.includes('自定义连续画面') &&
+  startUsage.includes('show') && !startUsage.includes('diagramTable') && !startUsage.includes('groups:') &&
+  /导航/.test(startUsage) && /不声明运行依赖/.test(startUsage) && /dependencies/.test(startUsage) &&
+  startEntry.limits.join(' ').includes('执行笔记的作者') && !startEntry.limits.join(' ').includes('不替作者推断') &&
+  startEntry.runtime === 'authoring' && Array.isArray(startEntry.moduleDependencies) &&
+  startEntry.moduleDependencies.length === 0 && !startEntry.regionDependencies &&
+  startContext && startContext.wholeLibrary === null &&
+  Array.isArray(startContext.moduleDependencies) && startContext.moduleDependencies.length === 0 &&
+  Array.isArray(startContext.dependencies) && startContext.dependencies.length === 0 &&
+  /导航入口/.test(startContext.dependencySummary) && /未选定/.test(startContext.dependencySummary) && /依赖/.test(startContext.dependencySummary),
+  'show authoring:start 是路径导航：四条路径、无代码示例、无运行依赖', JSON.stringify({ usage: startUsage, modules: startEntry && startEntry.moduleDependencies, summary: startContext && startContext.dependencySummary }));
+expect(JSON.stringify(Object.keys(startResources).sort()) === JSON.stringify(startExpected.slice().sort()) &&
   startResources.guide.path === 'docs/取用与组合.md' && startResources.guide.anchor === 'author-start' &&
   startResources.example.path === 'examples/authoring/index.html' &&
   startResources.fragment.path === 'examples/authoring/data.js' &&
   startResources.minimal.path === 'examples/continuous-scene/minimal.html' &&
-  startResources.api.path === 'docs/公共编排层.md' && startResources.api.anchor === 'author-attention' &&
-  startResources.verify.anchor === 'author-inspect-note' && startResources.table.anchor === '5-1-内置-adapter-的视图与目标',
-  'authoring:start 资源覆盖文档/示例/片段/最小宿主/API/核对/table 章节', JSON.stringify(Object.fromEntries(Object.entries(startResources).map(([key, item]) => [key, [item.path, item.anchor || null]]))));
+  startResources.source.path === 'src/demo/recipes.js' &&
+  startResources.full.path === 'examples/flow-composition/index.html' &&
+  startResources.verify.anchor === 'author-inspect-note' && !startResources.api && !startResources.table,
+  'authoring:start 资源含具体示例/片段/源码/完整示例/核对入口，去除 table 专章', JSON.stringify(Object.fromEntries(Object.entries(startResources).map(([key, item]) => [key, [item.path, item.anchor || null]]))));
+const startTopic = TOPICS.find((topic) => topic.id === 'authoring:start');
+const startTerms = startTopic ? startTopic.terms.concat(startTopic.aliases) : [];
+expect(startTopic && ['路径选择', '静态组件', '配方', '跨区域协调', '自定义连续画面', '依赖', '加载'].every((term) => startTerms.includes(term)) &&
+  ['交换机', '交换表', '帧', '转发', '端口', '结果表', '表格', '新行', '表项'].every((term) => !startTerms.includes(term)),
+  'authoring:start 术语按真实用途组织，不再绑定具体测试题词', JSON.stringify(startTopic && { terms: startTopic.terms, aliases: startTopic.aliases }));
 const startShowText = run(['show', 'authoring:start']);
 expect(startShowText.status === 0 && /用法:/.test(startShowText.stdout) && /可读资源:/.test(startShowText.stdout) &&
   /authoring:start/.test(startShowText.stdout), 'show authoring:start 文本输出 usage 与可读资源', startShowText.stdout.slice(0, 500));
@@ -235,9 +250,13 @@ const tableEntry = tableAdapterEntry.entries && tableAdapterEntry.entries[0];
 const tableResources = resourceMap(tableEntry || { resources: [] });
 expect(tableEntry && tableResources.full && tableResources.full.path === 'examples/authoring/index.html' &&
   /row:<encodeURIComponent/.test(tableEntry.notes) && /opacity:0/.test(tableEntry.notes) &&
-  /独立 Binding/.test(tableEntry.notes) && /authoring/.test(tableEntry.notes) &&
-  /mode:'cut'/.test(tableEntry.notes) && !/可不在 scene.bindings/.test(tableEntry.notes),
-  'table adapter 标注独立 Binding row 组门控与 authoring 跨区域示例', JSON.stringify({ resources: Object.keys(tableResources), notes: tableEntry && tableEntry.notes }));
+  /scene.bindings/.test(tableEntry.notes) && tableEntry.notes.includes('阶段/模式/目标参数摘要') &&
+  /已收到|已完成/.test(tableEntry.notes) && /是否 Focus 巡视另判/.test(tableEntry.notes) &&
+  /不要求一律 cut/.test(tableEntry.notes) &&
+  /demo-ui/.test(tableEntry.notes) && /场景闭包/.test(tableEntry.notes) &&
+  !/用 mode:'cut' 同步提交/.test(tableEntry.notes) &&
+  !/可不在 scene.bindings/.test(tableEntry.notes) && !/已用|真实探针/.test(tableEntry.notes),
+  'table adapter 直接说明 row 组门控、默认舞台 demo-ui 与场景闭包，不写过程话术', JSON.stringify({ resources: Object.keys(tableResources), notes: tableEntry && tableEntry.notes }));
 const flowStageEntry = json(run(['show', 'public:flow-stage-adapter', '--json']));
 expect(flowStageEntry.ok === true && flowStageEntry.entries && flowStageEntry.entries[0] && flowStageEntry.entries[0].resources.some((item) => item.key === 'source'),
   'show public:flow-stage-adapter 返回源码资源', JSON.stringify(flowStageEntry.entries && flowStageEntry.entries[0] && flowStageEntry.entries[0].resources));
@@ -380,10 +399,14 @@ const attentionResources = resourceMap(attentionEntry);
 const attentionLimits = (attentionEntry.limits || []).join(' ');
 expect(attentionResources.example.path === 'examples/authoring/index.html' &&
   attentionResources.full.path === 'examples/continuous-scene/index.html' &&
-  /新行/.test(attentionEntry.notes) && /独立 Binding/.test(attentionEntry.notes) && /authoring/.test(attentionEntry.notes) &&
-  /mode:'cut'/.test(attentionEntry.notes) && !/可不在 scene.bindings/.test(attentionEntry.notes) &&
+  /public:table-adapter/.test(attentionEntry.notes) && /scene.bindings/.test(attentionEntry.notes) &&
+  attentionEntry.notes.includes('阶段/模式/目标参数摘要') && /已收到|已完成/.test(attentionEntry.notes) &&
+  /是否 Focus 巡视另判/.test(attentionEntry.notes) && /不要求一律 cut/.test(attentionEntry.notes) &&
+  !/用 mode:'cut' 同步提交/.test(attentionEntry.notes) &&
+  !/可不在 scene.bindings/.test(attentionEntry.notes) && !/已用|真实探针/.test(attentionEntry.notes) &&
+  !/opacity:0/.test(attentionEntry.notes) &&
   (attentionLimits.match(/local 支持/g) || []).length === 1,
-  'attention 指向跨区域示例、记录 table row 独立 Binding 门控并去重 local 段落', JSON.stringify({ resources: Object.fromEntries(Object.entries(attentionResources).map(([key, item]) => [key, item.path])), localCount: (attentionLimits.match(/local 支持/g) || []).length }));
+  'attention 只保留观察顺序并指向 table adapter，不写 Table 细节与过程话术', JSON.stringify({ resources: Object.fromEntries(Object.entries(attentionResources).map(([key, item]) => [key, item.path])), localCount: (attentionLimits.match(/local 支持/g) || []).length }));
 const attentionContext = json(run(['show', 'public:attention', '--context', 'scene', '--json']));
 expect(attentionContext.ok === false && attentionContext.missing[0].error === 'unknown_context' &&
   attentionContext.missing[0].availableContexts.some((item) => item.key === 'public') &&

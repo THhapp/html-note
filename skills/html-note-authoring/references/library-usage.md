@@ -28,25 +28,25 @@ node <Skill目录>/scripts/query.mjs show public:attention --json
 node <Skill目录>/scripts/query.mjs show D01 --context independent --json
 node <Skill目录>/scripts/query.mjs show public:continuous-adapter --json
 node <Skill目录>/scripts/query.mjs read authoring:start guide --json
-node <Skill目录>/scripts/query.mjs read authoring:start table --json
+node <Skill目录>/scripts/query.mjs show recipe:composition --json
 node <Skill目录>/scripts/query.mjs show tool:inspect-note --json
 ```
 
-`show` 返回条目真实可用的上下文；上下文不匹配时按返回的可用上下文重试，不套用其他入口。`read` 的资源键按条目实际声明：`api`/`source`/`guide`/`example`/`fragment`/`full`/`minimal`/`control` 等。依赖闭包由库的结构化条目与 manifest 推导，使用查询结果给出的依赖；空搜索不等于库没有能力。
+`show` 返回条目真实可用的上下文；上下文不匹配时按返回的可用上下文重试，不套用其他入口。`read` 的资源键按条目实际声明：`api`/`source`/`guide`/`example`/`fragment`/`full`/`minimal`/`control` 等。`authoring:start` 是导航条目，不声明运行依赖；具体组件、配方与示例的依赖按条目返回的 `dependencies`/`regionDependencies` 取，不手写模块闭包清单。空搜索不等于库没有能力。
 
 ## 作者开工包与路径选择
 
-`show authoring:start` 一次返回作者开工所需的结构化入口：开工指南、完整作者示例、数据片段、最小宿主、attention API、本地核对与 table 目标说明；`usage` 给出跨区域最小的配方与目标顺序。先取它，再按缺什么补单条，不通读全部资料。
+`show authoring:start` 一次返回通用开工入口：取用指南、作者示例、最小连续画面宿主、实现源码、完整示例与本地核对入口；不绑定某个具体组件或 Table 做法。先取它，再按缺什么补单条，不通读全部资料。
 
 | 本次要做 | 先取 | 继续 |
 | --- | --- | --- |
 | 单个静态组件/图形，无演示运行层 | `show <ID> --context independent` | 组件 API 的 mount/update |
-| 固定区域的多个停点 | `focusWorkbench` / `stagePacket` / `diagramTable` / `repeatStages` | 配方条目与作者示例 |
-| 跨区域“依据→主要变化→结果”，表出现新行 | `authoring:start` + `diagramTable` + attention row 组 | 下一节最小接法 |
+| 固定区域的多个停点 | 配方 `focusWorkbench` / `stagePacket` / `diagramTable` / `repeatStages` | 配方条目与作者示例 |
+| 跨区域协调：依据与结果分处不同区域，需要先后承接 | 公共 attention + 实际组件条目；Table 行组只是具体分支之一 | 下文“具体分支” |
 | 自绘画面、局部变化，希望少写 Adapter 胶水 | `public:continuous-adapter` | 自定义连续画面最小接法 |
 | 自备整个舞台 | `NoteDemo.create` | 公共层条目或目标库当前 API |
 
-开工顺序：理解目标与观察关系 → 取开工包 → 先贯通最不确定的代表过程 → 正常速度观察依据/变化/结果 → 扩充与交付。配方与公共层的完整参数按资源键 `read`，不凭名称猜。
+开工顺序：执行 Agent 作为作者判断知识重点与观察关系 → 取开工包 → 先贯通最不确定的代表过程 → 正常速度观察依据/变化/结果 → 扩充与交付。配方与公共层的完整参数按资源键 `read`，不凭名称猜。
 
 ## 加载与接法选择
 
@@ -59,11 +59,11 @@ node <Skill目录>/scripts/query.mjs show tool:inspect-note --json
 <script src="./dist/note-library.js"></script>
 ```
 
-按模块加载时加载 `dist/modules` 下目标模块及其真实声明依赖。`NoteDemo.mount` 使用默认舞台，依赖 `demo-ui` 及其传递闭包；`NoteDemo.create` 使用自备 presentation，依赖止于 `demo-runtime`，不能只按 create 的依赖推 mount。
+按模块加载时按条目返回的 `dependencies`/`regionDependencies` 加载目标模块及其真实声明依赖：`NoteDemo.create` 使用场景/运行闭包，`NoteDemo.mount` 另需默认舞台 `demo-ui` 及其传递依赖；具体区域组件按实际 Binding 所属模块补。不同配方/示例的依赖分别取，不手写一套模块闭包清单。
 
-## 跨区域承接与 table 新行
+## 具体分支：跨区域承接与 Table 行组
 
-“依据（如图形/文本）→ 主要变化 → 结果表出现新行”跨区域承接时，先辨认依据，再让结果出现。table 新行可由独立 Binding 的 attention row 组门控：
+“依据 → 主要变化 → 结果”跨区域承接时，先辨认依据，再让结果出现；Table 新行只是其中一种具体分支。按 `public:table-adapter`/`public:attention` 的当前返回使用，不把 Table 当作开工默认：
 
 ```js
 var recipe = NoteDemoRecipes.diagramTable({
@@ -91,11 +91,11 @@ var recipe = NoteDemoRecipes.diagramTable({
 NoteDemo.mount(host, { definition: recipe.definition, layout: recipe.layout });
 ```
 
-已核实事实：新行在 commit 时进入 DOM，行级 WAAPI 在组放行前以 `opacity:0` 暂停；attention 到达该行、`groups:['row:<key>']` 放行后，整行才 ready→finished。组名由 table Adapter 按 `row:<encodeURIComponent(key)>` 生成；独立 table Binding 可用 `{row:'<key>'}` 定位，不必与依据同 Binding，已有行不重播。
+机制：新行在 commit 时进入 DOM，行级 WAAPI 在组放行前以 `opacity:0` 暂停；attention 到达该行、`groups:['row:<key>']` 放行后，整行才 ready→finished。组名由 table Adapter 按 `row:<encodeURIComponent(key)>` 生成；独立 table Binding 可用 `{row:'<key>'}` 定位，不必与依据同 Binding，已有行不重播。上面的 status 用 `mode:'cut'` 只是快照式同步的一种写法，不是通用要求。
 
-必须遵守：任何 Binding 的视图变化都必须在 scene.bindings 中列出；不能因为辅助状态不需要 Focus 就省略，否则公共 compile 报“不能静默降级为 cut”。辅助状态用 `{binding:'status', mode:'cut'}` 同步提交，不放进 attention targets，也不逐项巡视。
+任何 Binding 的视图变化都必须在 scene.bindings 中列出，不能省略；辅助状态如何提交（update/cut 等）与是否需要 Focus 巡视是两个判断，不要求一律 cut、逐项巡视或数字动画。
 
-是否使用 Focus 单独判断：对象运动、对齐窗口、范围变化等自然引导已能对应依据与结果时，可以不用公共 attention；只有跨区域依据/结果无法直接对应、主要变化需要寻找时才用。工具不猜知识重点。完整示例与 API 从开工包的 `example`/`fragment`/`table`/`api` 资源继续。
+是否使用 Focus 单独判断：对象运动、对齐窗口、范围变化等自然引导已能对应依据与结果时，可以不用公共 attention；只有跨区域依据/结果无法直接对应、主要变化需要寻找时才用。知识重点由作者判断，工具不猜。完整示例与 API 按开工包与条目当前返回的资源继续。
 
 ## 自定义连续画面接入
 
@@ -150,7 +150,7 @@ node <Skill目录>/scripts/inspect-note.mjs "<成品HTML绝对路径>" --root <�
 node <Skill目录>/scripts/inspect-note.mjs "<成品HTML绝对路径>" --probe "<probe模块绝对路径>" --root <库目录> --json
 ```
 
-- 页面需要驱动时设置 `window.__inspectSession = session`，或用 `--session` 指定明确表达式（作者示例第 4 个会话是 `window.AuthoringSessions[3]`）。
+- 页面需要驱动时设置 `window.__inspectSession = session`，或用 `--session` 指定明确表达式；作者入口用稳定映射 `window.AuthoringDemoSessions`（如 `.crossRegion`），不依赖固定数组下标。
 - `--frame <frameId>` 先用公开 `session.go(frameId)` 恢复停点并确认实际落点，再执行截图/probe；未知 Frame、空参数或会话缺失会明确失败，不默默回到初态。
 - `go()` 只证明停点恢复。要证明动画、焦点到达、内容放行、取消或恢复过程，在 probe 内用 `next()/replay()` 真实推进；时序疑点用 `inspect.sample()` 采样。跨区域最小 probe 见 [验证与观察](validation.md#跨区域最小-probe)。
 - probe 导出 `default async ({ page, inspect }) => ...`，与打开的页面同页；只显式调用 `screenshot(绝对路径)` 时写文件。长 JSON 一次重定向到 UTF-8 文件再解析。
@@ -158,7 +158,7 @@ node <Skill目录>/scripts/inspect-note.mjs "<成品HTML绝对路径>" --probe "
 
 ## 取用时注意
 
-组件、组合块、配方和公共接法承担不同工作。`show` 的上下文区分独立调用、scene、默认舞台等入口；依赖和用法必须对应所选入口。示例分为完整实例、配置骨架和源码片段，复用结构相符的部分，领域计算、对象身份和本篇观察安排由作者提供。
+执行 Agent 是作者：知识重点、理解目标、观察关系与表达方式由你根据源材料判断，查询、配方和运行层不自动推断。组件、组合块、配方和公共接法承担不同工作；`show` 的上下文区分独立调用、scene、默认舞台等入口，依赖和用法必须对应所选入口。示例分为完整实例、配置骨架和源码片段，复用结构相符的部分，领域计算、对象身份和本篇观察安排由作者提供。
 
 普通调用先取当前用法和必要契约；资料冲突、接口缺项或具体故障再深入实现。公共协调按真实句柄执行，作者不要另建播放器或用等待时间替代完成关系，也不用私有暂停层代替公共接管。
 

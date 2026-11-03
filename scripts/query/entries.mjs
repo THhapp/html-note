@@ -5,52 +5,46 @@
 export const TOPICS = [
   {
     "id": "authoring:start",
-    "name": "作者开工包 authoring:start",
-    "cn": "作者跨区域开工",
+    "name": "作者开工与路径选择 authoring:start",
+    "cn": "作者开工与路径选择",
     "type": "作者开工",
-    "category": "作者入口；非组件，一次取得取用文档、示例、API 与核对方法。",
-    "purpose": "用一次查询取得跨区域作者开工所需的依据→主要变化→结果接法、table 新行门控、完整示例、最小宿主与核对入口。",
+    "category": "作者入口；导航条目，不声明运行依赖。",
+    "purpose": "一次选择作者路径：静态组件、配方、跨区域协调、自定义连续画面；选定后用具体条目返回的 dependencies 加载。",
     "limits": [
-      "不推断知识重点；自然引导（对象运动、对齐窗口、范围变化）可单独成立。只有跨区域依据/结果无法直接对应、主要变化需要寻找时，才需要公共 attention。",
-      "table 新行可由独立 Binding 的 attention row 组门控（已用 authoring 第四示范核对）；辅助状态若视图变化，也必须在 scene.bindings 中列出，用 mode:'cut' 同步提交，不放进 attention、不逐项巡视。"
+      "查询/配方/运行层不推断知识重点；执行笔记的作者应根据源材料判断理解目标、观察关系与表达方式。",
+      "本条目只做路径选择导航，不声明运行依赖；选定具体条目后以该条目返回的 dependencies 为准，整库可用于浏览。对象运动、对齐窗口、范围变化等自然引导可单独成立，只有跨区域依据/结果无法直接对应、主要变化需要寻找时才需要公共 attention。"
     ],
     "terms": [
       "作者开工",
-      "跨区域",
+      "路径选择",
+      "静态组件",
+      "配方",
+      "跨区域协调",
+      "自定义连续画面",
+      "依赖",
+      "加载",
+      "观察关系",
       "依据",
       "结果",
-      "承接",
-      "焦点",
       "attention",
-      "表格",
-      "新行",
-      "表项",
-      "独立 Binding",
-      "自定义 scene",
-      "交换机",
-      "交换表",
-      "帧",
-      "转发",
-      "端口",
-      "结果表",
-      "先看依据",
-      "row 组"
+      "scene",
+      "写笔记",
+      "组合"
     ],
     "aliases": [
       "authoring:start",
       "开工包",
       "作者入口",
-      "跨区域承接",
-      "表格新行",
-      "表项出现",
-      "独立Binding",
-      "scene.attention",
-      "帧转发",
-      "依据→结果",
-      "table row",
-      "先看依据再展开",
-      "作者跨区域开工",
-      "row:<key>"
+      "作者路径",
+      "路径选择",
+      "静态组件",
+      "配方",
+      "跨区域协调",
+      "自定义连续画面",
+      "依赖查询",
+      "加载方式",
+      "观察关系",
+      "组合路径"
     ],
     "resources": [
       {
@@ -71,31 +65,22 @@ export const TOPICS = [
         "key": "minimal"
       },
       {
-        "path": "docs/公共编排层.md",
-        "anchor": "author-attention",
-        "key": "api"
+        "path": "src/demo/recipes.js",
+        "key": "source"
+      },
+      {
+        "path": "examples/flow-composition/index.html",
+        "key": "full"
       },
       {
         "path": "docs/公共编排层.md",
         "anchor": "author-inspect-note",
         "key": "verify"
-      },
-      {
-        "path": "docs/公共编排层.md",
-        "anchor": "5-1-内置-adapter-的视图与目标",
-        "key": "table"
       }
     ],
     "runtime": "authoring",
-    "moduleDependencies": [
-      "demo-ui"
-    ],
-    "usage": "`node scripts/query.mjs show authoring:start`；`diagramTable({ diagram:{slot:'evidence'}, table:{slot:'table',options:{rowKey:'id',stableStateLabels:false}}, status:{slot:'status'} })`；`scene.attention.targets=[{binding:'evidence',query:{part:'value'}},{binding:'table',query:{row:'r2'},groups:['row:r2'],holdDuration:0}]`。",
-    "notes": "实际可运行的第四示范见 `examples/authoring/index.html`（evidence→table 跨区域）；数据片段在 `examples/authoring/data.js`；最小宿主见 `examples/continuous-scene/minimal.html`；API 与核对方法用 api/verify 资源。",
-    "regionDependencies": {
-      "caller": true,
-      "groups": []
-    }
+    "usage": "`node scripts/query.mjs show <具体条目>` 选择路径：静态组件（如 D01）、配方（recipe:composition）、跨区域协调（public:attention 与 examples/authoring）、自定义连续画面（public:continuous-adapter 与 examples/continuous-scene）。本入口只做导航，不声明运行依赖；选定后按该条目返回的 dependencies 加载，整库可用于浏览。",
+    "notes": "四条路径都从具体条目进入：静态组件如 D01/R01，配方如 recipe:composition，跨区域协调从 public:attention 与 `examples/authoring/index.html`，自定义连续画面从 public:continuous-adapter 与 `examples/continuous-scene/`；本条目自身不加载任何组件。"
   },
   {
     "id": "recipe:focusWorkbench",
@@ -291,7 +276,7 @@ export const TOPICS = [
       "demo-runtime"
     ],
     "usage": "`scene: { bindings:[...], attention:{ targets:[{binding,query,groups?,holdDuration?,range?}], stepDuration? } }`；groups 省略=整 Binding 门控、`[]`=只观察、非空=按组放行。",
-    "notes": "`examples/continuous-scene/demo.js` 是双组按焦点放行的接入片段；`examples/authoring/index.html` 的第四示范是 evidence→table 跨区域完整示例；传播 `demo.js` 是另一条真实观察路线示例。table 新行可由独立 Binding 的 attention row 目标（`groups:['row:<key>']`）门控：新行在组放行前 opacity:0，目标到达后才 ready→finished（已用 authoring table demo 核对）。辅助状态若视图变化，也必须在 scene.bindings 中列出，用 mode:'cut' 同步提交，不放进 attention、不逐项巡视。受控内容的 CSS transition 由公共 Binding 容器统一接管，不靠 Adapter 或示例自己暂停。"
+    "notes": "`examples/continuous-scene/demo.js` 是双组按焦点放行的接入片段；`examples/authoring/index.html` 是依据→结果跨区域示例；传播 `demo.js` 是另一条真实观察路线示例。跨区域时 attention 只负责观察顺序；table 新行/行组门控与辅助状态的 cut 提交归 `public:table-adapter` 与对应示例，不在通用 attention 里推演 Table 细节。辅助状态若视图变化，也必须列入 scene.bindings；阶段/模式/目标参数摘要可随提交，已收到/已完成事实随领域事件或实际展示进度；cut/update 按事实与视觉需要，是否 Focus 巡视另判，不要求一律 cut、逐项巡视或数字动画。受控内容的 CSS transition 由公共 Binding 容器统一接管，不靠 Adapter 或示例自己暂停。"
   },
   {
     "id": "public:handoff",
@@ -925,7 +910,7 @@ export const TOPICS = [
       "ui-content"
     ],
     "usage": "Binding 写 `{ adapter:'table', slot:'table', options:{ rowKey:'key' } }`；视图 `{columns,rows,sort,emphasis,caption,empty,dense,maxHeight}`。",
-    "notes": "scene 接入，不是新组件。row 组名 `row:<encodeURIComponent(rowKey)>`；新行 row-enter 在组放行前以 opacity:0 暂停，独立 Binding 的 attention row 目标（`query:{row:'r2'}`、`groups:['row:r2']`）到达后才 ready→finished（已用 authoring 第四示范核对）。辅助状态若视图变化，也必须在 scene.bindings 中列出，用 mode:'cut' 同步提交，不放进 attention、不逐项巡视。跨区域 table row demo 见 `examples/authoring/index.html`；流程组合示例保留在 example 资源。"
+    "notes": "scene 接入，不是新组件。row 组名 `row:<encodeURIComponent(rowKey)>`；新行 row-enter 在组放行前以 opacity:0 暂停，attention 的 row 目标（`query:{row:'r2'}`、`groups:['row:r2']`）到达后才 ready→finished；已有行不重播。辅助状态视图变化也须列入 scene.bindings；阶段/模式/目标参数摘要可随提交，已收到/已完成事实随领域事件或实际展示进度；cut/update 按事实与视觉需要，是否 Focus 巡视另判，不要求一律 cut、逐项巡视或数字动画。使用默认舞台 NoteDemo.mount／完整作者页另加 demo-ui；本条 dependencies 是 Table Adapter 场景闭包。跨区域 table row 示例见 `examples/authoring/index.html`；流程组合示例保留在 example 资源。"
   },
   {
     "id": "public:flow-stage-adapter",
