@@ -218,7 +218,6 @@ function buildTopic(topic) {
     anchor: spec.anchor || null, readable: !/^https?:/.test(spec.path)
   }));
   const aliases = new Set([topic.id, topic.name, topic.cn].filter(Boolean));
-  for (const term of topic.terms || []) if (term) aliases.add(term);
   for (const alias of topic.aliases || []) if (alias) aliases.add(alias);
   return {
     kind: 'topic', id: topic.id, name: topic.name, cn: topic.cn, type: topic.type,
