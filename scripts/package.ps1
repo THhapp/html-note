@@ -106,6 +106,7 @@ try {
     'tests/checks/flow-split-check.mjs', 'tests/checks/flow-geometry-check.mjs',
     'tests/checks/stable-layout-check.mjs', 'tests/checks/attention-composition-check.mjs',
     'tests/checks/density-config-check.mjs', 'tests/checks/density-screen-check.mjs',
+    'tests/checks/minimal-scene-check.mjs',
     'tests/checks/query-closure-host-check.mjs',
     'scripts/package.ps1', 'scripts/expected-ids.json', 'scripts/lib/source-order.mjs',
     'gallery/index.html', 'gallery/gallery.js', 'gallery/gallery.css',

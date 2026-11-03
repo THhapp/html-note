@@ -51,7 +51,7 @@ function publicResource(resource) {
 
 function searchProjection(result) {
   const entry = result.entry;
-  const resources = (entry.resources || []).filter((item) => ['api', 'source', 'example', 'fragment', 'demo'].includes(item.key)).slice(0, 4).map(publicResource);
+  const resources = (entry.resources || []).filter((item) => ['api', 'source', 'example', 'fragment', 'demo', 'full', 'minimal', 'guide'].includes(item.key)).slice(0, 8).map(publicResource);
   return {
     id: entry.id,
     name: entry.name,
@@ -175,31 +175,52 @@ function commandSearch(catalog, query, options) {
   if (options.type) filters.type = String(options.type);
   if (options.module) filters.module = String(options.module);
   const result = search(catalog, query, { filters, limit });
+  const suggestions = (result.suggestions || []).map((item) => ({
+    ...searchProjection(item),
+    suggestionFor: item.suggestionQueries.slice()
+  }));
   const data = {
     ok: true, command: 'search', query,
     filters,
     scanned: catalog.entries.length,
     total: result.total,
     returned: result.results.length,
-    results: result.results.map(searchProjection)
+    results: result.results.map(searchProjection),
+    suggestionsTotal: suggestions.length,
+    suggestions
   };
-  if (!result.total) data.message = '没有匹配条目；可以换用用途词、公开名、ID，或查完整组件目录 docs/组件目录.md。不要据此判断库缺少能力。';
+  if (!result.total) {
+    data.message = suggestions.length
+      ? '没有精确匹配；以下 suggestions 只来自查询拆词后的真实检索命中，请逐项确认是否相关。'
+      : '没有匹配条目，也没有可依据的相关候选；可以换用用途词、公开名、ID，或查完整组件目录 docs/组件目录.md。不要据此判断库缺少能力。';
+  }
   return data;
 }
 
 function textSearch(data) {
   const lines = [];
-  lines.push('搜索 "' + data.query + '" · 命中 ' + data.total + ' / 返回 ' + data.returned + '（扫描 ' + data.scanned + ' 条目）');
-  if (!data.results.length) { lines.push(''); lines.push(data.message); return lines.join('\n'); }
-  for (const [index, item] of data.results.entries()) {
+  lines.push('搜索 "' + data.query + '" · 精确命中 ' + data.total + ' / 返回 ' + data.returned + '（扫描 ' + data.scanned + ' 条目）');
+  function appendItem(index, item) {
     lines.push('');
     lines.push((index + 1) + '. ' + item.id + ' · ' + item.name + ' · ' + item.type + ' · ' + item.coverageLabel);
     if (item.category) lines.push('  类别/模块: ' + item.category + ' / ' + (item.module || '-'));
     lines.push('  用途: ' + item.purpose);
     if (item.limits && item.limits.length) lines.push('  边界: ' + item.limits[0]);
-    lines.push('  匹配: ' + (item.matchedBy.length ? item.matchedBy.join('; ') : 'query'));
-    if (item.next.length) lines.push('  入口: ' + item.next.map((resource) => resource.path ? resource.path + (resource.anchor ? '#' + resource.anchor : '') : resource.href).join(' | '));
+    lines.push('  匹配: ' + (item.matchedBy && item.matchedBy.length ? item.matchedBy.join('; ') : 'query'));
+    if (item.next && item.next.length) lines.push('  入口: ' + item.next.map((resource) => resource.path ? resource.path + (resource.anchor ? '#' + resource.anchor : '') : resource.href).join(' | '));
   }
+  if (!data.results.length) {
+    lines.push('');
+    lines.push(data.message);
+    if (data.suggestions && data.suggestions.length) {
+      lines.push('');
+      const basis = [...new Set(data.suggestions.flatMap((item) => item.suggestionFor || []))];
+      lines.push('相关候选（非精确结果；由拆词真实命中 ' + basis.join('/') + '）:');
+      for (const [index, item] of data.suggestions.entries()) appendItem(index, item);
+    }
+    return lines.join('\n');
+  }
+  for (const [index, item] of data.results.entries()) appendItem(index, item);
   return lines.join('\n');
 }
 

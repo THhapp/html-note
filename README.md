@@ -43,10 +43,11 @@ NoteDemo.mount(document.querySelector('[data-demo-host]'), {
 | 看全部组件 | [离线组件预览](dist/组件库-预览.html) · [gallery](gallery/index.html) |
 | 看公共编排层 | [整合预览](dist/公共编排层-整合预览.html) · [矩阵乘法对照](dist/公共层复用验证-矩阵乘法.html) |
 | 作者装配与聚焦 | [作者入口](examples/authoring/index.html) · [作者预览](dist/作者装配与聚焦-预览.html) · [配方源码](src/demo/recipes.js) |
-| 自定义图形接入 | [传播示例入口](examples/propagation/index.html) · [传播预览](dist/传播过程与局部过渡-预览.html) · [接入说明](examples/propagation/README.md) |
+| 自定义画面接入 | [接入参考](docs/自定义画面接入.md) · [最小可运行宿主](examples/continuous-scene/minimal.html) · [最小接入预览](dist/自定义画面-最小接入预览.html) · [完整连续示例](examples/continuous-scene/index.html) |
+| 自定义图形接入（传播） | [传播示例入口](examples/propagation/index.html) · [传播预览](dist/传播过程与局部过渡-预览.html) · [接入说明](examples/propagation/README.md) |
 | 流程与连接图形 | [中性示例入口](examples/flow-kit/index.html) · [中性示例预览](dist/图形扩展-中性示例.html) · [接入说明](examples/flow-kit/README.md) |
 | 流程组合配方（compact 同屏） | [组合示例入口](examples/flow-composition/index.html) · [组合预览](dist/流程组合-预览.html) · [说明](examples/flow-composition/README.md) |
-| 最小连续画面接法 | [示例入口](examples/continuous-scene/index.html) · [离线预览](dist/连续画面局部变化-预览.html) · [说明](examples/continuous-scene/README.md) |
+| 连续画面完整示例 | [示例入口](examples/continuous-scene/index.html) · [最小接入](examples/continuous-scene/minimal.html) · [离线预览](dist/连续画面局部变化-预览.html) · [说明](examples/continuous-scene/README.md) |
 | 查能力与依赖 | `node scripts/query.mjs` · [组件目录](docs/组件目录.md) · [registry](registry.json) |
 | 本地打开与量测 | `node scripts/inspect-note.mjs <成品.html> --json` · [观察入口说明](docs/公共编排层.md#author-inspect-note) |
 | 学会调用与组装 | [取用与组合](docs/取用与组合.md) · [公共编排层 API](docs/公共编排层.md) |
@@ -77,13 +78,14 @@ node scripts/query.mjs read D01 source --limit 80
 
 `info` 是接手入口，`search` 用于按名称/ID/用途/别名找候选，`show` 一次取多个条目的开工包，`read` 再沿条目引用读取完整 API 小节、源码或示例；`progress`/`attention` 直接进入作者小节，`example`/`fragment`/`source` 分别表示完整示例、局部片段和实现源码。使用 `--json` 得到稳定 JSON；退出码 `0` 成功、`1` 未找到/读取失败、`2` 参数错误。实际参数、资料覆盖、维护方式和代表包见[查询 CLI](docs/查询CLI.md)，作者检索元数据见[查询语料](docs/查询语料.md)。
 
-本地验证可用 `node scripts/inspect-note.mjs "<成品.html>" --json` 一次打开并收集观察结果；需要截图或作品专属量测时加 `--screenshot`/`--probe`。它复用工程现有 `playwright-core` 与本机 Edge，不启动常驻服务，也不把打开成功写成验收通过。详见[观察入口](docs/公共编排层.md#author-inspect-note)。
+本地验证可用 `node scripts/inspect-note.mjs "<成品.html>" --json` 一次打开并收集观察结果；需要截图或作品专属量测时加 `--screenshot`/`--probe`，要看指定停点用 `--frame <frameId> --session <表达式>`。它复用工程现有 `playwright-core` 与本机 Edge，不启动常驻服务，也不把打开成功写成验收通过。详见[观察入口](docs/公共编排层.md#author-inspect-note)。
 
 ## 文档地图
 
 | 文档 | 回答什么 |
 | --- | --- |
 | [取用与组合](docs/取用与组合.md) | 怎么选入口、加载、调用和组合；模块依赖与宿主责任 |
+| [自定义画面接入](docs/自定义画面接入.md) | 默认 helper 的最小加载、Definition、契约、组放行、来源视觉、恢复与 reduced |
 | [查询 CLI](docs/查询CLI.md) | 实际命令、JSON、上下文、结构化依赖闭包、分页、资料覆盖与维护方式 |
 | [查询语料](docs/查询语料.md) | 作者别名、用途、适用边界与引用；CLI 的检索元数据 |
 | [提示词撰写](docs/提示词撰写.md) | 将 MD 预留组织为制作任务，提供通用底稿和按需条款 |
@@ -111,6 +113,7 @@ node scripts/build-demo-preview.mjs --template examples/authoring/index.html --o
 node scripts/build-demo-preview.mjs --template examples/reuse-matrix-product/standalone.html --output dist/公共层复用验证-矩阵乘法.html
 node scripts/build-demo-preview.mjs --template examples/propagation/index.html --output dist/传播过程与局部过渡-预览.html
 node scripts/build-demo-preview.mjs --template examples/continuous-scene/index.html --output dist/连续画面局部变化-预览.html
+node scripts/build-demo-preview.mjs --template examples/continuous-scene/minimal.html --output dist/自定义画面-最小接入预览.html
 node scripts/build-demo-preview.mjs --template examples/flow-kit/index.html --output dist/图形扩展-中性示例.html
 node scripts/build-demo-preview.mjs --template examples/flow-composition/index.html --output dist/流程组合-预览.html
 node scripts/build-demo-preview.mjs

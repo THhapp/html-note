@@ -21,7 +21,10 @@
 node scripts/inspect-note.mjs "D:/path/to/成品.html" --json
 node scripts/inspect-note.mjs "D:/path/to/成品.html" --screenshot "D:/path/out.png" --width 860 --height 1000
 node scripts/inspect-note.mjs "D:/path/to/成品.html" --probe "D:/path/probe.mjs" --json
+node scripts/inspect-note.mjs "D:/path/to/成品.html" --frame <frameId> --session "window.__inspectSession" --json
 ```
+
+- `--frame <frameId>` 用公开 `session.go(frameId)` 恢复停点并确认实际落点后才执行截图/probe；未知 Frame、空参数或会话缺失会明确失败，不退回初始态冒充定位成功。它只证明静态停点，动画/焦点/组放行仍用 `next()/replay()`。
 
 - probe 导出 `default async ({ page }) => ...`，复用同一个已打开页面；需要连续推进、采样或读取 DOM 时都在 probe 内完成，不另起浏览器。
 - `--help` 是实现参数的最终事实来源；默认不生成截图、报告或日志，输出文件只在调用方明确指定时写出。

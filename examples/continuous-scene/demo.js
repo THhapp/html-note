@@ -83,6 +83,8 @@
       }
       return NoteDemo.timingFacts.watch(session, options);
     }
+    /* inspect-note 的默认会话入口；只读，不参与运行决策。 */
+    global.__inspectSession = session;
     global.ContinuousExample = {
       session: session,
       frames: FRAMES.map(function (frame) { return frame.id; }),

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>最小自定义画面 · 一次局部变化</title>
+<link rel="stylesheet" href="../../dist/note-library.css">
+<style>
+  html, body { margin: 0; padding: 0; background: #f4f6f9; }
+  body { font-family: "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif; color: #202938; }
+  .mm-page { max-width: 1040px; margin: 0 auto; padding: 20px; }
+  .mm-head h1 { margin: 0 0 8px; font-size: 26px; line-height: 1.35; }
+  .mm-head p { margin: 0 0 16px; max-width: 72ch; line-height: 1.65; }
+  .mm-card { padding: 18px; border: 1px solid #dce2ea; border-radius: 14px; background: #fff; }
+  .mm-hint { margin: 14px 0 0; color: #5c6879; font-size: 13px; line-height: 1.6; }
+  .mm-layout { padding: 8px 6px; }
+  .mm-meter { display: flex; flex-direction: column; gap: 8px; }
+  .mm-meter__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .mm-meter__name { font-weight: 600; }
+  .mm-meter__value { color: #315cda; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .mm-meter__track { height: 18px; border-radius: 999px; background: #eef2ff; overflow: hidden; }
+  .mm-meter__fill { display: block; width: 30%; height: 100%; border-radius: inherit; background: #315cda; }
+  .mm-meter__committed, .mm-meter__shown { margin: 0; font-size: 14px; line-height: 1.6; }
+  .mm-meter__committed { color: #5c6879; }
+  .mm-meter__shown { color: #202938; }
+</style>
+</head>
+<body>
+<main class="mm-page">
+  <header class="mm-head">
+    <h1>最小自定义画面：一次局部变化</h1>
+    <p>一个 Binding、两个状态：填充从 30% 到 84%。commit 只提交目标并写“目标已提交”；焦点到达变化区域后，progress 才推进自己的填充；恢复停点直接呈现完整画面；减少动效时 commit 直接落终态。</p>
+  </header>
+  <section class="mm-card" aria-label="最小自定义画面示例">
+    <div data-mini-host></div>
+  </section>
+  <p class="mm-hint">只使用 <code>NoteDemo.sceneAdapter.define</code> + <code>NoteDemo.mount</code> 默认舞台：normalizeView / restore / readModel / target / planStep / commit / progress / attention groups 都在本页一个 Adapter 里。</p>
+</main>
+<script src="../../dist/note-library.js"></script>
+<script>
+(function (global) {
+  'use strict';
+
+  var NoteDemo = global.NoteDemo;
+  var SceneAdapter = NoteDemo && NoteDemo.sceneAdapter;
+  if (!NoteDemo || !SceneAdapter || typeof SceneAdapter.define !== 'function' ||
+      typeof SceneAdapter.progress !== 'function' || typeof NoteDemo.mount !== 'function') {
+    throw new Error('minimal.html 需要 dist/note-library.js 提供 NoteDemo.sceneAdapter.define / progress / NoteDemo.mount。');
+  }
+
+  var MIN_PCT = 30;
+  var MAX_PCT = 84;
+
+  function percent(value, where) {
+    var number = Number(value);
+    if (!isFinite(number) || number < 0 || number > 100) {
+      throw new Error('minimal.html：' + where + ' 必须是 0–100 的数字，收到 ' + String(value));
+    }
+    return Math.round(number);
+  }
+
+  var adapter = SceneAdapter.define({
+    name: 'mini-meter',
+    sceneModes: ['update'],
+    defaultSceneMode: 'update',
+    sceneTimingDefaults: { enterDuration: 720, easing: 'linear' },
+
+    normalizeView: function (input) {
+      var view = input == null ? { pct: MIN_PCT } : input;
+      if (typeof view !== 'object' || Array.isArray(view)) {
+        throw new Error('minimal.html：视图必须是 { pct } 对象。');
+      }
+      return { model: { pct: percent(view.pct, 'view.pct') }, cues: {} };
+    },
+
+    mount: function (host) {
+      var root = document.createElement('div');
+      root.className = 'mm-meter';
+      root.setAttribute('data-part', 'root');
+      root.innerHTML = [
+        '<div class="mm-meter__head"><span class="mm-meter__name">填充比例</span><span class="mm-meter__value" data-part="value">0%</span></div>',
+        '<div class="mm-meter__track" data-part="track"><span class="mm-meter__fill" data-part="fill"></span></div>',
+        '<p class="mm-meter__committed" data-part="committed"></p>',
+        '<p class="mm-meter__shown" data-part="shown"></p>'
+      ].join('');
+      host.appendChild(root);
+
+      var fillEl = root.querySelector('[data-part="fill"]');
+      var trackEl = root.querySelector('[data-part="track"]');
+      var valueEl = root.querySelector('[data-part="value"]');
+      var committedEl = root.querySelector('[data-part="committed"]');
+      var shownEl = root.querySelector('[data-part="shown"]');
+      var model = { pct: MIN_PCT };
+
+      function paint(pct) {
+        var value = Math.round(pct);
+        fillEl.style.width = value + '%';
+        valueEl.textContent = value + '%';
+      }
+
+      function writeShownComplete(pct) {
+        shownEl.textContent = '已显现完成：' + Math.round(pct) + '%';
+      }
+
+      function writeShownProgress(pct) {
+        shownEl.textContent = '显现中：' + Math.round(pct) + '%';
+      }
+
+      function restore(viewModel) {
+        var pct = percent(viewModel && viewModel.pct, 'restore().pct');
+        model = { pct: pct };
+        paint(pct);
+        committedEl.textContent = '已提交：' + pct + '%';
+        writeShownComplete(pct);
+      }
+
+      function readModel() {
+        return { pct: model.pct };
+      }
+
+      function target(query) {
+        var part = query && typeof query === 'object' ? query.part : null;
+        if (part === 'fill') return fillEl;
+        if (part === 'track') return trackEl;
+        if (part === 'root' || part == null) return root;
+        if (part === 'value') return valueEl;
+        if (part === 'committed') return committedEl;
+        if (part === 'shown') return shownEl;
+        return null;
+      }
+
+      function planStep(input) {
+        var from = percent(input.sourceModel && input.sourceModel.pct, 'sourceModel.pct');
+        var to = percent(input.targetModel && input.targetModel.pct, 'targetModel.pct');
+        var reduced = input.reduced === true;
+        var committed = false;
+        var plan = {
+          groups: function () { return ['fill']; },
+          targets: function () { return []; },
+          commit: function () {
+            if (committed) return;
+            committed = true;
+            model = { pct: to };
+            committedEl.textContent = reduced
+              ? '目标已提交：' + to + '% · 减少动效直接显现'
+              : '目标已提交：' + to + '% · 等待放行';
+            if (reduced) {
+              paint(to);
+              writeShownComplete(to);
+            }
+          },
+          effects: function (timing) {
+            if (reduced) return [];
+            return [SceneAdapter.progress({
+              group: 'fill',
+              gate: 'ready',
+              duration: timing.enterDuration,
+              easing: timing.easing,
+              update: function (progress) {
+                var pct = from + (to - from) * progress;
+                paint(pct);
+                /* 完成前只写“显现中”，避免把已显现当成完成；progress=1 才写完整终态。 */
+                if (progress >= 1) writeShownComplete(to);
+                else if (progress > 0) writeShownProgress(pct);
+              }
+            })];
+          },
+          cleanup: function () {}
+        };
+        return plan;
+      }
+
+      return {
+        restore: restore,
+        readModel: readModel,
+        target: target,
+        planStep: planStep,
+        destroy: function () { root.remove(); }
+      };
+    }
+  });
+
+  var definition = {
+    initialFrameId: 'initial',
+    bindings: { meter: { adapter: 'mini-meter', slot: 'meter' } },
+    frames: [
+      {
+        id: 'initial',
+        caption: '初始：填充 30%。辅助行说明目标与显现状态；来源视觉在放行前保持不变。',
+        views: { meter: { pct: MIN_PCT } }
+      },
+      {
+        id: 'changed',
+        caption: '目标 84%：commit 先写“目标已提交”；焦点到达变化区域后，progress 才推进填充，完成时才写“已显现”。',
+        views: { meter: { pct: MAX_PCT } }
+      }
+    ],
+    transitions: [{
+      from: 'initial',
+      to: 'changed',
+      scene: {
+        bindings: [{ binding: 'meter', mode: 'update' }],
+        timing: { enterDuration: 760, easing: 'linear' },
+        attention: {
+          targets: [{ binding: 'meter', query: { part: 'fill' }, groups: ['fill'] }]
+        }
+      }
+    }]
+  };
+
+  function layout(container) {
+    var wrap = document.createElement('div');
+    wrap.className = 'mm-layout';
+    var slot = document.createElement('div');
+    slot.setAttribute('data-demo-slot', 'meter');
+    wrap.appendChild(slot);
+    container.appendChild(wrap);
+    return { root: wrap, slots: { meter: slot } };
+  }
+
+  function boot() {
+    var host = document.querySelector('[data-mini-host]');
+    if (!host) return;
+    var session = NoteDemo.mount(host, {
+      definition: definition,
+      layout: layout,
+      adapters: { 'mini-meter': adapter },
+      title: '最小自定义画面：一次局部变化',
+      label: '最小自定义画面接法',
+      captionLabel: '说明'
+    });
+    /* 公开给 inspect-note / 临时探针的只读入口；不参与运行决策。 */
+    global.__inspectSession = session;
+    global.MiniMeter = { session: session, definition: definition, adapter: adapter };
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
+  else boot();
+})(window);
+</script>
+</body>
+</html>

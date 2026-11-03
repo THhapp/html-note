@@ -18,6 +18,7 @@
 node scripts/query.mjs info
 node scripts/query.mjs search 矩阵
 node scripts/query.mjs search dialog --json
+node scripts/query.mjs search 设备端口连接 --json
 node scripts/query.mjs show D01
 node scripts/query.mjs show recipe:focusWorkbench --context recipe
 node scripts/query.mjs show public:progress
@@ -44,7 +45,7 @@ node scripts/query.mjs read D01 source --limit 80
 | `info` | 库位置、动态组件/模块/精选覆盖、文档入口、整库/按模块加载方式 |
 | `search <词>` | 按 ID、公开名、中文名、别名、用途、类别检索；`--type`、`--module`、`--limit` 过滤 |
 | `show <条目...>` | 一个或多个条目的取用包；`--context independent|scene|create|mount|recipe|public|authoring|tool` 选择上下文 |
-| `read <条目> <资源键>` | 读 `api`/`source`/`demo`/`example`/`fragment`/`control` 等条目声明的资源；`--offset`、`--limit` 分页，`--file <路径>` 读明确文件 |
+| `read <条目> <资源键>` | 读条目声明的资源：`api`/`source`/`example`/`fragment`/`full`/`minimal`/`guide`/`demo`/`control` 等；`--offset`、`--limit` 分页，`--file <路径>` 读明确文件 |
 
 退出码：`0` 成功（空搜索也是成功），`1` 未找到/读取失败/上下文不匹配，`2` 参数错误。JSON 错误也写到标准输出，便于调用方解析；日志和结果不混在一起。
 
@@ -92,6 +93,23 @@ node scripts/query.mjs read D01 source --limit 80
 
 精选说明的覆盖程度与组件技术状态、用户体验评价分别表示。缺少精选说明时使用已对齐的基础资料并明确范围，不补造功能。无结果时交代搜索范围及可继续查找的位置；“本批语料未覆盖”“条目不存在”“资料引用失效”不是同一个情况。
 
+### 精确结果与零结果 suggestions
+
+`search` 的 `results` 只来自完整查询的精确命中；`total` / `returned` 只统计这些精确结果。没有任何精确命中时才计算零结果候选，JSON 始终保留以下字段：
+
+| 字段 | 含义 |
+| --- | --- |
+| `results` | 精确命中；零结果时为 `[]` |
+| `total` / `returned` | 精确命中总数 / 本次返回数 |
+| `suggestionsTotal` | 零结果候选数；有精确结果时为 0 |
+| `suggestions[]` | 拆词后逐个真实检索到的候选；每项保留 `matchedBy` 来源字段和 `suggestionFor`（实际命中的拆分词） |
+
+`suggestions` 的生成规则：
+- 只把查询按空白/标点拆开并做真实子搜索；中文整段额外用 2–3 字窗口做真实子搜索，不维护热门词或按条目 ID 特判。
+- 候选只保留身份/别名/检索词/类别等字段有实际命中的条目；仅命中长用途或限制文字不作为依据。
+- 没有任何真实命中时 `suggestions` 为空，不补“热门推荐”；`message` 如实说明没有匹配条目。
+- text 输出把精确结果与相关候选分段显示，候选标题明确写出“非精确结果”及实际拆词来源。
+
 ## show 的默认取用包
 
 show 是减少反复查询的重点。默认围绕已选资产返回一个紧凑的取用包，而不是仅打印若干路径。
@@ -113,6 +131,10 @@ show 是减少反复查询的重点。默认围绕已选资产返回一个紧凑
 - 验证工具条目另按 Node 工具运行条件组织：不附整库/demo-runtime，但明确列出 `tests/tools/node_modules/playwright-core` 与本机浏览器；不会把“浏览器组件模块依赖”混成“工具运行条件”。
 - 不带上下文的 show 返回条目实际可用的上下文；请求不支持的上下文时，缺失项返回 `availableContexts` 和可执行的 `show ... --context ...` 提示，不套用其他入口。
 - 已知 Adapter 的用法直接写出其真实模式（matrix 只 `cut/update`，expression 只 `layout/cut`）；资料未确认的 Adapter 明确说“支持范围未确认”，不拿包含全部模式的通用骨架冒充具体用法。
+
+`full=...` 表示同一资产的完整示例，`minimal=...` 表示最小可运行宿主，`guide=...` 表示直接接入文档；它们与 `example` / `fragment` 分开保留，查询结果、search 的 `next` 与 `read <条目> <资源键>` 都按真实键名返回，不把最小宿主误标成完整示例。
+
+例如 `public:continuous-adapter` 的 `guide` 指向 `docs/自定义画面接入.md`，`api` 指向公共编排层的完整 Adapter 契约，`example` 是最小宿主 `examples/continuous-scene/minimal.html`，`full` 是完整示例 `examples/continuous-scene/index.html`；`example:continuous-scene` 同样以 `guide` 区分接入文档、`minimal` 区分最小宿主，`example` 保留完整页面。`read public:continuous-adapter guide|api|example|full` 分别读取对应文件，不会把接入文档或最小宿主当成完整 API。
 
 ### 依赖闭包与结构化语料
 

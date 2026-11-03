@@ -75,6 +75,63 @@ const continuousAdapter = json(run(['show', 'public:continuous-adapter', '--json
 const continuousAdapterEntry = continuousAdapter.entries && continuousAdapter.entries[0];
 expect(continuousAdapter.ok === true && continuousAdapterEntry && continuousAdapterEntry.resources.some((item) => item.key === 'api') && continuousAdapterEntry.resources.some((item) => item.key === 'source'),
   'show public:continuous-adapter 返回 API 与源码', JSON.stringify(continuousAdapterEntry && continuousAdapterEntry.resources && continuousAdapterEntry.resources.map((item) => item.key)));
+function resourceMap(entry) {
+  const map = {};
+  for (const resource of entry.resources || []) map[resource.key] = resource;
+  return map;
+}
+const adapterResources = resourceMap(continuousAdapterEntry);
+const adapterExpectedResources = ['api', 'guide', 'source', 'example', 'fragment', 'full'];
+expect(adapterExpectedResources.every((key) => adapterResources[key]) &&
+  adapterResources.api.path === 'docs/公共编排层.md' && adapterResources.api.anchor === 'author-scene-adapter' && adapterResources.api.label === '完整契约 / 用法文档' &&
+  adapterResources.guide.path === 'docs/自定义画面接入.md' && adapterResources.guide.label === '接入文档' &&
+  adapterResources.example.path === 'examples/continuous-scene/minimal.html' &&
+  adapterResources.example.label === '最小示例' &&
+  adapterResources.fragment.path === 'examples/continuous-scene/adapter.js' &&
+  adapterResources.source.path === 'src/demo/scene-adapter.js' &&
+  adapterResources.full.path === 'examples/continuous-scene/index.html' &&
+  adapterResources.full.label === '完整示例',
+  'public:continuous-adapter 直接定位接入文档、最小宿主、片段、源码与完整示例', JSON.stringify(adapterExpectedResources.map((key) => adapterResources[key] && [key, adapterResources[key].label, adapterResources[key].path])));
+expect(adapterExpectedResources.every((key) => fs.existsSync(path.join(root, adapterResources[key].path))),
+  'public:continuous-adapter 的资源路径真实存在', JSON.stringify(adapterExpectedResources.map((key) => adapterResources[key] && adapterResources[key].path)));
+for (const key of adapterExpectedResources) {
+  const read = json(run(['read', 'public:continuous-adapter', key, '--json']));
+  expect(read.ok === true && read.resource && read.resource.path === adapterResources[key].path &&
+    read.source && read.source.path === adapterResources[key].path,
+    'read public:continuous-adapter ' + key + ' 可读取真实资源', read.source && read.source.path);
+}
+const continuousExample = json(run(['show', 'example:continuous-scene', '--json']));
+const continuousExampleEntry = continuousExample.entries && continuousExample.entries[0];
+const continuousResources = resourceMap(continuousExampleEntry);
+expect(continuousExample.ok === true && continuousResources.minimal && continuousResources.minimal.path === 'examples/continuous-scene/minimal.html' &&
+  continuousResources.guide.path === 'docs/自定义画面接入.md' && continuousResources.guide.label === '接入文档' &&
+  continuousResources.api.path === 'docs/公共编排层.md' && continuousResources.api.anchor === 'author-continuous-example' &&
+  continuousResources.example.path === 'examples/continuous-scene/index.html' &&
+  continuousResources.minimal.label === '最小示例',
+  'example:continuous-scene 区分最小宿主、接入文档与完整示例', JSON.stringify(Object.fromEntries(Object.entries(continuousResources).map(([key, item]) => [key, [item.label, item.path]]))));
+const continuousMinimalRead = json(run(['read', 'example:continuous-scene', 'minimal', '--json']));
+expect(continuousMinimalRead.ok === true && continuousMinimalRead.resource.path === 'examples/continuous-scene/minimal.html' &&
+  continuousMinimalRead.source.path === 'examples/continuous-scene/minimal.html', 'read example:continuous-scene minimal 可读取最小宿主', continuousMinimalRead.source && continuousMinimalRead.source.path);
+const inspectEntryForResources = json(run(['show', 'tool:inspect-note', '--json'])).entries[0];
+const inspectResources = resourceMap(inspectEntryForResources);
+expect(inspectEntryForResources.contexts[0].usage.includes('--frame') && inspectResources.guide.path === 'docs/自定义画面接入.md' &&
+  inspectResources.example.path === 'examples/continuous-scene/minimal.html',
+  'tool:inspect-note 补 --frame、接入文档与观察入口', JSON.stringify({ usage: inspectEntryForResources.contexts[0].usage, resources: Object.keys(inspectResources) }));
+const inspectFrameSearch = json(run(['search', 'frame', '--json']));
+expect(inspectFrameSearch.ok === true && inspectFrameSearch.results.some((item) => item.id === 'tool:inspect-note'),
+  'tool:inspect-note 的通用检索词可命中 --frame/停点', JSON.stringify(inspectFrameSearch.results.map((item) => item.id)));
+const inspectGuideRead = json(run(['read', 'tool:inspect-note', 'guide', '--json']));
+expect(inspectGuideRead.ok === true && inspectGuideRead.resource.path === 'docs/自定义画面接入.md' &&
+  inspectGuideRead.source.path === 'docs/自定义画面接入.md', 'read tool:inspect-note guide 指向接入文档', inspectGuideRead.source && inspectGuideRead.source.path);
+const customScreenSearch = json(run(['search', '自定义画面', '--json']));
+const adapterSearchResult = customScreenSearch.results.find((item) => item.id === 'public:continuous-adapter');
+const continuousSearchResult = customScreenSearch.results.find((item) => item.id === 'example:continuous-scene');
+expect(customScreenSearch.ok === true && adapterSearchResult && continuousSearchResult &&
+  adapterSearchResult.next.some((item) => item.key === 'guide' && item.label === '接入文档') &&
+  adapterSearchResult.next.some((item) => item.key === 'full' && item.label === '完整示例') &&
+  continuousSearchResult.next.some((item) => item.key === 'guide' && item.label === '接入文档') &&
+  continuousSearchResult.next.some((item) => item.key === 'minimal' && item.label === '最小示例'),
+  '搜索投影支持 full/minimal 资源键与标签', JSON.stringify({ adapter: adapterSearchResult && adapterSearchResult.next, continuous: continuousSearchResult && continuousSearchResult.next }));
 const attentionApi = json(run(['read', 'public:attention', 'api', '--json']));
 expect(attentionApi.ok === true && /outset/.test(attentionApi.content) && /optional/.test(attentionApi.content),
   'attention API 含相对范围与 optional union');
@@ -239,6 +296,34 @@ expect(attentionContext.ok === false && attentionContext.missing[0].error === 'u
   '不支持的上下文返回实际可用上下文和可执行提示');
 const exampleSearch = json(run(['search', '连续画面', '--json']));
 expect(exampleSearch.ok === true && exampleSearch.results.some((item) => item.id === 'example:continuous-scene'), '最小连续画面示例可被检索');
+const splitSearch = json(run(['search', '设备端口连接', '--json']));
+expect(splitSearch.ok === true && splitSearch.total === 0 && splitSearch.results.length === 0 &&
+  splitSearch.suggestionsTotal > 0 && splitSearch.suggestions.length === splitSearch.suggestionsTotal,
+  '零结果精确结果为空，suggestions 非空且与 results 分开', JSON.stringify({ total: splitSearch.total, suggestionsTotal: splitSearch.suggestionsTotal }));
+const firstSuggestion = splitSearch.suggestions[0];
+expect(firstSuggestion && firstSuggestion.id && Array.isArray(firstSuggestion.matchedBy) && firstSuggestion.matchedBy.length > 0 &&
+  Array.isArray(firstSuggestion.suggestionFor) && firstSuggestion.suggestionFor.length > 0,
+  '零结果候选保留 matchedBy 来源与实际拆词', JSON.stringify(firstSuggestion && { id: firstSuggestion.id, matchedBy: firstSuggestion.matchedBy, suggestionFor: firstSuggestion.suggestionFor }));
+const suggestionEvidence = json(run(['search', firstSuggestion.suggestionFor[0], '--json']));
+expect(suggestionEvidence.results.some((item) => item.id === firstSuggestion.id), '候选可由其拆词真实检索复现', JSON.stringify({ query: firstSuggestion.suggestionFor[0], ids: suggestionEvidence.results.map((item) => item.id) }));
+const noBasisSearch = json(run(['search', '完全不存在的词组zzz', '--json']));
+expect(noBasisSearch.ok === true && noBasisSearch.total === 0 && noBasisSearch.results.length === 0 &&
+  noBasisSearch.suggestionsTotal === 0 && noBasisSearch.suggestions.length === 0 &&
+  /没有匹配条目/.test(noBasisSearch.message),
+  '无依据查询如实空结果，不导向固定热门', JSON.stringify({ total: noBasisSearch.total, suggestionsTotal: noBasisSearch.suggestionsTotal, message: noBasisSearch.message }));
+const exactSearch = json(run(['search', '矩阵', '--json']));
+expect(exactSearch.results.length > 0 && exactSearch.suggestionsTotal === 0 && exactSearch.suggestions.length === 0,
+  '有精确结果时 suggestions 为空，精确结果与零结果候选不混排', JSON.stringify({ total: exactSearch.total, suggestionsTotal: exactSearch.suggestionsTotal }));
+const splitSearchText = run(['search', '设备端口连接']);
+expect(splitSearchText.status === 0 && /精确命中 0/.test(splitSearchText.stdout) && /非精确结果/.test(splitSearchText.stdout) && /相关候选/.test(splitSearchText.stdout),
+  'text 输出分段说明精确结果与相关候选', splitSearchText.stdout.slice(0, 300));
+const genericPathSearch = json(run(['search', '路径', '--json']));
+const genericPortSearch = json(run(['search', '端口', '--json']));
+const genericCustomSearch = json(run(['search', '自定义画面', '--json']));
+expect(genericPathSearch.results.some((item) => item.id === 'public:propagation') &&
+  genericPortSearch.results.some((item) => item.id === 'D10') &&
+  genericCustomSearch.results.some((item) => item.id === 'public:continuous-adapter'),
+  '通用用途词可命中真实条目（路径/端口/自定义画面）', JSON.stringify({ path: genericPathSearch.results.map((item) => item.id), port: genericPortSearch.results.map((item) => item.id), custom: genericCustomSearch.results.map((item) => item.id) }));
 const exampleShow = json(run(['show', 'example:continuous-scene', '--json']));
 expect(exampleShow.ok === true && exampleShow.entries[0].contexts[0].refs.some((ref) => ref.key === 'example') &&
   exampleShow.entries[0].contexts[0].refs.some((ref) => ref.key === 'fragment'), '完整示例条目区分 example 与 fragment');

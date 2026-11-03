@@ -285,7 +285,7 @@ runner.getState();              // {progress, start, end, copies:[{id,ratio,x,y,
 打开方式：直接以 `file://` 打开 `examples/flow-kit/index.html`；页面使用整库 `dist/note-library.css|js` 和本目录演示脚本，无网络请求、无自动播放。示例中的阶段推进、消息显现、字段插入/移除和连接状态切换全部由页面按钮显式触发。
 
 ```powershell
-node scripts/inspect-note.mjs "D:/Workbench/html-note/examples/flow-kit/index.html" --json
+node scripts/inspect-note.mjs "examples/flow-kit/index.html" --json
 ```
 
 该页没有内置 NoteDemo 会话；`inspect-note` 默认的页面错误/控制台错误/外部请求检查即可。需要作品专属量测时再用 `--probe`，probe 复用同一页面。

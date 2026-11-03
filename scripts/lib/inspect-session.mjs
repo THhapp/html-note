@@ -58,6 +58,23 @@ function normalizeExpression(value, flag) {
   return value.trim();
 }
 
+/* go 的参数是单个 Frame ID：数组/null/空串/非字符串都必须在触达页面之前报 usage。 */
+function normalizeFrameId(value, where) {
+  if (typeof value !== 'string' || !value.trim()) {
+    throw coded('usage', where + ' 需要非空 Frame ID 字符串（例如 step(\'go\', \'right-again\')）；收到：' + describeValue(value) + '。');
+  }
+  return value.trim();
+}
+
+function describeValue(value) {
+  if (value === null) return 'null';
+  if (value === undefined) return 'undefined';
+  if (Array.isArray(value)) return '数组';
+  if (typeof value === 'object') return '对象';
+  if (typeof value === 'string') return JSON.stringify(value);
+  return String(value);
+}
+
 function publicState(state) {
   const source = state && typeof state === 'object' ? state : {};
   const error = source.error && typeof source.error === 'object'
@@ -217,6 +234,8 @@ export function createInspectSession(page, options = {}) {
 
   async function start(action, params, optionsValue = {}) {
     if (!ACTIONS.has(action)) throw coded('usage', 'start() 只支持 ' + Array.from(ACTIONS).join('/') + '。');
+    /* go 的 frameId 在触达页面/会话前就校验，避免把数组/null 传进 session.go。 */
+    const goFrameId = action === 'go' ? normalizeFrameId(params, "start('go', frameId)") : null;
     const expression = await ensureSession(optionsValue.session);
     const startedAt = Date.now();
     const done = page.evaluate(async ({ expr, runAction, payload }) => {
@@ -230,18 +249,23 @@ export function createInspectSession(page, options = {}) {
       } catch (error) {
         return { status: 'threw', elapsedMs: performance.now() - begin, message: error && error.message ? error.message : String(error) };
       }
-    }, { expr: expression, runAction: action, payload: params == null ? null : params });
+    }, { expr: expression, runAction: action, payload: goFrameId != null ? goFrameId : (params == null ? null : params) });
     const inspect = {
       action: action,
       startedAt: startedAt,
-      done: done.then((payload) => ({
-        action: action,
-        wallMs: Date.now() - startedAt,
-        elapsedMs: payload.elapsedMs,
-        status: payload.status,
-        result: payload.result === undefined ? null : publicResult(payload.result),
-        message: payload.message || null
-      }))
+      requestedFrameId: goFrameId,
+      done: done.then((payload) => {
+        const record = {
+          action: action,
+          wallMs: Date.now() - startedAt,
+          elapsedMs: payload.elapsedMs,
+          status: payload.status,
+          result: payload.result === undefined ? null : publicResult(payload.result),
+          message: payload.message || null
+        };
+        if (goFrameId != null) record.requestedFrameId = goFrameId;
+        return record;
+      })
     };
     return inspect;
   }
@@ -249,10 +273,41 @@ export function createInspectSession(page, options = {}) {
   async function step(action, params, optionsValue = {}) {
     const run = await start(action, params, optionsValue);
     const outcome = await run.done;
-    if (optionsValue.settle !== false) {
+    /* go 失败会进入 error 停态而不是 idle；此时不再空等 idle 超时，直接读取真实落位/phase。 */
+    const navigationFailed = action === 'go' && outcome.result &&
+      (outcome.result.status === 'failed' || outcome.result.status === 'cancelled');
+    if (optionsValue.settle !== false && !navigationFailed) {
       try { await waitIdle({ timeout: optionsValue.timeout, intervalMs: optionsValue.intervalMs }); } catch (error) {
         outcome.settleError = error.message;
       }
+    }
+    if (navigationFailed) outcome.settleSkipped = 'navigation-failed';
+    /* go 的 settled 只表示这次调用结束；导航是否真正到达请求 Frame 要看 session 状态。 */
+    if (action === 'go') {
+      let actual = null;
+      try { actual = await state({ session: optionsValue.session }); } catch (error) { actual = null; }
+      const requestedFrameId = run.requestedFrameId;
+      const actualFrameId = actual && actual.settledFrameId != null ? actual.settledFrameId : null;
+      const phase = actual && actual.phase != null ? actual.phase : null;
+      const result = outcome.result || {};
+      outcome.requestedFrameId = requestedFrameId;
+      outcome.actualFrameId = actualFrameId;
+      outcome.settledFrameId = actualFrameId;
+      outcome.phase = phase;
+      const resultOk = !result || result.status == null || result.status === 'settled' || result.status === 'completed' || result.status === 'noop';
+      const navigationOk = outcome.status === 'settled' && resultOk && phase === 'idle' &&
+        actualFrameId === requestedFrameId && (!actual || !actual.error);
+      outcome.navigation = {
+        requestedFrameId: requestedFrameId,
+        actualFrameId: actualFrameId,
+        sessionStatus: outcome.status,
+        resultStatus: result.status == null ? null : result.status,
+        phase: phase,
+        ok: navigationOk,
+        message: navigationOk ? null
+          : (result.error || outcome.message || outcome.settleError ||
+            ('请求 ' + requestedFrameId + '，实际 settledFrameId=' + actualFrameId + '，phase=' + phase))
+      };
     }
     return outcome;
   }

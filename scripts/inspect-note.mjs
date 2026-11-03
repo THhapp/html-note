@@ -18,7 +18,7 @@ const HELP = `本地观察入口 · inspect-note
       [--screenshot <输出PNG绝对路径>]
       [--probe <probe模块绝对路径>]
       [--session <页面内会话表达式>]
-      [--width <像素>] [--height <像素>]
+      [--frame <frameId>] [--width <像素>] [--height <像素>]
       [--browser <浏览器可执行文件绝对路径>]
 
 说明:
@@ -28,6 +28,9 @@ const HELP = `本地观察入口 · inspect-note
     它复用同一个已打开页面，不另起浏览器。
   - --session 指定会话表达式（如 "window.PropagationExample.session"）；
     不传时 inspect 会尝试 window.__inspectSession / PropagationExample.session / AuthoringSessions[0] / NoteDemoSessions[0]。
+  - --frame 指定要恢复的 Frame ID（非空字符串，只接受一个）；顺序固定为
+    打开页面 → 创建 inspect → session.go(frameId) 并确认 phase/settledFrameId → 再截图/probe。
+    未知 Frame 明确失败并保留 requestedFrameId/actualFrameId/sessionStatus/result/phase/settledFrameId，不默默停在初态。
   - inspect（scripts/lib/inspect-session.mjs）提供同一页内的组合观察辅助：
       state()                     读取 phase/settledFrameId/targetFrameId/replaying/error
       read(表达式)                在页面内读取任意只读值（session 可用）
@@ -48,6 +51,8 @@ const HELP = `本地观察入口 · inspect-note
   node scripts/inspect-note.mjs "D:/path/to/成品.html" --screenshot "D:/path/out.png" --width 860 --height 1000
   node scripts/inspect-note.mjs "D:/path/to/成品.html" --probe "D:/path/probe.mjs" --json
   node scripts/inspect-note.mjs "D:/path/to/成品.html" --session "window.AuthoringSessions[0]" --probe "D:/path/probe.mjs" --json
+  node scripts/inspect-note.mjs "D:/path/to/成品.html" --frame "right-again" --json --screenshot "D:/path/out.png"
+  node scripts/inspect-note.mjs "D:/path/to/成品.html" --frame "two-local" --probe "D:/path/probe.mjs" --json
 `;
 
 function coded(code, message, extra) {
@@ -58,8 +63,8 @@ function coded(code, message, extra) {
 }
 
 function parseArgs(argv) {
-  const options = { json: false, help: false, screenshot: null, probe: null, session: null, width: null, height: null, browser: null };
-  const allowed = new Set(['json', 'help', 'screenshot', 'probe', 'session', 'width', 'height', 'browser']);
+  const options = { json: false, help: false, screenshot: null, probe: null, session: null, frame: null, width: null, height: null, browser: null };
+  const allowed = new Set(['json', 'help', 'screenshot', 'probe', 'session', 'frame', 'width', 'height', 'browser']);
   const positional = [];
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -72,11 +77,17 @@ function parseArgs(argv) {
     let value = eq >= 0 ? arg.slice(eq + 1) : null;
     if (value == null) {
       value = argv[i + 1];
-      if (value == null || value.startsWith('--')) throw coded('usage', '选项 --' + key + ' 需要一个值');
+      if (value == null || value.startsWith('--')) {
+        if (key === 'frame') throw coded('usage', '--frame 需要一个非空 Frame ID；示例：--frame "right-again"。');
+        throw coded('usage', '选项 --' + key + ' 需要一个值');
+      }
       i += 1;
     }
     if (key === 'json' || key === 'help') {
       if (value !== 'true' && value !== '') throw coded('usage', '--' + key + ' 不接受值');
+    } else if (key === 'frame') {
+      if (options.frame != null) throw coded('usage', '--frame 只接受一个 Frame ID；示例：--frame "right-again"。');
+      options.frame = value;
     } else options[key] = value;
   }
   if (positional.length > 1) throw coded('usage', '只接受一个成品 HTML 路径；收到：' + positional.join(' '));
@@ -114,6 +125,10 @@ async function run() {
   if (!positional.length) throw coded('usage', '需要一个本地成品 HTML 路径；使用 --help 查看用法。');
   const entry = path.resolve(positional[0]);
   if (options.session != null && !String(options.session).trim()) throw coded('usage', '--session 需要一个页面内表达式。');
+  if (options.frame != null && (typeof options.frame !== 'string' || !options.frame.trim())) {
+    throw coded('usage', '--frame 需要一个非空 Frame ID；示例：--frame "right-again"。');
+  }
+  const requestedFrameId = options.frame == null ? null : options.frame.trim();
   const screenshot = absoluteRequested(options.screenshot, '--screenshot');
   const probePath = absoluteRequested(options.probe, '--probe');
   if (screenshot) checkOutputPath(screenshot, '--screenshot');
@@ -142,7 +157,52 @@ async function run() {
       execution: '页面已打开并完成本次请求的观察；这不表示作品验收通过。'
     };
     const failures = [];
-    if (screenshot) {
+    const inspect = createInspectSession(session.page, {
+      session: options.session || null,
+      observations: session.observations,
+      label: positional[0]
+    });
+    /* 顺序契约：打开页面 → 恢复 Frame 并确认落位 → 截图/probe。
+     * 恢复失败时不继续截图/probe，避免把“打开成功”的初态截图当成目标停点证据。 */
+    let frameReady = true;
+    if (requestedFrameId) {
+      data.requestedFrameId = requestedFrameId;
+      data.actualFrameId = null;
+      data.sessionStatus = null;
+      data.result = null;
+      data.phase = null;
+      data.settledFrameId = null;
+      try {
+        const outcome = await inspect.step('go', requestedFrameId);
+        const actual = await inspect.state();
+        data.sessionStatus = outcome.status;
+        data.result = outcome.result;
+        data.phase = actual.phase;
+        data.settledFrameId = actual.settledFrameId == null ? null : actual.settledFrameId;
+        data.actualFrameId = data.settledFrameId;
+        const navigation = outcome.navigation || null;
+        const resultStatus = outcome.result && outcome.result.status != null ? outcome.result.status : null;
+        const resultOk = resultStatus == null || resultStatus === 'settled' || resultStatus === 'completed' || resultStatus === 'noop';
+        const arrived = outcome.status === 'settled' && actual.phase === 'idle' &&
+          actual.settledFrameId === requestedFrameId && !actual.error && resultOk &&
+          (!outcome.navigation || outcome.navigation.ok !== false);
+        if (!arrived) {
+          frameReady = false;
+          const detail = navigation && navigation.message ? navigation.message
+            : '实际 settledFrameId=' + String(actual.settledFrameId) + '，phase=' + String(actual.phase);
+          failures.push(coded('frame_failed',
+            '无法恢复到 Frame "' + requestedFrameId + '"（requestedFrameId=' + requestedFrameId +
+            '，actualFrameId=' + String(data.actualFrameId) + '，sessionStatus=' + String(outcome.status) +
+            '，result=' + JSON.stringify(outcome.result) + '，phase=' + String(actual.phase) + '）：' + detail));
+        }
+      } catch (error) {
+        frameReady = false;
+        data.sessionStatus = 'error';
+        failures.push(coded(error.code || 'frame_failed',
+          '无法恢复到 Frame "' + requestedFrameId + '"：' + error.message));
+      }
+    }
+    if (frameReady && screenshot) {
       try {
         await session.page.screenshot({ path: screenshot, fullPage: false });
         data.screenshot = screenshot;
@@ -150,12 +210,7 @@ async function run() {
         failures.push(coded('screenshot_failed', '截图失败：' + error.message));
       }
     }
-    const inspect = createInspectSession(session.page, {
-      session: options.session || null,
-      observations: session.observations,
-      label: positional[0]
-    });
-    if (probePath) {
+    if (frameReady && probePath) {
       let probe = null;
       try {
         const module = await import(pathToFileURL(probePath).href);
@@ -184,7 +239,9 @@ async function run() {
     data.observations = publicObservations(session.observations);
     if (failures.length) {
       data.ok = false;
-      data.execution = '页面已打开；请求的截图或 probe 未完成，观察事实仍保留。';
+      data.execution = frameReady
+        ? '页面已打开；请求的截图或 probe 未完成，观察事实仍保留。'
+        : '页面已打开；请求的 Frame 未确认落位，截图/probe 未执行，观察事实仍保留。';
       data.error = { code: failures[0].code || 'tool_failed', message: failures.map((item) => item.message).join('；') };
       process.exitCode = 1;
     }
@@ -194,6 +251,10 @@ async function run() {
       console.log('viewport: ' + data.viewport.width + 'x' + data.viewport.height + ' · browser: ' + data.browser.executablePath);
       console.log('page errors: ' + data.observations.pageErrors.length + ' · console errors: ' + data.observations.consoleErrors.length + ' · external requests: ' + data.observations.externalRequests.length);
       if (data.observations.requestFailures.length) console.log('request failures: ' + data.observations.requestFailures.length);
+      if (requestedFrameId) {
+        console.log('frame: requested=' + requestedFrameId + ' · actual=' + String(data.actualFrameId) +
+          ' · sessionStatus=' + String(data.sessionStatus) + ' · phase=' + String(data.phase));
+      }
       if (data.screenshot) console.log('screenshot: ' + data.screenshot);
       if (probePath) console.log('probe: ' + JSON.stringify(data.probe));
       if (!data.ok) console.log('失败: ' + data.error.message);

@@ -11,7 +11,8 @@ description: 使用 html-note 组件库和公共演示层，将指定知识、MD
 
 - 演示是视觉中心，必要前提、对象标签和解释沿正常阅读路径可见。用对齐、留白与层级组织信息。
 - 步骤演示采用有意义的停点，完成后保留依据与结果。字幕贴近画面下方，控件和阅读位置稳定，读者能够先后观看图形和说明。
-- 对象身份、当前关注和本步变化有主次且能对应。需要读者追踪的主要变化，应与当前观察范围、焦点到达和内容展开对应；辅助状态、计数和记录可以在框外同步更新，不要求逐处巡视。
+- 对象身份、当前关注和本步变化有主次且能对应。需要读者追踪的主要变化，应与当前观察范围、焦点到达和内容展开对应；辅助状态、计数和记录可以在框外更新，不要求逐处巡视；其中"已完成/已收到"等事实仍须随实际事件或展示进度更新。
+- 读数按语义更新：阶段、模式、目标参数可随提交；"已收到/已发出/已完成"等事实必须随领域事件或实际展示进度；预期值可提前显示但要标明目标/预期。是否巡视与何时更新分别判断，不强制所有计数分组或动画。
 - 先定本步理解目标和主要阅读顺序：对象名称、数值、单位与必要短标注贴图，结果读数与状态记录集中，本步变化及意义由字幕解释，字段组成和推导归正文。布局后检查是否要在多处拼接解释、重复讲同一道理，或把必要条件藏走。
 - 效果组按有意义的局部变化划分，不机械按整页、整帧或每个微动作划分。`groups:[]` 是只观察的合法接法，但不能作为消除等待的通用替代；感觉等待过长时，先检查观察路线、内容启动和可见响应，不直接解除全部主要变化的协调。
 - 公共 scene 在提交前接管参与的 Binding 容器并暂停受控内容的 CSS transition；作者用 progress/WAAPI 表达变化，不另写 `setSceneActive`、示例私有暂停层或第二套动画。
@@ -25,9 +26,9 @@ description: 使用 html-note 组件库和公共演示层，将指定知识、MD
 | 新制作、将 MD 预留组织成任务，或需要完整制作要求 | [制作底稿与按任务条款](references/task-brief.md) |
 | 安排整体阅读、字幕、状态和动效，或判断视觉取舍 | [阅读与演示共识](references/principles.md) |
 | 找库、选资产、取接口与示例，或核对加载和公共接入 | [查询与组件取用](references/library-usage.md) |
-| 自定义连续画面或 Adapter 接入 | 先取 [连续画面最小示例](../../examples/continuous-scene/index.html) 或运行 `node scripts/query.mjs show example:continuous-scene`；使用内置 Adapter 或配方时查 `public:table-adapter`、`flow-stage/flow-packet/flow-segment/flow-device` 与 `recipe:composition` |
+| 自定义连续画面或 Adapter 接入 | 先读 [自定义画面接入](../../docs/自定义画面接入.md)，打开 [最小可运行宿主](../../examples/continuous-scene/minimal.html)（或 `show public:continuous-adapter`）；完整双组示例见 [连续画面示例](../../examples/continuous-scene/index.html)。使用内置 Adapter 或配方时查 `public:table-adapter`、`flow-stage/flow-packet/flow-segment/flow-device` 与 `recipe:composition` |
 | 阶段轨、消息流、分段长度条、设备连接、沿路径传播 | 先取 [流程图形中性示例](../../examples/flow-kit/index.html) 或运行 `node scripts/query.mjs show example:flow-kit`；组合阶段/报文/状态表时取 [流程组合示例](../../examples/flow-composition/index.html) 或 `show example:flow-composition` |
-| 验证实际打开、过渡、焦点/内容放行或时序疑点 | [验证与观察](references/validation.md) |
+| 验证实际打开、过渡、焦点/内容放行或时序疑点 | [验证与观察](references/validation.md)；指定停点用 `inspect-note --frame <id>`，过程用 `next()/replay()` |
 
 已有有效上下文继续使用，局部修改只补相关信息。参考文件按任务读取，不把所有文档加载一遍。
 
@@ -44,4 +45,4 @@ description: 使用 html-note 组件库和公共演示层，将指定知识、MD
 
 - [query.mjs](scripts/query.mjs)：定位库并转调现有 CLI，保留原参数和输出；独立使用本 Skill 时可通过 `--root` 指定库。
 - [inspect-note.mjs](scripts/inspect-note.mjs)：定位库并转调现有本地观察入口；浏览器实现不复制到 Skill。
-- [sync-references.mjs](scripts/sync-references.mjs)：维护本 Skill 时，从库内现行文档同步参考正文。制作笔记时不需要运行。
+- [sync-references.mjs](scripts/sync-references.mjs)：维护本 Skill 的参考正文时使用，从库内 `docs/设计共识.md`、`docs/提示词撰写.md` 同步；制作笔记时不需要运行，也不要把库维护回归写进制作步骤。

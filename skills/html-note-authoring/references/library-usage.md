@@ -1,90 +1,76 @@
 # 查询与组件取用
 
-本 Skill 使用库内既有 CLI，不携带第二份查询实现或组件运行包。下文的库路径取自当前任务和实际工程；示例中的 `<Skill目录>` 与 `<库目录>` 要替换为真实位置。
+本 Skill 使用库内既有 CLI 和观察入口，不携带第二份查询实现或组件运行包。示例中的 `<Skill目录>`、`<库目录>`、`<成品.html>` 要替换为真实位置；路径含空格时按所用 shell 正确引用。
 
-## 找到库
+## 找到库并查询
 
-项目内 Skill 会自动定位同仓库。若 Skill 被单独复制，查询脚本也可识别当前工作目录所属的库；否则使用本次任务给出的库目录：
+项目内 Skill 会自动定位同仓库。若 Skill 被单独复制，查询脚本可识别当前工作目录所属的库；否则使用本次任务给出的库目录：
 
 ```text
 node <Skill目录>/scripts/query.mjs info --root <库目录> --json
 ```
 
-路径含空格时按所用 shell 正确引用。已知真实 CLI 位置也可直接运行 `<库目录>/scripts/query.mjs`。库位置和资料上下文有效时直接沿用，不每轮重复执行 info。
-
-缺少库位置且无法定位时，说明缺项；如果任务或已有上下文已给出路径，直接使用，不重新询问。查询不启动服务或浏览器。
-
-## 选择最小必要查询
+已知真实 CLI 位置时也可直接运行 `<库目录>/scripts/query.mjs`。库位置和资料上下文有效时直接沿用，不每轮重复 `info`。查询不启动服务或浏览器。
 
 | 情况 | 操作 |
 | --- | --- |
-| 不知道资产名称 | search 按用途、名称或别名找候选，比较类型、主要边界与后续入口 |
-| 已知资产或接法 | show 直接取开工包，必要时指定上下文；可一并读取多个明确条目 |
-| 需要完整参数、例子或实现 | read 沿条目资源读取，按返回的继续入口取得长内容 |
-| 原接口资料已足够 | 继续制作；只有新疑点或上下文变化才补查 |
-
-示例只说明查询方式，不限定笔记采用的组件：
+| 不知道资产名称 | `search` 按用途、名称或别名找候选，比较类型与边界 |
+| 已知资产或接法 | `show` 直接取开工包，必要时指定上下文；可一次查多个明确条目 |
+| 需要完整参数、例子或实现 | `read` 沿条目资源读取，按 `remaining/nextOffset` 继续 |
+| 已有资料足够 | 直接制作；只有新疑点或上下文变化才补查 |
 
 ```text
 node <Skill目录>/scripts/query.mjs search "序列插入" --json
 node <Skill目录>/scripts/query.mjs show D01 --context independent --json
 node <Skill目录>/scripts/query.mjs show public:progress --json
 node <Skill目录>/scripts/query.mjs read public:progress api --json
-node <Skill目录>/scripts/query.mjs show public:attention --json
-node <Skill目录>/scripts/query.mjs show example:continuous-scene --json
-node <Skill目录>/scripts/query.mjs show example:flow-kit --json
 node <Skill目录>/scripts/query.mjs show public:continuous-adapter --json
-node <Skill目录>/scripts/query.mjs show public:timing-facts --json
-node <Skill目录>/scripts/query.mjs show public:table-adapter --json
-node <Skill目录>/scripts/query.mjs show public:flow-packet-adapter --json
-node <Skill目录>/scripts/query.mjs show public:propagation --json
-node <Skill目录>/scripts/query.mjs show example:flow-composition --json
+node <Skill目录>/scripts/query.mjs show example:continuous-scene --json
 node <Skill目录>/scripts/query.mjs show recipe:composition --json
 node <Skill目录>/scripts/query.mjs show tool:inspect-note --json
-node <Skill目录>/scripts/query.mjs read D01 api --json
 ```
 
-需要时给这些命令加 `--root <库目录>`。`show` 给出条目实际可用的上下文；上下文不匹配时按返回的可用上下文和可执行提示重试，不套用其他入口。`read` 的 `api/source/example/fragment` 分别指向完整文档、实现源码、完整示例和局部片段，按需要区分。
+`show` 返回该条目真实可用的上下文；上下文不匹配时按返回的可用上下文重试，不套用其他入口。完整示例用 `authoring` context，不要传不存在的 `example` context。`read` 的 `api/source/example/fragment` 分别指向完整文档、实现源码、完整示例和局部片段。依赖闭包来自语料的 `模块依赖/运行入口/区域组件依赖`，按 manifest 展开；搜索无精确命中时，结果会单独给出基于真实拆词命中的 `suggestions`，不要把它当成精确匹配，也不要把空结果当成库没有能力。
 
-查询不会启动浏览器。`show` 的依赖闭包来自语料的可解析字段（`模块依赖`/`运行入口`/`区域组件依赖`），按 manifest 真实依赖展开；`--context independent`、`--context authoring` 选择对应入口，完整示例用 `authoring`，不要传不存在的 `example` context。需要核对闭包时运行 `node <库目录>/tests/checks/query-cli-check.mjs` 与 `node <库目录>/tests/checks/query-closure-host-check.mjs`；独立图形/稳定布局用 `flow-kit-check.mjs`、`flow-scene-check.mjs`、`flow-geometry-check.mjs`、`stable-layout-check.mjs`、`density-config-check.mjs`、`density-screen-check.mjs`、`attention-composition-check.mjs`。C06 Table 的 `stableStateLabels` 独立默认 false、`table` Adapter 默认 true：每行常驻隐藏状态标签槽，label 显隐不改行高（无固定 min-height/不裁切正文，5 行表约 261→361px）；需要固定行高时在 binding options 保持默认或显式开启，cell 级首次更宽 label 仍可能影响列宽。
+## 加载与接法选择
 
-`flow-stage`/`flow-packet` 支持 `density:'compact'`（默认 normal），配方 `stagePacket`/`diagramTable` 也支持 compact；compact 只收紧内部 padding/SVG 几何或配方外壳间距，不是 transform 缩放。`examples/flow-composition` 两段使用 compact，按演示 section 起点对齐时 1366×768 上段 host top≈46.3、next bottom≈753.6（<768），下段 host top≈46.1、next bottom≈622.4；1280×900 上段 next bottom≈753.6，两段同屏。t2 的 stage 顶对齐 715.1 仅作另一口径；切换密度/视口/字体后必须重跑 `stable-layout-check.mjs` 并重新量测，不要写死示例 min-height。
+静态组件和图形可以独立 mount/update；多停点协调使用 `NoteDemo`；已有 scene Adapter 或配方能覆盖时直接复用，不先遍历所有组合块。
 
-公共 scene 的受控画面由 Binding 容器统一接管：提交前暂停受控内容 CSS transition，效果组只推进自己的视觉，收束/恢复后释放；自定义 Adapter 不需要自己写 `setSceneActive`。内置 `table` / `flow-stage` / `flow-packet` / `flow-segment` / `flow-device` Adapter 已提供 canonical model 与局部组；自定义 Adapter 可用 `NoteDemo.sceneAdapter.define` 减少胶水。`NoteDemo.timingFacts.watch` 按 sessionId 隔离、默认关闭，`collect()` 全局收集并保留 sessionId。接法与生命周期见 [受控画面的视觉接管](docs/公共编排层.md#author-scene-control)、[Adapter 辅助](docs/公共编排层.md#author-scene-adapter)（相对实际库根）。
+整库加载：
 
-## 本地观察与量测
+```html
+<link rel="stylesheet" href="./dist/note-library.css">
+<script src="./dist/note-library.js"></script>
+```
 
-页面能打开之后，用库内观察入口做一次性的本地检查；不要为验证另装浏览器或搭服务：
+按模块加载时加载 `dist/modules` 下目标模块及其真实声明依赖。`NoteDemo.mount` 使用默认舞台，依赖 `demo-ui` 及其传递闭包；`NoteDemo.create` 使用自备 presentation，依赖止于 `demo-runtime`，不能只按 create 的依赖推 mount。
+
+普通自定义连续画面优先使用 `NoteDemo.sceneAdapter.define`：作者负责领域视图、绘图/恢复、目标解析和局部变化计划，helper 组织 Adapter 契约、commit 顺序、减少动效和最终 timing。加载、Definition、挂载、组放行、来源视觉、恢复与 reduced 的最小接法见[自定义画面接入](../../docs/自定义画面接入.md)，可运行源为 `examples/continuous-scene/minimal.html`；更丰富的双组交接看同目录 `index.html`。需要直接控制原生 BindingHandle 时，查[公共编排层](../../docs/公共编排层.md#author-scene-adapter)中的完整 API 和两种入口差异；不要把 helper 的 `restore(model, view)` 与原生 `restore(view)` 混用。
+
+## 读数与提交语义
+
+目标/阶段说明、模式与目标参数可以随目标提交更新；"已收到/已发出/已完成"等事实必须随领域事件或实际展示进度更新，不能在对象尚未到达时先显示完成值。预期结果可以提前展示，但名称要明确是目标/预期。是否需要 Focus 巡视与何时更新数值分别判断，不要求所有计数进入效果组、逐处巡视或做数字动画。恢复和 reduced 直接呈现完整一致停点。
+
+## 本地观察
+
+成品能打开后，用库内观察入口做一次性的本地检查；它复用工程现有 `playwright-core` 与本机浏览器，默认无头、执行后退出，不安装依赖、不起服务、不默认写文件：
 
 ```text
 node <Skill目录>/scripts/inspect-note.mjs "<成品HTML绝对路径>" --json
-node <Skill目录>/scripts/inspect-note.mjs "<成品HTML绝对路径>" --screenshot "<输出PNG绝对路径>" --width 860 --height 1000
+node <Skill目录>/scripts/inspect-note.mjs "<成品HTML绝对路径>" --frame <frameId> --session "<页面内会话表达式>" --json
 node <Skill目录>/scripts/inspect-note.mjs "<成品HTML绝对路径>" --probe "<probe模块绝对路径>" --json
-node <Skill目录>/scripts/inspect-note.mjs "<成品HTML绝对路径>" --session "window.Example.session" --probe "<probe模块绝对路径>" --json
 ```
 
-观察工具默认无头、执行后退出；它复用工程现有 `playwright-core` 和本机浏览器。这里的依赖是 **Node 工具运行条件**，不是浏览器组件模块依赖：页面仍需按实际场景加载 `dist/` 或模块，工具本身不加载 demo-runtime。缺浏览器或依赖时按诊断指定 `--browser`/准备工程依赖，不自动安装或轮换通道。
+- 页面需要驱动时设置 `window.__inspectSession = session`，或用 `--session` 指定明确表达式。
+- `--frame <frameId>` 先用公开 `session.go(frameId)` 恢复停点并确认实际落点，再执行截图/probe；未知 Frame、空参数或会话缺失会明确失败，不默默回到初态。
+- `go()` 只证明停点恢复。要证明动画、焦点到达、内容放行、取消或恢复过程，在 probe 内用 `next()/replay()` 真实推进；时序疑点用 `inspect.sample()` 采样。
+- probe 导出 `default async ({ page, inspect }) => ...`，与打开的页面同页；可在其中 `read/box/state/start/step/waitFor/sample`，只显式调用 `screenshot(绝对路径)` 时写文件。长 JSON 一次重定向到 UTF-8 文件再解析，不用 head/tail 截断后重放整轮。
+- 参数以 `--help` 和实际返回为准。输出区分工具执行、页面观察和 probe 结果；打开成功不等于作品验收通过。
 
-`--probe` 复用同一个已打开页面，模块导出 `default async ({ page }) => ...`；probe 上下文还提供 `inspect.state/read/start/step/waitIdle/waitFor/sample/box/screenshot/observe`，可在同一页面完成推进、等待、读取和少量截图。`--session` 指定页面内 session 表达式；不传时工具尝试常见入口。只检查静态状态时可以直接打开；要证明动画、焦点到达、内容放行、取消恢复，用 `next()/replay()` 真实推进，`go()` 不能证明过程。时序疑点用 probe 采样，不用批量静态截图猜。参数以 `--help` 和实际返回为准。
+## 取用时注意
 
-## 取用时要分清的事情
+组件、组合块、配方和公共接法承担不同工作。`show` 的上下文区分独立调用、scene、默认舞台等入口；依赖和用法必须对应所选入口。示例分为完整实例、配置骨架和源码片段，复用结构相符的部分，领域计算、对象身份和本篇观察安排由作者提供。
 
-组件、组合块、配方和公共接法承担不同工作。show 的上下文区分独立调用、scene、默认舞台等入口；依赖和用法必须对应所选入口。加载整库与按模块加载均可，按模块时使用实际依赖，不把运行核心视为所有组件及默认舞台的完整依赖。
+普通调用先取当前用法和必要契约；资料冲突、接口缺项或具体故障再深入实现。公共协调按真实句柄执行，作者不要另建播放器或用等待时间替代完成关系，也不用私有暂停层代替公共接管。
 
-示例分为完整实例、配置骨架和源码片段。复用结构相符的部分，领域计算、对象身份和本篇观察安排由作者提供；题材相近的演示不保证模型与场景结构相同。
-
-现有清单覆盖范围大于精选语料。无搜索结果或资料显示“未确认”时，检查当前目录、具体 API 或 Adapter 声明，不能把未命中当成库没有能力，也不默认为支持全部模式。
-
-普通调用先取当前用法和必要契约；资料冲突、接口缺项或具体故障再深入实现。公共协调按真实句柄执行，作者不要另建播放器或用等待时间替代完成关系。
-
-## 阅读长内容
-
-当前 read 按行分页，并返回 `remaining`、`nextOffset` 和继续命令。按需要补足相关参数表或代码块，未读完不声称已掌握完整契约。`public:progress`/`public:attention` 已定向到具体作者小节，不再从 Adapter 大章开头找；避免重复输出大型内联预览，源码、文档和维护示例是查阅入口。
-
-## 本地实现与交付
-
-领域模型、图形与宿主装配可分文件维护。需交付独立离线 HTML 时，查询 `tool:demo-preview` 的现行用法；它内联模板已经列出的资源，不自动补齐组件脚本或生成知识内容。
-
-本次任务允许修改共享库时，按真实缺陷范围处理；否则在约定目录实现必要局部内容并说明接入缺口。不要为使用 CLI 重新构建库、运行组件检查或扩建资料平台。
-
-库内进一步入口是 `docs/取用与组合.md`、对应模块 API、`docs/公共编排层.md` 和 `docs/构建与分发.md`。这些路径相对于实际库根，不是 Skill 安装目录。
+需要交付独立离线 HTML 时，查询 `tool:demo-preview` 的现行用法；内联器只内联模板已列出的资源。库维护检查（构建、打包、回归命令）在 `docs/构建与分发.md`，不进入每篇笔记的制作要求；制作时按本次实际风险验证，不为通过模板收集无关证据。

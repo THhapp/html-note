@@ -7,7 +7,7 @@
 | 路径 | 定位 | 输入/输出 |
 | --- | --- | --- |
 | `tests/demo/` | 公共编排层浏览器检查：core-check、adapters-check、ui-check、integration-check | 脚本是输入；结果只打印或写 .cache |
-| `tests/checks/` | `public-transition-check.mjs`、`source-loaders-check.mjs`、`query-cli-check.mjs`、`focus-continuity-check.mjs`、`groups-check.mjs`、`v05-assembly-check.mjs`、`handoff-check.mjs`、`propagation-example-check.mjs`、`continuous-scene-check.mjs`、`inspect-note-check.mjs`、`authoring-page-smoke.mjs` 与各模块补充自检；HTML 文件是测试夹具 | HTML 夹具与脚本是输入 |
+| `tests/checks/` | `public-transition-check.mjs`、`source-loaders-check.mjs`、`query-cli-check.mjs`、`focus-continuity-check.mjs`、`groups-check.mjs`、`v05-assembly-check.mjs`、`handoff-check.mjs`、`propagation-example-check.mjs`、`continuous-scene-check.mjs`、`minimal-scene-check.mjs`、`inspect-note-check.mjs`、`authoring-page-smoke.mjs` 与各模块补充自检；HTML 文件是测试夹具 | HTML 夹具与脚本是输入 |
 | `tests/lib/src-sources.mjs` | Node 共享 harness：按 `src/manifests/*.json` 推导经典脚本/样式加载清单 | 只读 |
 | `tests/lib/test-output.mjs` | 生成物路径 helper：统一写 `tests/.cache/` | 只写 .cache |
 | `tests/tools/` | 本地 playwright-core（勿在检查中重装浏览器或加运行时依赖） | 输入 |
@@ -50,7 +50,8 @@ node tests/checks/v05-assembly-check.mjs
 node tests/checks/handoff-check.mjs
 node tests/checks/authoring-page-smoke.mjs   # 需要先重建 dist/
 node tests/checks/propagation-example-check.mjs   # 需要先重建 dist/
-node tests/checks/continuous-scene-check.mjs   # 最小示例；需要先重建 dist/
+node tests/checks/continuous-scene-check.mjs   # 完整连续示例；需要先重建 dist/
+node tests/checks/minimal-scene-check.mjs   # 最小接入宿主；需要先重建 dist/
 node tests/checks/inspect-note-check.mjs   # 实际启动本机 Edge；会创建并清理 .cache 中的截图/probe
 node tests/demo/core-check.mjs
 node tests/demo/adapters-check.mjs

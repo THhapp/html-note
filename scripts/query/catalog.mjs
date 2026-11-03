@@ -282,13 +282,26 @@ function buildComponent(entry, moduleName, modules, curated, root) {
   };
 }
 
+function topicResourceLabel(key, file) {
+  if (key === 'api') return '完整契约 / 用法文档';
+  if (key === 'source') return '实现源码';
+  if (key === 'fragment') return '局部接入片段';
+  if (key === 'control') return '受控视觉接管说明';
+  if (key === 'preview') return '离线预览入口';
+  if (key === 'full') return '完整示例';
+  if (key === 'minimal') return '最小示例';
+  if (key === 'guide') return '接入文档';
+  if (key === 'example') return /minimal\.html$/i.test(file) ? '最小示例' : '完整示例';
+  return key;
+}
+
 function buildTopic(record) {
   const resources = [];
   for (const item of record.resources) {
     const [file, anchor] = item.value.split('#');
     resources.push({
       key: item.key,
-      label: item.key === 'api' ? '完整契约 / 用法文档' : item.key === 'source' ? '实现源码' : item.key === 'example' ? '完整示例' : item.key === 'fragment' ? '局部接入片段' : item.key === 'control' ? '受控视觉接管说明' : item.key === 'preview' ? '离线预览入口' : item.key,
+      label: topicResourceLabel(item.key, file),
       path: file, anchor: anchor || null, readable: !/^https?:/.test(file)
     });
   }
@@ -437,7 +450,7 @@ function scoreEntry(entry, query) {
   return { score: best, matchedBy: [...new Set(matchedBy)].slice(0, 4) };
 }
 
-function searchCatalog(catalog, query, options = {}) {
+function searchMatches(catalog, query, options = {}) {
   const filters = options.filters || {};
   const limit = Number.isFinite(options.limit) ? Math.max(1, options.limit) : 10;
   const results = [];
@@ -454,6 +467,87 @@ function searchCatalog(catalog, query, options = {}) {
     return a.entry.id.localeCompare(b.entry.id);
   });
   return { results: results.slice(0, limit), total: results.length };
+}
+
+/* 零结果时只按真实可拆片段再搜索；候选来自 searchMatches 的实际命中，
+ * 不维护热门词、不按 ID 特判、不生成没有命中的条目。 */
+function queryFragments(query) {
+  const text = String(query || '').trim();
+  if (!text) return [];
+  const whole = normalizeName(text);
+  const fragments = [];
+  const seen = new Set();
+  function add(value) {
+    const raw = String(value || '').trim();
+    const compact = normalizeName(raw);
+    if (!compact || compact === whole || compact.length < 2) return;
+    if (seen.has(compact)) return;
+    seen.add(compact);
+    fragments.push(raw);
+  }
+  const parts = text.split(/[\s,，、;；/|+]+/).map((part) => part.trim()).filter(Boolean);
+  for (const part of parts) {
+    add(part);
+    let segmented = false;
+    try {
+      if (typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function') {
+        const segmenter = new Intl.Segmenter('zh', { granularity: 'word' });
+        for (const item of segmenter.segment(part)) {
+          if (item.isWordLike) { add(item.segment); segmented = true; }
+        }
+      }
+    } catch (ignore) { segmented = false; }
+    /* 中文整段没有分隔时，用 2–3 字窗口做真实子搜索；单字噪声过大不加入。 */
+    if (/[\u3400-\u9fff]/.test(part)) {
+      for (let size = 2; size <= 3; size += 1) {
+        for (let i = 0; i + size <= part.length; i += 1) add(part.slice(i, i + size));
+      }
+    }
+    if (!segmented && /[a-z0-9]/i.test(part)) add(part);
+  }
+  return fragments.slice(0, 24);
+}
+
+function searchSuggestions(catalog, query, options = {}) {
+  const fragments = queryFragments(query);
+  if (!fragments.length) return [];
+  const filters = options.filters || {};
+  const limit = Number.isFinite(options.limit) ? Math.max(1, options.limit) : 8;
+  const candidates = new Map();
+  const identityKind = /^(id|name|cn|type|alias|term|category|module)=/;
+  for (const fragment of fragments) {
+    const matches = searchMatches(catalog, fragment, { filters, limit: 3 });
+    for (const match of matches.results) {
+      /* 只把命中身份/别名/检索词/类别的片段当依据；仅命中长用途或限制文字
+       * 容易把无意义拆词变成“相关候选”，不作为建议来源。 */
+      if (!match.matchedBy.some((item) => identityKind.test(item))) continue;
+      const id = match.entry.id;
+      const current = candidates.get(id);
+      if (!current) {
+        candidates.set(id, {
+          entry: match.entry,
+          score: match.score,
+          matchedBy: match.matchedBy.slice(),
+          suggestionQueries: [fragment]
+        });
+      } else {
+        if (!current.suggestionQueries.includes(fragment)) current.suggestionQueries.push(fragment);
+        if (match.score > current.score) {
+          current.score = match.score;
+          current.matchedBy = match.matchedBy.slice();
+        }
+      }
+    }
+  }
+  return [...candidates.values()].sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    if ((b.entry.kind === 'component') !== (a.entry.kind === 'component')) return a.entry.kind === 'component' ? -1 : 1;
+    return a.entry.id.localeCompare(b.entry.id);
+  }).slice(0, limit);
+}
+
+function searchCatalog(catalog, query, options = {}) {
+  return searchMatches(catalog, query, options);
 }
 
 function refsOf(entry) {
@@ -585,7 +679,10 @@ export function showCatalog(catalog, tokens, options = {}) {
   return { ok: missing.length === 0, entries, missing };
 }
 
-export function search(catalog, query, options = {}) { return searchCatalog(catalog, query, options); }
+export function search(catalog, query, options = {}) {
+  const exact = searchCatalog(catalog, query, options);
+  return { ...exact, suggestions: exact.total ? [] : searchSuggestions(catalog, query, options) };
+}
 export function find(catalog, token) { return findEntry(catalog, token); }
 export function load(root) { return buildCatalog(root); }
 
