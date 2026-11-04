@@ -478,7 +478,7 @@
     return value;
   }
 
-  function buildEffects(table, plan, timing) {
+  function buildEffects(table, plan, timing, attention, resetVisibility) {
     var easing = timing && typeof timing.easing === 'string' && timing.easing ? timing.easing : 'linear';
     var swapDuration = timingNumber(timing, 'valueSwapDuration', timingNumber(timing, 'enterDuration', 260));
     var cueDuration = timingNumber(timing, 'cueDuration', swapDuration);
@@ -509,6 +509,22 @@
       if (effect.kind === 'row-enter') {
         var rowEl = table.getTarget({ row: effect.rowKey, part: 'row' });
         if (!rowEl) return;
+        if (attention) {
+          var sourceOpacity = rowEl.style.opacity;
+          var showRow = function () { rowEl.style.opacity = sourceOpacity; };
+          resetVisibility.push(showRow);
+          specs.push({
+            type: 'progress',
+            group: effect.group,
+            gate: 'ready',
+            duration: 0,
+            update: function (p) { if (p === 0) rowEl.style.opacity = '0'; },
+            onStart: showRow,
+            effect: 'table-row-visibility'
+          });
+          addRowCue(rowEl, effect.group, swapDuration, 'table-row-enter');
+          return;
+        }
         specs.push({
           el: rowEl,
           keyframes: [{ opacity: 0 }, { opacity: 1 }],
@@ -521,46 +537,37 @@
       }
       if (effect.kind === 'row-state') {
         var stateRow = table.getTarget({ row: effect.rowKey, part: 'row' });
-        if (!stateRow) return;
-        /* 行状态变化：目标内容在 commit 时已经正确露出，不用 opacity 把目标“洗白再回来”。
-         * 用每个单元格的 inset 轮廓 cue（不覆盖文字/背景内容），p=0 透明，放行后短暂出现再消失；
-         * 目标内容始终可见、始终不参与透明度过渡。 */
-        var accent = '#315cda';
-        try {
-          var computed = global.getComputedStyle ? global.getComputedStyle(stateRow) : null;
-          var accentValue = computed ? computed.getPropertyValue('--hnv-color-accent').trim() : '';
-          if (accentValue) accent = accentValue;
-        } catch (error) { /* 回退到默认强调色 */ }
-        var cueKeyframes = [
-          { boxShadow: 'inset 0 0 0 2px transparent', offset: 0 },
-          { boxShadow: 'inset 0 0 0 2px ' + accent, offset: 0.35 },
-          { boxShadow: 'inset 0 0 0 2px transparent', offset: 1 }
-        ];
-        var rowCells = stateRow.querySelectorAll ? stateRow.querySelectorAll('td') : [];
-        if (!rowCells.length) {
-          specs.push({
-            el: stateRow,
-            keyframes: cueKeyframes,
-            options: { duration: cueDuration, easing: 'linear', fill: 'none' },
-            group: effect.group,
-            gate: 'ready',
-            effect: 'table-row-state'
-          });
-          return;
-        }
-        Array.prototype.forEach.call(rowCells, function (cell) {
-          specs.push({
-            el: cell,
-            keyframes: cueKeyframes,
-            options: { duration: cueDuration, easing: 'linear', fill: 'none' },
-            group: effect.group,
-            gate: 'ready',
-            effect: 'table-row-state'
-          });
-        });
+        if (stateRow) addRowCue(stateRow, effect.group, cueDuration, 'table-row-state');
       }
     });
     return { specs: specs, overlays: overlays };
+
+    /* 提示描边和正文分别呈现，焦点到达后不用等整行透明度爬升。 */
+    function addRowCue(stateRow, group, duration, effectName) {
+      var accent = '#315cda';
+      try {
+        var computed = global.getComputedStyle ? global.getComputedStyle(stateRow) : null;
+        var accentValue = computed ? computed.getPropertyValue('--hnv-color-accent').trim() : '';
+        if (accentValue) accent = accentValue;
+      } catch (error) { /* 回退到默认强调色 */ }
+      var cueKeyframes = [
+        { boxShadow: 'inset 0 0 0 2px transparent', offset: 0 },
+        { boxShadow: 'inset 0 0 0 2px ' + accent, offset: 0.35 },
+        { boxShadow: 'inset 0 0 0 2px transparent', offset: 1 }
+      ];
+      var rowCells = stateRow.querySelectorAll('td');
+      if (!rowCells.length) rowCells = [stateRow];
+      Array.prototype.forEach.call(rowCells, function (cell) {
+        specs.push({
+          el: cell,
+          keyframes: cueKeyframes,
+          options: { duration: duration, easing: 'linear', fill: 'none' },
+          group: group,
+          gate: 'ready',
+          effect: effectName
+        });
+      });
+    }
   }
 
   function clearOverlays(overlays) {
@@ -635,7 +642,7 @@
           assertAlive();
           var plan = buildChangePlan(input.sourceModel, input.targetModel);
           var committed = false;
-          var appliedEffects = [];
+          var resetVisibility = [];
           return {
             groups: plan.groups,
             commit: function () {
@@ -646,17 +653,17 @@
               table.update(tablePatch(input.targetModel));
             },
             targets: function () { return []; },
-            effects: function (timing) {
+            effects: function (timing, context) {
               if (input.reduced) return [];
-              var built = buildEffects(table, plan, timing);
+              var built = buildEffects(table, plan, timing, context.attention, resetVisibility);
               overlays = overlays.concat(built.overlays);
-              appliedEffects = built.specs;
               return built.specs;
             },
             cleanup: function () {
               clearOverlays(overlays);
               overlays = [];
-              appliedEffects = [];
+              resetVisibility.forEach(function (reset) { reset(); });
+              resetVisibility = [];
             }
           };
         },

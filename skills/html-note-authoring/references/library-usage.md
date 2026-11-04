@@ -64,9 +64,9 @@ node <Skill目录>/scripts/query.mjs show tool:inspect-note --json
 
 ## Focus 可读性：先有依据，再展开
 
-有公共 Focus 时，每个落点必须对应一种可读状态：已经可读的参照只观察（`groups: []`）；尚未可读、到达后才展开的主要内容，必须由该落点声明负责区域的效果组，并由 Adapter 的 `groups()` 与 progress/WAAPI 真正推进。多个新增区域需要先后阅读时，分别建组并挂到各自目标；只有确实要一起辨认才共用一组，且组挂在让它们开始可读的目标上。`commit()` 只提交目标/预置来源视觉，主要变化交给 effects；不要在 commit 内直接 `animate()`，否则动画可能在 Focus 到达前结束，公共层无法取消或协调。Focus 离开当前目标前，当前主要内容应达到可辨认；用真实 `next()/replay()/prev()` 观察，不设全局透明度阈值、统一等待或固定秒数。
+每个 Focus 落点应有可读的来源状态、依据或当前结果。用 `groups: []` 观察已经可读的对象；需要变化时，将效果组交给首次要读该区域的目标放行。对照对象用真实容器或 `NoteDemo.effects.unionRange(refs)` 组合；分属不同时刻的主要变化用独立目标。辅助状态按需要同步更新。
 
-短例：`node <Skill目录>/scripts/query.mjs show example:attention-order --root <库目录> --json`，资源键 `guide/example/verify`。两个已复现反例是“新增卡片共用最后一目标的组”和“侧栏说明与当前行共用后一目标的组”，原因都是组绑到了错误的落点。
+`commit()` 提交目标并保留来源视觉。`sceneAdapter.progress({ onStart, update, ... })` 可在组放行时同步切换可读值或恢复正文强调，再让 `update` 推进局部效果。恢复和减少动效由 Adapter 直接绘制停点。接法短例用 `node <Skill目录>/scripts/query.mjs show example:attention-order --root <库目录> --json` 获取，资源键 `guide/example/verify`。
 
 ## 具体分支：跨区域承接与 Table 行组
 
@@ -98,7 +98,7 @@ var recipe = NoteDemoRecipes.diagramTable({
 NoteDemo.mount(host, { definition: recipe.definition, layout: recipe.layout });
 ```
 
-机制：新行在 commit 时进入 DOM，行级 WAAPI 在组放行前以 `opacity:0` 暂停；attention 到达该行、`groups:['row:<key>']` 放行后，整行才 ready→finished。组名由 table Adapter 按 `row:<encodeURIComponent(key)>` 生成；独立 table Binding 可用 `{row:'<key>'}` 定位，不必与依据同 Binding，已有行不重播。上面的 status 用 `mode:'cut'` 只是快照式同步的一种写法，不是通用要求。
+新行在 commit 时进入 DOM，行组放行前保持隐藏。attention 到达该行后，正文同步可读，行级提示继续播放。组名由 table Adapter 按 `row:<encodeURIComponent(key)>` 生成；独立 table Binding 可用 `{row:'<key>'}` 定位，已有行不重播。上面的 status 用 `mode:'cut'` 只是快照式同步的一种写法。
 
 任何 Binding 的视图变化都必须在 scene.bindings 中列出，不能省略；辅助状态如何提交（update/cut 等）与是否需要 Focus 巡视是两个判断，不要求一律 cut、逐项巡视或数字动画。
 

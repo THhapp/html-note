@@ -541,10 +541,10 @@ export const TOPICS = [
     "name": "Focus 可读性短例：已有依据到到达后展开",
     "cn": "Focus 可读性短例",
     "type": "完整示例",
-    "category": "完整示例；`examples/attention-order/index.html`，一个 Binding 内 A/B/C 三张卡。",
-    "purpose": "演示观察已有可读依据与到达后展开新内容放在同一条 Focus 流程：A 是已可读参照（groups: []），B、C 在 commit 时预置不可见，分别由 step-b、step-c 组在自己的目标到达后 progress 展开；B ready 后才迁移 C，离开当前目标前主要内容已可辨认。",
+    "category": "完整示例；`examples/attention-order/index.html`，同一 Binding 内的三个观察时刻。",
+    "purpose": "先观察已有请求，再用 unionRange 一起覆盖馆藏依据与两项结果，最后在回执自己的落点交接文字与强调。各组在 progress 的 onStart 同步呈现可读值，再推进局部效果。",
     "limits": [
-      "短例只演示一次过渡，不提供通用视觉效果参数；A/B/C 的文案、时长和布局仅作接法示例，不是全局阈值或固定等待标准。"
+      "只演示一次过渡；作者声明观察成员、分组和可读内容。"
     ],
     "terms": [
       "Focus",
@@ -554,11 +554,11 @@ export const TOPICS = [
       "观察目标",
       "效果组",
       "groups",
-      "step-b",
-      "step-c",
+      "unionRange",
+      "onStart",
       "progress",
       "attention",
-      "A B C",
+      "落点",
       "短例"
     ],
     "aliases": [
@@ -596,7 +596,7 @@ export const TOPICS = [
       "demo-ui"
     ],
     "usage": "`node scripts/inspect-note.mjs \"examples/attention-order/index.html\" --json`；真实 next/replay/prev 与 reduced 核对见 `tests/checks/attention-order-check.mjs`。",
-    "notes": "短例把 A（已有可读参照）、B（到达后展开）、C（再到达后展开）放在同一条流程；另见 `example:continuous-scene` 的双组面板与作者入口的跨区域示例。它不修改 trial 输入，也不代表所有作品都需要 Focus。"
+    "notes": "只有需要引导观察时才使用 Focus；同一落点可覆盖保持原状的依据与多项相关结果。另见 `example:continuous-scene` 与作者入口的跨区域示例。"
   },
   {
     "id": "example:continuous-scene",
@@ -972,7 +972,7 @@ export const TOPICS = [
       "ui-content"
     ],
     "usage": "Binding 写 `{ adapter:'table', slot:'table', options:{ rowKey:'key' } }`；视图 `{columns,rows,sort,emphasis,caption,empty,dense,maxHeight}`。",
-    "notes": "scene 接入，不是新组件。row 组名 `row:<encodeURIComponent(rowKey)>`；新行 row-enter 在组放行前以 opacity:0 暂停，attention 的 row 目标（`query:{row:'r2'}`、`groups:['row:r2']`）到达后才 ready→finished；已有行不重播。辅助状态视图变化也须列入 scene.bindings；阶段/模式/目标参数摘要可随提交，已收到/已完成事实随领域事件或实际展示进度；cut/update 按事实与视觉需要，是否 Focus 巡视另判，不要求一律 cut、逐项巡视或数字动画。使用默认舞台 NoteDemo.mount／完整作者页另加 demo-ui；本条 dependencies 是 Table Adapter 场景闭包。跨区域 table row 示例见 `examples/authoring/index.html`；流程组合示例保留在 example 资源。"
+    "notes": "scene 接入。row 组名 `row:<encodeURIComponent(rowKey)>`；attention 的 row 目标（`query:{row:'r2'}`、`groups:['row:r2']`）到达前新行保持 opacity:0，到达后同步呈现正文，再播放局部提示；已有行不重播。辅助状态视图变化也须列入 scene.bindings；阶段/模式/目标参数摘要可随提交，已收到/已完成事实随领域事件或实际展示进度。cut/update 按事实与视觉需要，是否 Focus 巡视另判，不要求一律 cut。使用默认舞台 NoteDemo.mount／完整作者页另加 demo-ui；本条 dependencies 是 Table Adapter 场景闭包。跨区域 table row 示例见 `examples/authoring/index.html`；流程组合示例保留在 example 资源。"
   },
   {
     "id": "public:flow-stage-adapter",

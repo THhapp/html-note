@@ -121,7 +121,24 @@ async function openWithHelpers(options = {}) {
     const XR = window.__xr;
     const host = XR.host();
     const session = XR.session();
-    const rec = window.NoteDemo.timingFacts.watch(session, { label: 'cross-region-a' });
+    let landing;
+    const rec = window.NoteDemo.timingFacts.watch(session, {
+      label: 'cross-region-a',
+      onFact(fact) {
+        if (fact.kind !== 'focus-arrival' || fact.binding !== 'table') return;
+        queueMicrotask(() => {
+          const row = XR.row(host, 'r1');
+          const rect = row.getBoundingClientRect();
+          const box = document.querySelector('.note-demo-attention[data-nx-state="shown"] .nx-focus__box')?.getBoundingClientRect();
+          landing = {
+            opacity: Number(getComputedStyle(row).opacity),
+            cells: Array.from(row.cells, (cell) => cell.textContent.trim()),
+            covered: !!box && box.left <= rect.left + 1 && box.top <= rect.top + 1 &&
+              box.right >= rect.right - 1 && box.bottom >= rect.bottom - 1
+          };
+        });
+      }
+    });
     const samples = [];
     let sampling = true;
     const tick = () => {
@@ -147,6 +164,7 @@ async function openWithHelpers(options = {}) {
       frame: session.getState().settledFrameId,
       samples,
       facts,
+      landing,
       finalOpacity: XR.opacity(host, 'r1'),
       status: XR.slot(host, 'status'),
       evidence: XR.slot(host, 'evidence'),
@@ -156,6 +174,9 @@ async function openWithHelpers(options = {}) {
   const hiddenFirst = stepA.samples.find((sample) =>
     sample.phase === 'running' && sample.hasRow && sample.rowOpacity < 0.1);
   check('跨区域例 step A：首目标阶段新行 opacity=0', !!hiddenFirst, JSON.stringify(stepA.samples.slice(0, 10)));
+  check('跨区域例 step A：落点已覆盖且可读出新行内容',
+    stepA.landing?.covered && stepA.landing.opacity === 1 && stepA.landing.cells.join('/') === 'A/1',
+    JSON.stringify(stepA.landing));
   check('跨区域例 step A：表目标后行最终可见并停稳',
     stepA.phase === 'idle' && stepA.frame === 'step-a' && stepA.finalOpacity > 0.9 && stepA.rowCount === 1,
     JSON.stringify({ phase: stepA.phase, frame: stepA.frame, finalOpacity: stepA.finalOpacity, rowCount: stepA.rowCount }));

@@ -388,6 +388,9 @@
   function createProgressHandle(spec, meta) {
     var settings = isObject(spec) ? spec : {};
     if (typeof settings.update !== 'function') throw fail('progress 效果缺少 update(progress) 函数。', meta);
+    if (settings.onStart != null && typeof settings.onStart !== 'function') {
+      throw fail('progress 效果 onStart 必须是函数。', meta);
+    }
     var duration = settings.duration;
     if (typeof duration !== 'number' || !isFinite(duration) || duration < 0) {
       throw fail('progress 效果 duration 必须是大于等于 0 的有限数字。', meta);
@@ -458,6 +461,14 @@
       play: function () {
         if (settled || cancelRequested || playing) return;
         playing = true;
+        /* 放行与预置 p=0 是两个阶段。先同步交接可读内容，再开始采样进度。 */
+        try {
+          if (settings.onStart) settings.onStart();
+        } catch (error) {
+          settleFailed(fail('progress onStart 失败：' + messageOf(error), meta, error));
+          return;
+        }
+        if (settled || cancelRequested) return;
         startTime = nowMs();
         rafId = rafRequest(tick);
       },

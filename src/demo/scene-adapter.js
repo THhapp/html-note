@@ -82,6 +82,10 @@
     var spec = { type: 'progress' };
     if (typeof config.update !== 'function') fail('progress(config).update 必须是函数。');
     spec.update = config.update;
+    if (config.onStart != null) {
+      if (typeof config.onStart !== 'function') fail('progress(config).onStart 必须是函数。');
+      spec.onStart = config.onStart;
+    }
     if (typeof config.duration !== 'number' || !isFinite(config.duration) || config.duration < 0) {
       fail('progress(config).duration 必须是大于等于 0 的有限数字（0 合法）。');
     }

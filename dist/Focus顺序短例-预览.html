@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>关注顺序 · 先读已有依据，再到达后展开</title>
+<title>关注顺序 · 从借阅请求到回执</title>
 <style>
 /*! note-library full bundle (CSS)
  * modules: core, legacy, ui-layout, ui-content, ui-actions, ui-navigation, ui-forms-basic, ui-forms-advanced, ui-overlay, ui-feedback, ui-extended, viz-objects, viz-flow, viz-mechanisms, viz-chart, blocks-base, demo-stage, blocks, demo-runtime, demo-ui
@@ -15558,32 +15558,25 @@
 
 </style>
 <style>
-  html, body { margin: 0; padding: 0; background: #f4f6f9; }
-  body { font-family: "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif; color: #202938; }
-  .ao-page { max-width: 1120px; margin: 0 auto; padding: 20px; }
-  .ao-head h1 { margin: 0 0 8px; font-size: 26px; line-height: 1.35; }
-  .ao-head p { margin: 0 0 16px; max-width: 76ch; line-height: 1.65; }
-  .ao-card { min-width: 0; padding: 16px 18px; border: 1px solid #dce2ea; border-radius: 14px; background: #fff; }
-  .ao-card__tag { display: inline-block; margin-bottom: 8px; padding: 2px 8px; border-radius: 999px; background: #eef2ff; color: #315cda; font-size: 12px; font-weight: 650; }
-  .ao-card h2 { margin: 0 0 8px; font-size: 18px; line-height: 1.4; }
-  .ao-card p { margin: 0; line-height: 1.7; }
-  .ao-card--a { border-color: #b9c8f5; background: #f6f8ff; }
-  .ao-card--b { border-color: #dbe4f2; }
-  .ao-card--c { border-color: #dbe4f2; }
-  .ao-layout { padding: 6px; }
-  .ao-grid { display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: 14px; align-items: stretch; }
-  @media (max-width: 760px) { .ao-grid { grid-template-columns: 1fr; } }
+  body { margin: 0; background: #f4f6f9; color: #202938; font-family: "Segoe UI", "Microsoft YaHei", sans-serif; }
+  main { max-width: 1080px; margin: auto; padding: 24px; }
+  h1 { font-size: 26px; margin: 0 0 8px; }
+  main > p { margin: 0 0 18px; line-height: 1.65; }
+  .ao-grid { display: grid; grid-template-columns: 1fr 1.25fr 1fr; gap: 16px; align-items: start; padding: 8px; }
+  .ao-stack { display: grid; gap: 8px; min-width: 0; }
+  .ao-card { min-width: 0; padding: 12px 14px; border: 1px solid #dbe4f2; border-radius: 10px; background: #fff; }
+  .ao-card h2 { margin: 0 0 5px; font-size: 16px; }
+  .ao-card p { margin: 0; line-height: 1.6; }
+  .ao-card[data-part="receipt"][data-status="pending"] [data-value] { opacity: .65; }
+  .ao-progress { display: block; margin-top: 6px; height: 2px; background: #315cda; transform: scaleX(0); transform-origin: left; }
+  @media (max-width: 720px) { .ao-grid { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
-<main class="ao-page">
-  <header class="ao-head">
-    <h1>关注顺序：先读已有依据，再到达后展开</h1>
-    <p>短例只演示一次过渡：A 是“已有可读参照”，始终可见；B 和 C 在下一个停点的目标模型里，但 commit 时都先预置为不可见，分别等自己的焦点到达后由 step-b / step-c 展开。B 展开到可辨认之后才迁移到 C，B 阶段不会提前出现 C。</p>
-  </header>
-  <section class="ao-card" aria-label="关注顺序短例">
-    <div data-attention-order-host></div>
-  </section>
+<main>
+  <h1>关注顺序：从借阅请求到回执</h1>
+  <p>先看已有请求，再把馆藏依据、资格和借阅记录合起来读，最后确认回执。</p>
+  <section data-attention-order-host aria-label="关注顺序短例"></section>
 </main>
 <script>
 /*! note-library full bundle (JavaScript)
@@ -57809,6 +57802,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   function createProgressHandle(spec, meta) {
     var settings = isObject(spec) ? spec : {};
     if (typeof settings.update !== 'function') throw fail('progress 效果缺少 update(progress) 函数。', meta);
+    if (settings.onStart != null && typeof settings.onStart !== 'function') {
+      throw fail('progress 效果 onStart 必须是函数。', meta);
+    }
     var duration = settings.duration;
     if (typeof duration !== 'number' || !isFinite(duration) || duration < 0) {
       throw fail('progress 效果 duration 必须是大于等于 0 的有限数字。', meta);
@@ -57879,6 +57875,14 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       play: function () {
         if (settled || cancelRequested || playing) return;
         playing = true;
+        /* 放行与预置 p=0 是两个阶段。先同步交接可读内容，再开始采样进度。 */
+        try {
+          if (settings.onStart) settings.onStart();
+        } catch (error) {
+          settleFailed(fail('progress onStart 失败：' + messageOf(error), meta, error));
+          return;
+        }
+        if (settled || cancelRequested) return;
         startTime = nowMs();
         rafId = rafRequest(tick);
       },
@@ -60406,6 +60410,10 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     var spec = { type: 'progress' };
     if (typeof config.update !== 'function') fail('progress(config).update 必须是函数。');
     spec.update = config.update;
+    if (config.onStart != null) {
+      if (typeof config.onStart !== 'function') fail('progress(config).onStart 必须是函数。');
+      spec.onStart = config.onStart;
+    }
     if (typeof config.duration !== 'number' || !isFinite(config.duration) || config.duration < 0) {
       fail('progress(config).duration 必须是大于等于 0 的有限数字（0 合法）。');
     }
@@ -65583,7 +65591,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     return value;
   }
 
-  function buildEffects(table, plan, timing) {
+  function buildEffects(table, plan, timing, attention, resetVisibility) {
     var easing = timing && typeof timing.easing === 'string' && timing.easing ? timing.easing : 'linear';
     var swapDuration = timingNumber(timing, 'valueSwapDuration', timingNumber(timing, 'enterDuration', 260));
     var cueDuration = timingNumber(timing, 'cueDuration', swapDuration);
@@ -65614,6 +65622,22 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       if (effect.kind === 'row-enter') {
         var rowEl = table.getTarget({ row: effect.rowKey, part: 'row' });
         if (!rowEl) return;
+        if (attention) {
+          var sourceOpacity = rowEl.style.opacity;
+          var showRow = function () { rowEl.style.opacity = sourceOpacity; };
+          resetVisibility.push(showRow);
+          specs.push({
+            type: 'progress',
+            group: effect.group,
+            gate: 'ready',
+            duration: 0,
+            update: function (p) { if (p === 0) rowEl.style.opacity = '0'; },
+            onStart: showRow,
+            effect: 'table-row-visibility'
+          });
+          addRowCue(rowEl, effect.group, swapDuration, 'table-row-enter');
+          return;
+        }
         specs.push({
           el: rowEl,
           keyframes: [{ opacity: 0 }, { opacity: 1 }],
@@ -65626,46 +65650,37 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       }
       if (effect.kind === 'row-state') {
         var stateRow = table.getTarget({ row: effect.rowKey, part: 'row' });
-        if (!stateRow) return;
-        /* 行状态变化：目标内容在 commit 时已经正确露出，不用 opacity 把目标“洗白再回来”。
-         * 用每个单元格的 inset 轮廓 cue（不覆盖文字/背景内容），p=0 透明，放行后短暂出现再消失；
-         * 目标内容始终可见、始终不参与透明度过渡。 */
-        var accent = '#315cda';
-        try {
-          var computed = global.getComputedStyle ? global.getComputedStyle(stateRow) : null;
-          var accentValue = computed ? computed.getPropertyValue('--hnv-color-accent').trim() : '';
-          if (accentValue) accent = accentValue;
-        } catch (error) { /* 回退到默认强调色 */ }
-        var cueKeyframes = [
-          { boxShadow: 'inset 0 0 0 2px transparent', offset: 0 },
-          { boxShadow: 'inset 0 0 0 2px ' + accent, offset: 0.35 },
-          { boxShadow: 'inset 0 0 0 2px transparent', offset: 1 }
-        ];
-        var rowCells = stateRow.querySelectorAll ? stateRow.querySelectorAll('td') : [];
-        if (!rowCells.length) {
-          specs.push({
-            el: stateRow,
-            keyframes: cueKeyframes,
-            options: { duration: cueDuration, easing: 'linear', fill: 'none' },
-            group: effect.group,
-            gate: 'ready',
-            effect: 'table-row-state'
-          });
-          return;
-        }
-        Array.prototype.forEach.call(rowCells, function (cell) {
-          specs.push({
-            el: cell,
-            keyframes: cueKeyframes,
-            options: { duration: cueDuration, easing: 'linear', fill: 'none' },
-            group: effect.group,
-            gate: 'ready',
-            effect: 'table-row-state'
-          });
-        });
+        if (stateRow) addRowCue(stateRow, effect.group, cueDuration, 'table-row-state');
       }
     });
     return { specs: specs, overlays: overlays };
+
+    /* 提示描边和正文分别呈现，焦点到达后不用等整行透明度爬升。 */
+    function addRowCue(stateRow, group, duration, effectName) {
+      var accent = '#315cda';
+      try {
+        var computed = global.getComputedStyle ? global.getComputedStyle(stateRow) : null;
+        var accentValue = computed ? computed.getPropertyValue('--hnv-color-accent').trim() : '';
+        if (accentValue) accent = accentValue;
+      } catch (error) { /* 回退到默认强调色 */ }
+      var cueKeyframes = [
+        { boxShadow: 'inset 0 0 0 2px transparent', offset: 0 },
+        { boxShadow: 'inset 0 0 0 2px ' + accent, offset: 0.35 },
+        { boxShadow: 'inset 0 0 0 2px transparent', offset: 1 }
+      ];
+      var rowCells = stateRow.querySelectorAll('td');
+      if (!rowCells.length) rowCells = [stateRow];
+      Array.prototype.forEach.call(rowCells, function (cell) {
+        specs.push({
+          el: cell,
+          keyframes: cueKeyframes,
+          options: { duration: duration, easing: 'linear', fill: 'none' },
+          group: group,
+          gate: 'ready',
+          effect: effectName
+        });
+      });
+    }
   }
 
   function clearOverlays(overlays) {
@@ -65740,7 +65755,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
           assertAlive();
           var plan = buildChangePlan(input.sourceModel, input.targetModel);
           var committed = false;
-          var appliedEffects = [];
+          var resetVisibility = [];
           return {
             groups: plan.groups,
             commit: function () {
@@ -65751,17 +65766,17 @@ if(__exports != exports)module.exports = exports;return module.exports}));
               table.update(tablePatch(input.targetModel));
             },
             targets: function () { return []; },
-            effects: function (timing) {
+            effects: function (timing, context) {
               if (input.reduced) return [];
-              var built = buildEffects(table, plan, timing);
+              var built = buildEffects(table, plan, timing, context.attention, resetVisibility);
               overlays = overlays.concat(built.overlays);
-              appliedEffects = built.specs;
               return built.specs;
             },
             cleanup: function () {
               clearOverlays(overlays);
               overlays = [];
-              appliedEffects = [];
+              resetVisibility.forEach(function (reset) { reset(); });
+              resetVisibility = [];
             }
           };
         },
@@ -70187,177 +70202,117 @@ if(__exports != exports)module.exports = exports;return module.exports}));
   'use strict';
 
   var NoteDemo = global.NoteDemo;
-  var SceneAdapter = NoteDemo && NoteDemo.sceneAdapter;
-  if (!NoteDemo || !SceneAdapter || typeof SceneAdapter.define !== 'function' ||
-      typeof SceneAdapter.progress !== 'function' || typeof NoteDemo.mount !== 'function') {
-    throw new Error('attention-order 需要 dist/note-library.js 提供 NoteDemo.sceneAdapter.define / progress / NoteDemo.mount。');
+  var SceneAdapter = NoteDemo.sceneAdapter;
+  var cards = {
+    request: { title: '借阅请求', source: '林同学 ·《网络基础》' },
+    stock: { title: '馆藏依据', source: '当前可借 1 本' },
+    eligibility: { title: '资格核对', source: '等待核对', result: '资格有效' },
+    record: { title: '借阅记录', source: '尚未登记', result: '已登记 1 本' },
+    receipt: { title: '到期回执', source: '待生成', result: '11 月 20 日到期' }
+  };
+  /* 同一份观察意图给出必读成员和变化组。馆藏依据保持原状，但它是理解结果的依据。 */
+  var beats = [
+    { parts: ['request'] },
+    { parts: ['stock', 'eligibility', 'record'], group: 'borrow' },
+    { parts: ['receipt'], group: 'receipt' }
+  ];
+  var changes = beats.filter(function (beat) { return beat.group; });
+
+  function ref(part) {
+    return { binding: 'board', query: { part: part } };
   }
 
-  var STAGE_TOTAL = 1;
-  /* 组名集中一处：adapter.groups()、Definition targets 和 effects 共用，避免手写漂移。 */
-  var GROUPS = { b: 'step-b', c: 'step-c' };
-
-  function stageOf(value, where) {
-    var stage = value == null ? 0 : Number(value);
-    if (!isFinite(stage) || stage % 1 !== 0 || stage < 0 || stage > STAGE_TOTAL) {
-      throw new Error('attention-order：' + where + ' 必须是 0–' + STAGE_TOTAL + ' 的整数，收到 ' + String(value));
+  function attentionTarget(beat) {
+    var target = ref(beat.parts[0]);
+    target.groups = beat.group ? [beat.group] : [];
+    if (beat.parts.length > 1) {
+      target.range = NoteDemo.effects.unionRange(beat.parts.slice(1).map(ref));
     }
-    return stage;
+    return target;
   }
 
-  /*
-   * 目标 / 组 / 来源画面 / 进度效果 / 承接关系：
-   * - 来源画面 initial：模型 stage=0，只呈现 A；B、C 在 DOM 中保留版位但 opacity 0。
-   * - 目标画面 expanded：模型 stage=1，A/B/C 都进入目标模型；commit 时 B/C 仍预置 opacity 0。
-   * - attention 目标顺序 A → B → C；A 是已有可读参照，groups: []（只观察，不放行新内容）；
-   *   B 目标 groups: [&#39;step-b&#39;]；C 目标 groups: [&#39;step-c&#39;]。B/C 必须分开分组，不能把两个新增卡
-   *   都挂到最后一个目标的组里，否则第一个目标期间两个新卡会一起透明。
-   * - progress 效果组 step-b / step-c 只更新自己的卡：B 到达后展开 B，C 到达后展开 C；
-   *   B 的 ready（opacity 到 1）完成后焦点才迁移到 C；C ready 后收束。
-   * - 时长写在 scene.timing 里，只是观感选择；适配器没有全局透明度阈值或固定等待。
-   */
   var adapter = SceneAdapter.define({
     name: 'attention-order',
     sceneModes: ['update'],
     defaultSceneMode: 'update',
-    sceneTimingDefaults: { enterDuration: 640, easing: 'linear' },
 
-    normalizeView: function (input) {
-      var view = input == null ? { stage: 0 } : input;
-      if (typeof view !== 'object' || Array.isArray(view)) {
-        throw new Error('attention-order：视图必须是 { stage } 对象。');
-      }
-      return { model: { stage: stageOf(view.stage, 'view.stage') }, cues: {} };
+    normalizeView: function (view) {
+      if (!view || (view.stage !== 0 && view.stage !== 1)) throw new Error('需要 stage 0 或 1。');
+      return { model: { stage: view.stage }, cues: {} };
     },
 
     mount: function (host) {
       var root = document.createElement('div');
-      root.className = 'ao-layout';
-      root.innerHTML = [
-        '<div class="ao-grid">',
-        '  <article class="ao-card ao-card--a" data-part="a">',
-        '    <span class="ao-card__tag">观察目标 · groups: []</span>',
-        '    <h2>A · 已有可读参照</h2>',
-        '    <p>这张卡在来源停点里已经可读，不需要等新内容。焦点到达 A 只是确认已有依据。</p>',
-        '  </article>',
-        '  <article class="ao-card ao-card--b" data-part="b">',
-        '    <span class="ao-card__tag">观察目标 · groups: [&#39;step-b&#39;]</span>',
-        '    <h2>B · 到达后展开</h2>',
-        '    <p>焦点到达 B 之前保持不可见；step-b 进度只展开这张卡，完成后焦点才去 C。</p>',
-        '  </article>',
-        '  <article class="ao-card ao-card--c" data-part="c">',
-        '    <span class="ao-card__tag">观察目标 · groups: [&#39;step-c&#39;]</span>',
-        '    <h2>C · 到达后展开</h2>',
-        '    <p>B 阶段 C 保持不出现；焦点到达 C 后由 step-c 单独展开。两个新区域各自放行。</p>',
-        '  </article>',
-        '</div>'
-      ].join('');
+      root.className = 'ao-grid';
+      root.innerHTML = '<div data-column="request"></div><div class="ao-stack" data-column="borrow"></div><div data-column="receipt"></div>';
+      var nodes = {};
+      var stage = 0;
+      beats.forEach(function (beat) {
+        var column = root.querySelector('[data-column="' + (beat.group || 'request') + '"]');
+        beat.parts.forEach(function (part) {
+          var el = document.createElement('article');
+          el.className = 'ao-card';
+          el.dataset.part = part;
+          el.innerHTML = '<h2></h2><p data-value></p><span class="ao-progress" aria-hidden="true"></span>';
+          el.querySelector('h2').textContent = cards[part].title;
+          column.appendChild(el);
+          nodes[part] = el;
+        });
+      });
       host.appendChild(root);
 
-      var rootEl = root;
-      var cards = {
-        a: root.querySelector('[data-part="a"]'),
-        b: root.querySelector('[data-part="b"]'),
-        c: root.querySelector('[data-part="c"]')
-      };
-      var model = { stage: 0 };
-      var visual = { b: 0, c: 0 };
-
-      function paint() {
-        cards.b.style.opacity = String(visual.b);
-        cards.c.style.opacity = String(visual.c);
-        cards.b.setAttribute('aria-hidden', visual.b < 1 ? 'true' : 'false');
-        cards.c.setAttribute('aria-hidden', visual.c < 1 ? 'true' : 'false');
-        rootEl.setAttribute('data-stage', String(model.stage));
+      function paintValue(part, done) {
+        var el = nodes[part];
+        var card = cards[part];
+        el.querySelector('[data-value]').textContent = done && card.result ? card.result : card.source;
+        el.dataset.status = done || !card.result ? 'current' : 'pending';
       }
 
-      function paintStage(stage) {
-        visual.b = stage === 1 ? 1 : 0;
-        visual.c = stage === 1 ? 1 : 0;
-        paint();
+      function paintProgress(part, progress) {
+        nodes[part].querySelector('.ao-progress').style.transform = 'scaleX(' + progress + ')';
       }
 
-      function restore(viewModel) {
-        var stage = stageOf(viewModel && viewModel.stage, 'restore().stage');
-        model = { stage: stage };
-        if (stage === 1) {
-          visual.b = 1;
-          visual.c = 1;
-        } else {
-          visual.b = 0;
-          visual.c = 0;
-        }
-        paint();
-      }
-
-      function readModel() {
-        return { stage: model.stage };
-      }
-
-      function target(query) {
-        var part = query && typeof query === 'object' ? query.part : null;
-        if (part === 'a') return cards.a;
-        if (part === 'b') return cards.b;
-        if (part === 'c') return cards.c;
-        if (part === 'root' || part == null) return rootEl;
-        return null;
+      function restore(model) {
+        stage = model.stage;
+        Object.keys(cards).forEach(function (part) {
+          paintValue(part, stage === 1);
+          paintProgress(part, stage === 1 && cards[part].result ? 1 : 0);
+        });
       }
 
       function planStep(input) {
-        var from = stageOf(input.sourceModel && input.sourceModel.stage, 'sourceModel.stage');
-        var to = stageOf(input.targetModel && input.targetModel.stage, 'targetModel.stage');
-        if (from !== 0 || to !== 1) {
-          throw new Error('attention-order：只支持 initial(0) → expanded(1)，收到 ' + from + ' → ' + to + '。');
-        }
-        var reduced = input.reduced === true;
-        var committed = false;
-        var plan = {
-          /* 两个新区域分别声明：B 由 step-b、C 由 step-c 各自放行。 */
-          groups: function () { return [GROUPS.b, GROUPS.c]; },
-          targets: function () { return []; },
+        return {
+          groups: function () { return changes.map(function (beat) { return beat.group; }); },
           commit: function () {
-            if (committed) return;
-            committed = true;
-            model = { stage: 1 };
-            if (reduced) {
-              visual.b = 1;
-              visual.c = 1;
-              paint();
-            } else {
-              /* commit 只提交目标模型，B/C 仍预置不可见；各自 progress 到达后才可见。 */
-              visual.b = 0;
-              visual.c = 0;
-              paint();
-            }
+            if (input.reduced) restore(input.targetModel);
+            else stage = input.targetModel.stage;
           },
           effects: function (timing) {
-            if (reduced) return [];
-            function expand(group, key) {
+            return changes.map(function (beat) {
+              var parts = beat.parts.filter(function (part) { return cards[part].result; });
               return SceneAdapter.progress({
-                group: group,
+                group: beat.group,
                 gate: 'ready',
                 duration: timing.enterDuration,
                 easing: timing.easing,
+                // 放行时同步交接可读值。预置 p=0 和后续进度只写提示线。
+                onStart: function () { parts.forEach(function (part) { paintValue(part, true); }); },
                 update: function (progress) {
-                  visual[key] = progress;
-                  paint();
+                  parts.forEach(function (part) { paintProgress(part, progress); });
                 }
               });
-            }
-            return [expand(GROUPS.b, 'b'), expand(GROUPS.c, 'c')];
-          },
-          cleanup: function () {}
+            });
+          }
         };
-        return plan;
       }
 
       restore({ stage: 0 });
       return {
         restore: restore,
-        readModel: readModel,
-        target: target,
+        readModel: function () { return { stage: stage }; },
+        target: function (query) { return nodes[query && query.part] || null; },
         planStep: planStep,
-        destroy: function () { rootEl.remove(); }
+        destroy: function () { root.remove(); }
       };
     }
   });
@@ -70366,65 +70321,32 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     initialFrameId: 'initial',
     bindings: { board: { adapter: 'attention-order', slot: 'board' } },
     frames: [
-      {
-        id: 'initial',
-        caption: '初始停点：只有 A 是已有可读参照；B/C 不在来源画面里可见。',
-        views: { board: { stage: 0 } }
-      },
-      {
-        id: 'expanded',
-        caption: '目标模型包含 A/B/C；B 在自己的焦点到达后展开，B 可辨认后才迁移 C，C 到达后展开。',
-        views: { board: { stage: 1 } }
-      }
+      { id: 'initial', caption: '已收到借阅请求，等候确认资格与登记。', views: { board: { stage: 0 } } },
+      { id: 'expanded', caption: '馆藏与借阅资格均满足条件，登记完成后给出到期日。', views: { board: { stage: 1 } } }
     ],
     transitions: [{
       from: 'initial',
       to: 'expanded',
       scene: {
         bindings: [{ binding: 'board', mode: 'update' }],
-        /* 640ms 只是观感选择：不使用全局透明度阈值，也不靠固定等待让内容出现。 */
-        timing: { enterDuration: 640, easing: 'linear' },
-        attention: {
-          targets: [
-            /* A：已有可读参照，只观察，不放行新内容。 */
-            { binding: 'board', query: { part: 'a' }, groups: [] },
-            /* B：自己的新区域，由 step-b 组放行。 */
-            { binding: 'board', query: { part: 'b' }, groups: [GROUPS.b] },
-            /* C：自己的新区域，由 step-c 组放行。 */
-            { binding: 'board', query: { part: 'c' }, groups: [GROUPS.c] }
-          ]
-        }
+        timing: { enterDuration: 460, easing: 'ease-out' },
+        attention: { targets: beats.map(attentionTarget) }
       }
     }]
   };
 
-  function layout(container) {
-    var wrap = document.createElement('div');
-    var slot = document.createElement('div');
-    slot.setAttribute('data-demo-slot', 'board');
-    wrap.appendChild(slot);
-    container.appendChild(wrap);
-    return { root: wrap, slots: { board: slot } };
-  }
-
-  function boot() {
-    var host = document.querySelector('[data-attention-order-host]');
-    if (!host) return;
-    var session = NoteDemo.mount(host, {
-      definition: definition,
-      layout: layout,
-      adapters: { 'attention-order': adapter },
-      title: '关注顺序：先读已有依据，再到达后展开',
-      label: '关注顺序短例',
-      captionLabel: '说明'
-    });
-    /* 查询/检查只读入口；不参与运行决策。 */
-    global.AttentionOrder = { session: session, definition: definition, adapter: adapter };
-    global.__inspectSession = session;
-  }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
-  else boot();
+  var session = NoteDemo.mount(document.querySelector('[data-attention-order-host]'), {
+    definition: definition,
+    layout: function (container) {
+      var slot = document.createElement('div');
+      container.appendChild(slot);
+      return { root: slot, slots: { board: slot } };
+    },
+    adapters: { 'attention-order': adapter },
+    title: '借阅请求、登记与回执'
+  });
+  global.AttentionOrder = { session: session, definition: definition, adapter: adapter };
+  global.__inspectSession = session;
 })(window);
 </script>
 </body>
