@@ -25,7 +25,7 @@ function check(name, ok, detail = '') {
 
 const browser = await chromium.launch({ executablePath: edge, headless: true });
 async function openPage(options = {}) {
-  const context = await browser.newContext({ viewport: { width: 1280, height: 1000 }, reducedMotion: options.reduced ? 'reduce' : 'no-preference' });
+  const context = await browser.newContext({ viewport: { width: options.width || 1280, height: options.height || 1000 }, reducedMotion: options.reduced ? 'reduce' : 'no-preference' });
   const page = await context.newPage();
   const pageErrors = [];
   const external = [];
@@ -297,6 +297,23 @@ async function openPage(options = {}) {
     for (let index = 0; index < 4; index += 1) {
       const result = await sequenceSession.next();
       sequenceDurations.push({ status: result.status });
+      if (index === 0) {
+        const readout = sequenceHost.querySelector('[data-demo-slot="readout"]');
+        const panel = readout.closest('.nd-recipe__process-slot');
+        const value = readout.querySelector('[data-adapter-part="value"]');
+        const box = value.getBoundingClientRect();
+        const bounds = panel.getBoundingClientRect();
+        const sum = sequenceHost.querySelector('.nd-recipe__readout').getBoundingClientRect();
+        const focusBoxes = Array.from(document.querySelectorAll('.note-demo-attention[data-nx-state="shown"] .nx-focus__box'))
+          .map((node) => node.getBoundingClientRect());
+        const focusCovers = focusBoxes.some((focusBox) => focusBox.left <= box.left + 1 && focusBox.top <= box.top + 1 &&
+          focusBox.right >= box.right - 1 && focusBox.bottom >= box.bottom - 1);
+        check('读数例：当前读数标题和值同属一个区域，与汇总分开，Focus 覆盖可读值',
+          panel.querySelector('.nd-recipe__title')?.textContent === '当前读数' &&
+          value.textContent === '4' && box.left > bounds.left && box.bottom < bounds.bottom &&
+          sum.top > bounds.bottom && focusCovers,
+          JSON.stringify({ panelBottom: bounds.bottom, valueBottom: box.bottom, sumTop: sum.top, focusCovers }));
+      }
     }
     sequenceTiming.unsubscribe();
     const sequenceText = sequenceHost.textContent || '';
@@ -344,6 +361,101 @@ async function openPage(options = {}) {
   await context.close();
 }
 
+
+/* ---------------- narrow stage: final result is not covered by sticky footer ---------------- */
+{
+  const { context, page, pageErrors } = await openPage({ width: 390, height: 844 });
+  const final = await page.evaluate(async () => {
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    const host = document.querySelector('[data-author-demo="matrix"]');
+    const session = window.AuthoringDemoSessions.matrix;
+    const stage = host.querySelector('.nblk-demo-stage');
+    const footer = stage.querySelector('.nblk-demo-stage__footer');
+    const value = () => host.querySelector('[data-demo-slot="result"] [data-adapter-part="value"]');
+    const resultSlot = host.querySelector('[data-demo-slot="result"]');
+    const controls = stage.querySelector('.nblk-demo-stage__controls');
+    stage.scrollIntoView({ block: 'start' });
+    const measure = () => {
+      const node = value();
+      const v = node.getBoundingClientRect();
+      const f = footer.getBoundingClientRect();
+      const c = controls.getBoundingClientRect();
+      const hit = document.elementFromPoint(v.left + v.width / 2, v.top + v.height / 2);
+      return {
+        phase: session.getState().phase,
+        frame: session.getState().settledFrameId,
+        text: node.textContent.trim(),
+        value: { top: Math.round(v.top), bottom: Math.round(v.bottom), height: Math.round(v.height) },
+        footer: { top: Math.round(f.top), bottom: Math.round(f.bottom) },
+        controls: { top: Math.round(c.top), bottom: Math.round(c.bottom) },
+        scrollY: Math.round(scrollY),
+        hit: hit ? { tag: hit.tagName, cls: typeof hit.className === 'string' ? hit.className : '' } : null,
+        visible: v.top >= 0 && v.bottom <= f.top - 1 &&
+          (hit === node || resultSlot.contains(hit) || node.contains(hit))
+      };
+    };
+    while (session.getState().settledFrameId !== 'pair-3') {
+      const step = await session.next();
+      if (step.status !== 'completed') break;
+    }
+    stage.scrollIntoView({ block: 'start' });
+    const before = measure();
+    const nextPromise = session.next();
+    let revealed = null;
+    for (let i = 0; i < 160; i += 1) {
+      await sleep(16);
+      const current = measure();
+      if (current.phase === 'running' && current.text === '17') {
+        revealed = current;
+        break;
+      }
+    }
+    await nextPromise;
+    await sleep(160);
+    return { before, revealed, settled: measure(), state: session.getState() };
+  });
+  check('窄屏末步：结果揭示时正文在吸底页脚上方且实际可见',
+    final.revealed && final.revealed.text === '17' && final.revealed.value.bottom <= final.revealed.footer.top - 1 &&
+      final.revealed.visible && final.revealed.controls.bottom <= 844,
+    JSON.stringify(final.revealed));
+  check('窄屏末步：停稳后结果 17 仍完整可见且操作区可读',
+    final.settled.phase === 'idle' && final.settled.frame === 'sum' && final.settled.text === '17' &&
+      final.settled.value.bottom <= final.settled.footer.top - 1 && final.settled.visible &&
+      final.settled.controls.top >= 0 && final.settled.controls.bottom <= 844,
+    JSON.stringify(final.settled));
+  check('窄屏末步：结果可见性核对区无页面/控制台错误', pageErrors.length === 0, pageErrors.slice(0, 5).join(' | '));
+
+  const readoutNarrow = await page.evaluate(async () => {
+    const host = document.querySelector('[data-author-demo="sequence"]');
+    const session = window.AuthoringDemoSessions.sequence;
+    host.querySelector('.nblk-demo-stage').scrollIntoView({ block: 'start' });
+    await session.next();
+    await new Promise((resolve) => setTimeout(resolve, 220));
+    const rect = (node) => { const r = node.getBoundingClientRect(); return { left: r.left, top: r.top, right: r.right, bottom: r.bottom }; };
+    const readout = host.querySelector('[data-demo-slot="readout"]');
+    const panel = readout.closest('.nd-recipe__process-slot');
+    const value = readout.querySelector('[data-adapter-part="value"]');
+    const sum = host.querySelector('.nd-recipe__readout');
+    const focusBoxes = Array.from(document.querySelectorAll('.note-demo-attention[data-nx-state="shown"] .nx-focus__box'))
+      .map((node) => rect(node));
+    const v = rect(value); const p = rect(panel); const sm = rect(sum); const f = focusBoxes;
+    return {
+      phase: session.getState().phase,
+      frame: session.getState().settledFrameId,
+      title: panel.querySelector('.nd-recipe__title')?.textContent.trim(),
+      text: value.textContent.trim(),
+      valueInside: v.left > p.left && v.top > p.top && v.bottom < p.bottom,
+      separated: sm.top > p.bottom,
+      focusCovers: f.some((box) => box.left <= v.left + 1 && box.top <= v.top + 1 && box.right >= v.right - 1 && box.bottom >= v.bottom - 1),
+      value: v, panel: p, sum: sm, focus: f
+    };
+  });
+  check('窄屏读数例：当前读数与 4 同区、与汇总分开且 Focus 覆盖值',
+    readoutNarrow.phase === 'idle' && readoutNarrow.frame === 'read-1' && readoutNarrow.title === '当前读数' &&
+      readoutNarrow.text === '4' && readoutNarrow.valueInside && readoutNarrow.separated && readoutNarrow.focusCovers,
+    JSON.stringify(readoutNarrow));
+  await context.close();
+}
 
 /* ---------------- public stage reservation: layout change releases history, host floor survives ---------------- */
 {

@@ -242,6 +242,7 @@ table.update({ rows: [] });
 | `rowState` | function | `null` | 可选 `(row,index,rowKey) -> 状态`；声明后优先于 `row.state`。 |
 | `cellState` | function | `null` | 可选 `(row,column,rowKey,index) -> 状态`；声明后优先于 `row.cellStates`。 |
 | `stableStateLabels` | boolean | `false` | 稳定状态标签槽；`true` 时每行/带状态的单元保留固定状态行占位，label 显隐不改变行高。独立使用时默认关闭，`table` scene Adapter 默认开启。 |
+| `reserveRows` | number | `0` | 已知未来最大行数时，为正文行槽预留的隐藏占位行数；空态行也算一个容量行。只影响布局高度，不改变 `rows`/`getState()`。 |
 
 排序与空态：
 
@@ -259,6 +260,14 @@ table.update({ rows: [] });
 - 单元状态：`row.cellStates` 是 `{ [columnKey]: 同状态值 }`，按列替换；整行替换后旧状态自然消失。
 - 计算状态：`options.rowState(row,index,rowKey)` / `options.cellState(row,column,rowKey,index)` 优先于行字段；声明函数后不再读取 `row.state`/`row.cellStates`。
 - 状态输出：`data-row-state` / `data-cell-state` 写空格分隔的 type，类名为 `nui-table__row--state-<type>` / `nui-table__cell--state-<type>`；只有状态带 `label` 时才渲染可见的 `.nui-table__state` 标签，不自动补“关注/变化”等文字。type 建议使用不含空白的单 token；含空白时 data 属性按空格拆分，类名换成连字符。
+
+### 已知容量 `reserveRows`
+
+- 只在作者明确知道未来最大行数时使用；默认 `0`，独立 Table 和 Scene Adapter 的既有行为不变。
+- 设为 `N` 后，tbody 始终按至少 N 个正文行槽占高：已有数据行照常渲染，差额用 `aria-hidden`、`visibility:hidden` 的真实 cell 行占位；空态行占一个槽，其余补隐藏行。
+- 实际新增行仍按真实数据行到达；`getState().rows`、`readModel()`、行身份、排序和 `getTarget(rowKey)` 不包含占位行。不要用它伪造数据或提前宣布正文。
+- 空态行在 reserve 模式下使用与正文行相同的 cell 盒模型和行高，避免初始空表与首个数据行之间跳动；这是语义容量，不是固定像素高度。
+- 适合“已知最多两行/三行、逐行揭示”的表格；行数未知或会持续增长时不要预留下限，让内容按实际高度增长。
 
 ### 稳定状态标签 `stableStateLabels`
 

@@ -39,7 +39,7 @@
 
     <section class="authoring-demo">
       <div class="authoring-demo-head">
-        <p class="authoring-demo-note">同一配方、单行来源；焦点先到读数格，内容 ready 后才把视线交给右侧读数，末步弱化后静止。</p>
+        <p class="authoring-demo-note">同一配方、单行来源。先看读数格，再看当前读数，最后汇总。</p>
         <p class="authoring-phase">状态：<span class="authoring-phase__value" data-author-phase="sequence">空闲</span></p>
       </div>
       <div data-demo-host data-author-demo="sequence"></div>
@@ -65,7 +65,7 @@
       <p>画面默认静止；请使用演示下方控件推进。离线单文件与开发入口使用同一份作者入口（整库 JS/CSS）。</p>
       <p><strong>末步按钮禁用不等于正在运行。</strong>“下一步”禁用只表示没有下一停点；“上一步/重看”在运行中还可取消当前步骤。需要判断是否运行时，读 <code>session.getState().phase</code>（idle / running / error / disposed）；本页状态文字由 <code>boot.js</code> 的 <code>subscribe</code> 写出，未新增播放器或公共 API。默认舞台控制容器上的 <code>data-demo-running</code> / <code>aria-busy</code> 只用于样式与读屏提示，同样不代替 phase 判断。</p>
       <p>观察目标与内容目标分开：<code>groups: []</code> 只观察、不启动内容；省略 <code>groups</code> 时按整个 Binding 在真实到达后启动（当前内置 Adapter 未细分效果组）。<code>holdDuration</code> 对观察目标是停留时长，对内容目标是 ready 后的额外等待，0 是有效值；最后落点不加倒计时。</p>
-      <p><strong>跨区域依据／结果使用公共 attention 顺序。</strong>跨区域承接示例把 evidence 的 DOM 与 table 独立 Binding 分开；attention 先到达依据，再到达 <code>row:r1</code>／<code>row:r2</code>。table 的新行在 commit 时进入 DOM、行级 WAAPI 先以 <code>opacity:0</code> 暂停，表目标到达后才 ready→finished；已有行不重播。辅助 status 视图变化必须列入 <code>scene.bindings</code>，这里用 <code>mode:'cut'</code> 同步提交，不进入 attention targets，因此不会被 Focus 巡视。</p>
+      <p><strong>跨区域依据／结果使用公共 attention 顺序。</strong>table 的 binding options 用 <code>reserveRows: 2</code> 提前占用已知两行容量，空态/隐藏行只占布局槽，不提前放行正文；跨区域承接示例把 evidence 的 DOM 与 table 独立 Binding 分开；attention 先到达依据，再到达 <code>row:r1</code>／<code>row:r2</code>。table 的新行在 commit 时进入 DOM、行级 WAAPI 先以 <code>opacity:0</code> 暂停，表目标到达后才 ready→finished；已有行不重播。辅助 status 视图变化必须列入 <code>scene.bindings</code>，这里用 <code>mode:'cut'</code> 同步提交，不进入 attention targets，因此不会被 Focus 巡视。</p>
       <p><strong>普通 DOM 交接使用自定义 Adapter（<code>handoff-demo.js</code>）。</strong>commit 隐藏来源标签、预置目标标签 opacity 0；<code>PreparedChange.sourceElements()</code> 让来源标签在观察期保持可见，直到本步第一个内容效果轨道启动才释放；目标标签的 WAAPI 淡入声明 <code>handoff:'hold'</code>，结束后末帧保持到 scene 收束，避免先回落到预置隐藏值再等清理。自定义 Adapter 只使用公开契约（Definition / Adapter / PreparedChange / EffectSpec / scene.attention），不读取 <code>NoteDemoInternals</code>。</p>
       <p>完整 Definition 仍是高级入口；例如可将 <code>demo.definition</code> 交给 <code>NoteDemo.create</code> 或保存后检查。字幕和操作位置由公共舞台维护。</p>
     </footer>

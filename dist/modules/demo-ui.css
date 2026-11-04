@@ -253,6 +253,17 @@
   background: transparent;
 }
 
+.nd-recipe__process-slot--titled {
+  padding: 10px 13px;
+  background: var(--hnv-color-surface, #fff);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-md, 10px);
+}
+
+.nd-recipe__process-body:not(:empty) + .nui-grid {
+  margin-block-start: var(--hnv-space-sm, 10px);
+}
+
 .nd-recipe__footer {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(9rem, 0.36fr);

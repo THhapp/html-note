@@ -59,6 +59,8 @@
    * - columns/rows/rowKey/caption/empty/sort/onSort/emphasis/maxHeight/dense 语义不变；
    * - getTarget(rowKey) 仍返回当前 <tr>，行键重复时仍只保留最后一个映射；
    * - 表头排序、稳定排序、空态、滚动区与既有类名/aria 保持不变。
+   * - reserveRows: 已知未来最大行数时预留隐藏正文行槽，只影响布局高度；
+   *   getState().rows / readModel / getTarget 仍只含真实数据行。
    *
    * 本轮新增（设计 6.1）：
    * - 稳定行/单元身份：<tr data-row-key>、<td data-col-key>；同键/同列局部更新不再重建整表。
@@ -97,6 +99,9 @@
     dense: false,
     rowState: null,
     cellState: null,
+    /* opt-in：为已知的未来行数预留正文行槽（隐藏占位行），让表格高度不随行数增长。
+     * 0 表示不预留，空态仍按普通空行渲染。 */
+    reserveRows: 0,
     /* opt-in：状态 label 使用稳定槽（每行常驻隐藏占位，label 显隐不改变行高）。
      * Adapter 场景默认开启；独立使用默认关闭。 */
     stableStateLabels: false
@@ -503,6 +508,33 @@
         return null;
       }
 
+      /* 已知容量的隐藏行槽：不进入 rowMap/readModel，也不出现在 getState().rows。
+       * 每行用真实 cell 盒模型占位，aria-hidden + visibility:hidden；空态行算一个容量行。 */
+      function clearReserveRows() {
+        Array.prototype.slice.call(tbody.querySelectorAll('.nui-table__reserve-row')).forEach(function (tr) {
+          if (tr.parentNode) tr.parentNode.removeChild(tr);
+        });
+      }
+
+      function renderReserveRows(columns, usedRows) {
+        clearReserveRows();
+        var capacity = Math.max(0, Math.floor(Number(state.reserveRows) || 0));
+        var count = Math.max(0, capacity - Math.max(0, usedRows | 0));
+        for (var i = 0; i < count; i += 1) {
+          var tr = create('tr', 'nui-table__reserve-row');
+          tr.setAttribute('aria-hidden', 'true');
+          tr.setAttribute('data-reserve-row', '');
+          tr.style.visibility = 'hidden';
+          columns.forEach(function (column) {
+            var td = create('td', 'nui-table__cell');
+            if (column.key != null) td.setAttribute('data-col-key', String(column.key));
+            td.textContent = '\u00A0';
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        }
+      }
+
       function renderEmptyRows(columns) {
         Array.prototype.slice.call(tbody.querySelectorAll('.nui-table__row')).forEach(function (tr) {
           if (tr.parentNode) tr.parentNode.removeChild(tr);
@@ -518,6 +550,7 @@
         setContent(emptyCell, state.empty == null ? '暂无数据' : state.empty);
         emptyRow.appendChild(emptyCell);
         tbody.appendChild(emptyRow);
+        renderReserveRows(columns, 1);
         rowMap = Object.create(null);
         rowRecordByKey = Object.create(null);
       }
@@ -580,6 +613,7 @@
           rowRecordByKey['$' + record.keyString] = record;
           return { entry: slot.entry, record: record };
         });
+        renderReserveRows(columns, desired.length);
       }
 
       /* ---------------- 表头与整体 ---------------- */
@@ -723,6 +757,7 @@
         root.classList.toggle('nui-table--sortable', sortEnabled);
         stableState.enabled = state.stableStateLabels === true;
         root.classList.toggle('nui-table--stable-state', stableState.enabled);
+        root.classList.toggle('nui-table--reserve', Math.max(0, Math.floor(Number(state.reserveRows) || 0)) > 0);
         scroll.setAttribute('aria-label', captionBase);
         updateScrollState();
       }

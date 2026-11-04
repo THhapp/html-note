@@ -9,7 +9,7 @@
  *   is tuned per demo so A/B get enough time to be read without piling up across three pairs.
  * - Content targets start only after the focus actually arrives; their extra wait is 0 unless a
  *   demo explicitly needs one. The last landing point is weakened and static: no final countdown.
- * - Readout steps: the reader confirms one 读数格, then checks the right-side current readout.
+ * - Readout steps: the reader confirms one 读数格, then checks the current readout.
  *   Readout content is gated on its own target, so the value change cannot be missed while the
  *   focus is still on the previous stop.
  */
@@ -201,17 +201,17 @@
       },
       steps: [
         {
-          id: 'read-1', caption: '第 1 项是 4；先看这一格，再看右侧的当前读数。',
+          id: 'read-1', caption: '第 1 项是 4；先看这一格，再看当前读数。',
           replace: { seq: seqView(1, 'b1'), readout: { text: '4' } },
           scene: {
             bindings: [{ binding: 'seq' }, { binding: 'readout' }],
             attention: {
-              /* 读者任务：确认第 1 格是 4，再看右侧读数更新为 4。
+              /* 读者任务：确认第 1 格是 4，再看当前读数更新为 4。
                * stepDuration 只给这格辨认时间；读数内容到达后立即出现。 */
               stepDuration: 400,
               targets: [
                 { binding: 'seq', query: { id: 'b1' } },
-                { binding: 'readout', query: { part: 'value' } }
+                { binding: 'readout', query: { part: 'root' } }
               ]
             }
           }
@@ -226,7 +226,7 @@
               stepDuration: 400,
               targets: [
                 { binding: 'seq', query: { id: 'b2' } },
-                { binding: 'readout', query: { part: 'value' } }
+                { binding: 'readout', query: { part: 'root' } }
               ]
             }
           }
@@ -241,7 +241,7 @@
               stepDuration: 400,
               targets: [
                 { binding: 'seq', query: { id: 'b3' } },
-                { binding: 'readout', query: { part: 'value' } }
+                { binding: 'readout', query: { part: 'root' } }
               ]
             }
           }
@@ -264,9 +264,7 @@
         }
       ],
       sources: [{ slot: 'seq', title: '读数', meta: '从左到右' }],
-      processTitle: '当前读数',
-      processMeta: '每次只看一格和它的读数',
-      process: [{ slot: 'readout' }],
+      process: [{ slot: 'readout', title: '当前读数' }],
       readout: { slot: 'sum', title: '逐项相加' },
       result: { slot: 'result', title: '结果' }
     };
@@ -296,7 +294,7 @@
     return {
       bindings: {
         evidence: { adapter: 'dom', slot: 'evidence', options: { label: '当前依据' } },
-        table: { adapter: 'table', slot: 'table', options: { rowKey: 'id', stableStateLabels: false, density: 'compact' } },
+        table: { adapter: 'table', slot: 'table', options: { rowKey: 'id', stableStateLabels: false, density: 'compact', reserveRows: 2 } },
         status: { adapter: 'dom', slot: 'status', options: { label: '已提交状态' } }
       },
       initial: {

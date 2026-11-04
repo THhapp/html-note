@@ -29,7 +29,7 @@ const browser = await chromium.launch({ executablePath: edge, headless: true });
 
 async function openPage(options = {}) {
   const context = await browser.newContext({
-    viewport: { width: 1280, height: 1000 },
+    viewport: { width: options.width || 1280, height: options.height || 1000 },
     reducedMotion: options.reduced ? 'reduce' : 'no-preference'
   });
   const page = await context.newPage();
@@ -311,6 +311,69 @@ async function openWithHelpers(options = {}) {
       replayCancel.cancelled.runningAnimations === 0,
     JSON.stringify(replayCancel.cancelled));
   check('跨区域例推进区无页面/控制台错误', pageErrors.length === 0, pageErrors.slice(0, 5).join(' | '));
+  await context.close();
+}
+
+/* ---------------- 已知两行容量：第一步停稳 / 第二步隐藏行 / 第二步停稳几何稳定 ---------------- */
+{
+  const { context, page, pageErrors } = await openWithHelpers({ width: 1280, height: 900 });
+  const geometry = await page.evaluate(async () => {
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    const host = window.__xr.host();
+    const session = window.__xr.session();
+    const stage = host.querySelector('.nblk-demo-stage__stage');
+    const footer = host.querySelector('.nblk-demo-stage__footer');
+    const controls = host.querySelector('.nblk-demo-stage__controls');
+    const cards = () => Array.from(host.querySelectorAll('.nd-recipe__board'));
+    const row2 = () => host.querySelector('tr[data-row-key="r2"]');
+    const measure = () => ({
+      phase: session.getState().phase,
+      frame: session.getState().settledFrameId,
+      cards: cards().map((node) => {
+        const rect = node.getBoundingClientRect();
+        return { top: Math.round(rect.top * 10) / 10, height: Math.round(rect.height * 10) / 10 };
+      }),
+      grid: (() => { const node = host.querySelector('.nd-recipe > .nui-grid'); return node ? Math.round(node.getBoundingClientRect().height * 10) / 10 : null; })(),
+      stageHeight: Math.round(stage.getBoundingClientRect().height * 10) / 10,
+      controlsTop: Math.round(controls.getBoundingClientRect().top * 10) / 10,
+      footerTop: Math.round(footer.getBoundingClientRect().top * 10) / 10,
+      scrollY: Math.round(scrollY),
+      rowCount: host.querySelectorAll('tr[data-row-key]').length,
+      reserveRows: host.querySelectorAll('.nui-table__reserve-row').length,
+      row2Opacity: row2() ? Number(getComputedStyle(row2()).opacity) : -1
+    });
+    const initial = measure();
+    await session.next();
+    const stepA = measure();
+    const nextPromise = session.next();
+    let hidden = null;
+    for (let i = 0; i < 120; i += 1) {
+      await sleep(16);
+      const current = measure();
+      if (current.phase === 'running' && current.row2Opacity >= 0 && current.row2Opacity < 0.1) {
+        hidden = current;
+        break;
+      }
+    }
+    await nextPromise;
+    await sleep(120);
+    const final = measure();
+    return { initial, stepA, hidden, final, state: session.getState() };
+  });
+  const close = (a, b) => Math.abs(a - b) <= 1;
+  const sameCards = (a, b) => a.cards.length === b.cards.length && a.cards.every((card, index) =>
+    close(card.top, b.cards[index].top) && close(card.height, b.cards[index].height));
+  const stable = (a, b, c) => sameCards(a, b) && sameCards(a, c) &&
+    close(a.grid, b.grid) && close(a.grid, c.grid) &&
+    close(a.stageHeight, b.stageHeight) && close(a.stageHeight, c.stageHeight) &&
+    close(a.controlsTop, b.controlsTop) && close(a.controlsTop, c.controlsTop);
+  check('跨区域例：第一步停稳、第二步隐藏行、第二步停稳的已知容量几何稳定',
+    geometry.hidden && geometry.hidden.row2Opacity === 0 &&
+      geometry.initial.reserveRows === 1 && geometry.stepA.reserveRows === 1 && geometry.final.reserveRows === 0 &&
+      stable(geometry.stepA, geometry.hidden, geometry.final) &&
+      geometry.final.phase === 'idle' && geometry.final.frame === 'step-b',
+    JSON.stringify(geometry));
+  check('跨区域例：几何核对区无页面/控制台错误', pageErrors.length === 0, pageErrors.slice(0, 5).join(' | '));
   await context.close();
 }
 

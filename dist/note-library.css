@@ -3054,6 +3054,12 @@
 .nui-table--dense .nui-table__cell { padding: 7px 10px; }
 .nui-table--dense .nui-table__empty-cell { padding: 20px 12px; }
 
+/* reserveRows：已知容量时，空态行与普通正文行同高；隐藏占位行保持正文行高但不宣布内容。 */
+.nui-table--reserve .nui-table__empty-cell { padding: 11px 14px; border-bottom: 1px solid var(--hnv-color-border, #dce2ea); line-height: 1.55; }
+.nui-table--reserve.nui-table--dense .nui-table__empty-cell { padding: 7px 10px; line-height: 1.55; }
+.nui-table__reserve-row .nui-table__cell { border-bottom: 0; }
+
+
 .nui-table__scroll-hint {
   display: flex;
   align-items: flex-start;
@@ -15503,6 +15509,17 @@
   padding: 0;
   border: 0;
   background: transparent;
+}
+
+.nd-recipe__process-slot--titled {
+  padding: 10px 13px;
+  background: var(--hnv-color-surface, #fff);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-md, 10px);
+}
+
+.nd-recipe__process-body:not(:empty) + .nui-grid {
+  margin-block-start: var(--hnv-space-sm, 10px);
 }
 
 .nd-recipe__footer {

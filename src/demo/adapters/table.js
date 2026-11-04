@@ -13,7 +13,7 @@
  * - 减少动效/恢复由 sceneAdapter helper 与公共 scene 收口：commit 直接落目标终态。
  *
  * 兼容边界：Frame 视图中的表格值/状态/标签必须是可序列化标量或普通数据；DOM/函数
- * 只允许出现在 binding options（rowKey/rowState/cellState/onSort）。scene update 不支持
+ * 只允许出现在 binding options（rowKey/rowState/cellState/onSort/reserveRows）。scene update 不支持
  * 列结构（键/顺序/对齐/sortable）变化，请改用 cut/reveal；行删除不提供退场动画。
  */
 (function (global) {
@@ -606,7 +606,9 @@
         cellState: tableOptions.cellState,
         onSort: tableOptions.onSort,
         /* scene 表格默认启用稳定状态槽；作者可在 binding options 显式 false 关闭。 */
-        stableStateLabels: tableOptions.stableStateLabels !== false
+        stableStateLabels: tableOptions.stableStateLabels !== false,
+        /* 已知未来行数时预留行槽；普通场景不传即 0。 */
+        reserveRows: tableOptions.reserveRows
       });
       var destroyed = false;
       var overlays = [];

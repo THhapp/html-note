@@ -3061,6 +3061,12 @@
 .nui-table--dense .nui-table__cell { padding: 7px 10px; }
 .nui-table--dense .nui-table__empty-cell { padding: 20px 12px; }
 
+/* reserveRows：已知容量时，空态行与普通正文行同高；隐藏占位行保持正文行高但不宣布内容。 */
+.nui-table--reserve .nui-table__empty-cell { padding: 11px 14px; border-bottom: 1px solid var(--hnv-color-border, #dce2ea); line-height: 1.55; }
+.nui-table--reserve.nui-table--dense .nui-table__empty-cell { padding: 7px 10px; line-height: 1.55; }
+.nui-table__reserve-row .nui-table__cell { border-bottom: 0; }
+
+
 .nui-table__scroll-hint {
   display: flex;
   align-items: flex-start;
@@ -15512,6 +15518,17 @@
   background: transparent;
 }
 
+.nd-recipe__process-slot--titled {
+  padding: 10px 13px;
+  background: var(--hnv-color-surface, #fff);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-md, 10px);
+}
+
+.nd-recipe__process-body:not(:empty) + .nui-grid {
+  margin-block-start: var(--hnv-space-sm, 10px);
+}
+
 .nd-recipe__footer {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(9rem, 0.36fr);
@@ -15754,6 +15771,18 @@ body {
   font-size: 13px;
 }
 
+[data-author-demo="sequence"] .nd-recipe__process-slot--titled {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+[data-author-demo="sequence"] .nd-recipe__process-slot--titled .nd-recipe__head {
+  margin: 0;
+}
+
+.authoring-demo [data-demo-slot="readout"] .note-demo-dom,
 .authoring-demo .nd-recipe__readout .note-demo-dom,
 .authoring-demo .nd-recipe__result .note-demo-dom {
   min-height: 2em;
@@ -15761,6 +15790,14 @@ body {
   font-family: var(--hnv-font-mono, Consolas, monospace);
   font-size: 20px;
   font-weight: 650;
+}
+
+.authoring-demo [data-demo-slot="readout"] .note-demo-dom {
+  display: inline-flex;
+  min-inline-size: 3em;
+  align-items: center;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .authoring-demo .nd-recipe__result .note-demo-dom {
@@ -15953,7 +15990,7 @@ body {
 
     <section class="authoring-demo">
       <div class="authoring-demo-head">
-        <p class="authoring-demo-note">同一配方、单行来源；焦点先到读数格，内容 ready 后才把视线交给右侧读数，末步弱化后静止。</p>
+        <p class="authoring-demo-note">同一配方、单行来源。先看读数格，再看当前读数，最后汇总。</p>
         <p class="authoring-phase">状态：<span class="authoring-phase__value" data-author-phase="sequence">空闲</span></p>
       </div>
       <div data-demo-host data-author-demo="sequence"></div>
@@ -15979,7 +16016,7 @@ body {
       <p>画面默认静止；请使用演示下方控件推进。离线单文件与开发入口使用同一份作者入口（整库 JS/CSS）。</p>
       <p><strong>末步按钮禁用不等于正在运行。</strong>“下一步”禁用只表示没有下一停点；“上一步/重看”在运行中还可取消当前步骤。需要判断是否运行时，读 <code>session.getState().phase</code>（idle / running / error / disposed）；本页状态文字由 <code>boot.js</code> 的 <code>subscribe</code> 写出，未新增播放器或公共 API。默认舞台控制容器上的 <code>data-demo-running</code> / <code>aria-busy</code> 只用于样式与读屏提示，同样不代替 phase 判断。</p>
       <p>观察目标与内容目标分开：<code>groups: []</code> 只观察、不启动内容；省略 <code>groups</code> 时按整个 Binding 在真实到达后启动（当前内置 Adapter 未细分效果组）。<code>holdDuration</code> 对观察目标是停留时长，对内容目标是 ready 后的额外等待，0 是有效值；最后落点不加倒计时。</p>
-      <p><strong>跨区域依据／结果使用公共 attention 顺序。</strong>跨区域承接示例把 evidence 的 DOM 与 table 独立 Binding 分开；attention 先到达依据，再到达 <code>row:r1</code>／<code>row:r2</code>。table 的新行在 commit 时进入 DOM、行级 WAAPI 先以 <code>opacity:0</code> 暂停，表目标到达后才 ready→finished；已有行不重播。辅助 status 视图变化必须列入 <code>scene.bindings</code>，这里用 <code>mode:'cut'</code> 同步提交，不进入 attention targets，因此不会被 Focus 巡视。</p>
+      <p><strong>跨区域依据／结果使用公共 attention 顺序。</strong>table 的 binding options 用 <code>reserveRows: 2</code> 提前占用已知两行容量，空态/隐藏行只占布局槽，不提前放行正文；跨区域承接示例把 evidence 的 DOM 与 table 独立 Binding 分开；attention 先到达依据，再到达 <code>row:r1</code>／<code>row:r2</code>。table 的新行在 commit 时进入 DOM、行级 WAAPI 先以 <code>opacity:0</code> 暂停，表目标到达后才 ready→finished；已有行不重播。辅助 status 视图变化必须列入 <code>scene.bindings</code>，这里用 <code>mode:'cut'</code> 同步提交，不进入 attention targets，因此不会被 Focus 巡视。</p>
       <p><strong>普通 DOM 交接使用自定义 Adapter（<code>handoff-demo.js</code>）。</strong>commit 隐藏来源标签、预置目标标签 opacity 0；<code>PreparedChange.sourceElements()</code> 让来源标签在观察期保持可见，直到本步第一个内容效果轨道启动才释放；目标标签的 WAAPI 淡入声明 <code>handoff:'hold'</code>，结束后末帧保持到 scene 收束，避免先回落到预置隐藏值再等清理。自定义 Adapter 只使用公开契约（Definition / Adapter / PreparedChange / EffectSpec / scene.attention），不读取 <code>NoteDemoInternals</code>。</p>
       <p>完整 Definition 仍是高级入口；例如可将 <code>demo.definition</code> 交给 <code>NoteDemo.create</code> 或保存后检查。字幕和操作位置由公共舞台维护。</p>
     </footer>
@@ -26588,6 +26625,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
    * - columns/rows/rowKey/caption/empty/sort/onSort/emphasis/maxHeight/dense 语义不变；
    * - getTarget(rowKey) 仍返回当前 <tr>，行键重复时仍只保留最后一个映射；
    * - 表头排序、稳定排序、空态、滚动区与既有类名/aria 保持不变。
+   * - reserveRows: 已知未来最大行数时预留隐藏正文行槽，只影响布局高度；
+   *   getState().rows / readModel / getTarget 仍只含真实数据行。
    *
    * 本轮新增（设计 6.1）：
    * - 稳定行/单元身份：<tr data-row-key>、<td data-col-key>；同键/同列局部更新不再重建整表。
@@ -26626,6 +26665,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     dense: false,
     rowState: null,
     cellState: null,
+    /* opt-in：为已知的未来行数预留正文行槽（隐藏占位行），让表格高度不随行数增长。
+     * 0 表示不预留，空态仍按普通空行渲染。 */
+    reserveRows: 0,
     /* opt-in：状态 label 使用稳定槽（每行常驻隐藏占位，label 显隐不改变行高）。
      * Adapter 场景默认开启；独立使用默认关闭。 */
     stableStateLabels: false
@@ -27032,6 +27074,33 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         return null;
       }
 
+      /* 已知容量的隐藏行槽：不进入 rowMap/readModel，也不出现在 getState().rows。
+       * 每行用真实 cell 盒模型占位，aria-hidden + visibility:hidden；空态行算一个容量行。 */
+      function clearReserveRows() {
+        Array.prototype.slice.call(tbody.querySelectorAll('.nui-table__reserve-row')).forEach(function (tr) {
+          if (tr.parentNode) tr.parentNode.removeChild(tr);
+        });
+      }
+
+      function renderReserveRows(columns, usedRows) {
+        clearReserveRows();
+        var capacity = Math.max(0, Math.floor(Number(state.reserveRows) || 0));
+        var count = Math.max(0, capacity - Math.max(0, usedRows | 0));
+        for (var i = 0; i < count; i += 1) {
+          var tr = create('tr', 'nui-table__reserve-row');
+          tr.setAttribute('aria-hidden', 'true');
+          tr.setAttribute('data-reserve-row', '');
+          tr.style.visibility = 'hidden';
+          columns.forEach(function (column) {
+            var td = create('td', 'nui-table__cell');
+            if (column.key != null) td.setAttribute('data-col-key', String(column.key));
+            td.textContent = '\u00A0';
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        }
+      }
+
       function renderEmptyRows(columns) {
         Array.prototype.slice.call(tbody.querySelectorAll('.nui-table__row')).forEach(function (tr) {
           if (tr.parentNode) tr.parentNode.removeChild(tr);
@@ -27047,6 +27116,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         setContent(emptyCell, state.empty == null ? '暂无数据' : state.empty);
         emptyRow.appendChild(emptyCell);
         tbody.appendChild(emptyRow);
+        renderReserveRows(columns, 1);
         rowMap = Object.create(null);
         rowRecordByKey = Object.create(null);
       }
@@ -27109,6 +27179,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
           rowRecordByKey['$' + record.keyString] = record;
           return { entry: slot.entry, record: record };
         });
+        renderReserveRows(columns, desired.length);
       }
 
       /* ---------------- 表头与整体 ---------------- */
@@ -27252,6 +27323,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         root.classList.toggle('nui-table--sortable', sortEnabled);
         stableState.enabled = state.stableStateLabels === true;
         root.classList.toggle('nui-table--stable-state', stableState.enabled);
+        root.classList.toggle('nui-table--reserve', Math.max(0, Math.floor(Number(state.reserveRows) || 0)) > 0);
         scroll.setAttribute('aria-label', captionBase);
         updateScrollState();
       }
@@ -65535,7 +65607,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
  * - 减少动效/恢复由 sceneAdapter helper 与公共 scene 收口：commit 直接落目标终态。
  *
  * 兼容边界：Frame 视图中的表格值/状态/标签必须是可序列化标量或普通数据；DOM/函数
- * 只允许出现在 binding options（rowKey/rowState/cellState/onSort）。scene update 不支持
+ * 只允许出现在 binding options（rowKey/rowState/cellState/onSort/reserveRows）。scene update 不支持
  * 列结构（键/顺序/对齐/sortable）变化，请改用 cut/reveal；行删除不提供退场动画。
  */
 (function (global) {
@@ -66128,7 +66200,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         cellState: tableOptions.cellState,
         onSort: tableOptions.onSort,
         /* scene 表格默认启用稳定状态槽；作者可在 binding options 显式 false 关闭。 */
-        stableStateLabels: tableOptions.stableStateLabels !== false
+        stableStateLabels: tableOptions.stableStateLabels !== false,
+        /* 已知未来行数时预留行槽；普通场景不传即 0。 */
+        reserveRows: tableOptions.reserveRows
       });
       var destroyed = false;
       var overlays = [];
@@ -69132,6 +69206,30 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       if (ctrl.resolve) ctrl.resolve(false);
     }
 
+    /* 窄屏页脚吸底时，目标可能落在页脚下方。只在目标被页脚遮挡或跑出视口时
+     * 做一次最小滚动，让正文和焦点框一起进入可读区；桌面普通文档流不干预。 */
+    function revealAttentionTarget(el, partialOnly) {
+      if (!el || !global || typeof global.scrollBy !== 'function') return;
+      var stage = el.closest ? el.closest('.nblk-demo-stage') : null;
+      var footer = stage && stage.querySelector ? stage.querySelector('.nblk-demo-stage__footer') : null;
+      if (!footer) return;
+      var footerStyle = global.getComputedStyle ? global.getComputedStyle(footer) : null;
+      if (!footerStyle || footerStyle.position !== 'sticky') return;
+      var targetRect = el.getBoundingClientRect();
+      /* attention 开始时只处理“已在视口内、但被页脚压住”的目标，避免为远在下方的
+       * 后续目标提前跳页；焦点真实到达时仍会完整揭示。 */
+      if (partialOnly && (targetRect.bottom < 0 || targetRect.top > global.innerHeight)) return;
+      var footerRect = footer.getBoundingClientRect();
+      var safeTop = 8;
+      var safeBottom = Math.min(footerRect.top - 8, global.innerHeight - 8);
+      if (!(safeBottom > safeTop)) return;
+      if (targetRect.bottom > safeBottom) {
+        global.scrollBy({ top: targetRect.bottom - safeBottom, behavior: 'auto' });
+      } else if (targetRect.top < safeTop) {
+        global.scrollBy({ top: targetRect.top - safeTop, behavior: 'auto' });
+      }
+    }
+
     function showAttentionTarget(desc) {
       var session;
       try {
@@ -69150,6 +69248,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         desc.mainElement = current;
         if (focusRegistry) focusRegistry.set(current, { measure: desc.measure });
       }
+      revealAttentionTarget(desc.mainElement);
       var view = session.view;
       try {
         view.show({ el: desc.mainElement, geometry: focusGeometry });
@@ -69203,6 +69302,11 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         }
         ready.then(function () {
           if (ctrl.closed || attentionRun !== ctrl) return;
+          revealAttentionTarget(desc.mainElement);
+          /* 下一个内容目标如果已经被吸底页脚遮住，提前把它滚入可读区，
+           * 让 reveal/after 内容出现时就能看到；仍只在确有遮挡时调整页面。 */
+          var nextDesc = ctrl.descs[index + 1];
+          if (nextDesc && nextDesc.mainElement) revealAttentionTarget(nextDesc.mainElement);
           stepAttention(ctrl, index + 1);
         }, function (error) {
           failAttention(ctrl, error);
@@ -69228,6 +69332,10 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       for (var i = 0; i < attention.targets.length; i += 1) {
         descs.push(resolveAttentionTarget(attention.targets[i], frameId, i));
       }
+      /* 先让本次 attention 的目标区域进入可读区；只在目标确实被吸底页脚或视口
+       * 遮挡时滚动，避免每次焦点移动都无条件跟随。reveal/after 内容也因此在
+       * 出现时就已可见。 */
+      for (var r = 0; r < descs.length; r += 1) revealAttentionTarget(descs[r].mainElement, true);
       var ctrl = {
         closed: false,
         resolve: null,
@@ -70244,8 +70352,10 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       var processBody = el('div', 'nd-recipe__process-body');
       processCard.appendChild(processBody);
       (options.process || []).forEach(function (item) {
-        if (!isObject(item) || !item.slot) fail('process 每项必须是 {slot,title?}。');
-        var built = card(item.title, item.meta, item.slot, 'nd-recipe__process-slot');
+        if (!isObject(item) || !item.slot) fail('process 每项必须是 {slot,title?,meta?}。');
+        var className = 'nd-recipe__process-slot' +
+          (item.title || item.meta ? ' nd-recipe__process-slot--titled' : '');
+        var built = card(item.title, item.meta, item.slot, className);
         processBody.appendChild(built.el);
       });
 
@@ -70618,7 +70728,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
  *   is tuned per demo so A/B get enough time to be read without piling up across three pairs.
  * - Content targets start only after the focus actually arrives; their extra wait is 0 unless a
  *   demo explicitly needs one. The last landing point is weakened and static: no final countdown.
- * - Readout steps: the reader confirms one 读数格, then checks the right-side current readout.
+ * - Readout steps: the reader confirms one 读数格, then checks the current readout.
  *   Readout content is gated on its own target, so the value change cannot be missed while the
  *   focus is still on the previous stop.
  */
@@ -70810,17 +70920,17 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       },
       steps: [
         {
-          id: 'read-1', caption: '第 1 项是 4；先看这一格，再看右侧的当前读数。',
+          id: 'read-1', caption: '第 1 项是 4；先看这一格，再看当前读数。',
           replace: { seq: seqView(1, 'b1'), readout: { text: '4' } },
           scene: {
             bindings: [{ binding: 'seq' }, { binding: 'readout' }],
             attention: {
-              /* 读者任务：确认第 1 格是 4，再看右侧读数更新为 4。
+              /* 读者任务：确认第 1 格是 4，再看当前读数更新为 4。
                * stepDuration 只给这格辨认时间；读数内容到达后立即出现。 */
               stepDuration: 400,
               targets: [
                 { binding: 'seq', query: { id: 'b1' } },
-                { binding: 'readout', query: { part: 'value' } }
+                { binding: 'readout', query: { part: 'root' } }
               ]
             }
           }
@@ -70835,7 +70945,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
               stepDuration: 400,
               targets: [
                 { binding: 'seq', query: { id: 'b2' } },
-                { binding: 'readout', query: { part: 'value' } }
+                { binding: 'readout', query: { part: 'root' } }
               ]
             }
           }
@@ -70850,7 +70960,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
               stepDuration: 400,
               targets: [
                 { binding: 'seq', query: { id: 'b3' } },
-                { binding: 'readout', query: { part: 'value' } }
+                { binding: 'readout', query: { part: 'root' } }
               ]
             }
           }
@@ -70873,9 +70983,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         }
       ],
       sources: [{ slot: 'seq', title: '读数', meta: '从左到右' }],
-      processTitle: '当前读数',
-      processMeta: '每次只看一格和它的读数',
-      process: [{ slot: 'readout' }],
+      process: [{ slot: 'readout', title: '当前读数' }],
       readout: { slot: 'sum', title: '逐项相加' },
       result: { slot: 'result', title: '结果' }
     };
@@ -70905,7 +71013,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     return {
       bindings: {
         evidence: { adapter: 'dom', slot: 'evidence', options: { label: '当前依据' } },
-        table: { adapter: 'table', slot: 'table', options: { rowKey: 'id', stableStateLabels: false, density: 'compact' } },
+        table: { adapter: 'table', slot: 'table', options: { rowKey: 'id', stableStateLabels: false, density: 'compact', reserveRows: 2 } },
         status: { adapter: 'dom', slot: 'status', options: { label: '已提交状态' } }
       },
       initial: {

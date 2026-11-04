@@ -3102,6 +3102,12 @@
 .nui-table--dense .nui-table__cell { padding: 7px 10px; }
 .nui-table--dense .nui-table__empty-cell { padding: 20px 12px; }
 
+/* reserveRows：已知容量时，空态行与普通正文行同高；隐藏占位行保持正文行高但不宣布内容。 */
+.nui-table--reserve .nui-table__empty-cell { padding: 11px 14px; border-bottom: 1px solid var(--hnv-color-border, #dce2ea); line-height: 1.55; }
+.nui-table--reserve.nui-table--dense .nui-table__empty-cell { padding: 7px 10px; line-height: 1.55; }
+.nui-table__reserve-row .nui-table__cell { border-bottom: 0; }
+
+
 .nui-table__scroll-hint {
   display: flex;
   align-items: flex-start;
@@ -15553,6 +15559,17 @@
   background: transparent;
 }
 
+.nd-recipe__process-slot--titled {
+  padding: 10px 13px;
+  background: var(--hnv-color-surface, #fff);
+  border: var(--hnv-border-width, 1px) solid var(--hnv-color-border, #dce2ea);
+  border-radius: var(--hnv-radius-md, 10px);
+}
+
+.nd-recipe__process-body:not(:empty) + .nui-grid {
+  margin-block-start: var(--hnv-space-sm, 10px);
+}
+
 .nd-recipe__footer {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(9rem, 0.36fr);
@@ -27507,6 +27524,8 @@ if(__exports != exports)module.exports = exports;return module.exports}));
    * - columns/rows/rowKey/caption/empty/sort/onSort/emphasis/maxHeight/dense 语义不变；
    * - getTarget(rowKey) 仍返回当前 <tr>，行键重复时仍只保留最后一个映射；
    * - 表头排序、稳定排序、空态、滚动区与既有类名/aria 保持不变。
+   * - reserveRows: 已知未来最大行数时预留隐藏正文行槽，只影响布局高度；
+   *   getState().rows / readModel / getTarget 仍只含真实数据行。
    *
    * 本轮新增（设计 6.1）：
    * - 稳定行/单元身份：<tr data-row-key>、<td data-col-key>；同键/同列局部更新不再重建整表。
@@ -27545,6 +27564,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
     dense: false,
     rowState: null,
     cellState: null,
+    /* opt-in：为已知的未来行数预留正文行槽（隐藏占位行），让表格高度不随行数增长。
+     * 0 表示不预留，空态仍按普通空行渲染。 */
+    reserveRows: 0,
     /* opt-in：状态 label 使用稳定槽（每行常驻隐藏占位，label 显隐不改变行高）。
      * Adapter 场景默认开启；独立使用默认关闭。 */
     stableStateLabels: false
@@ -27951,6 +27973,33 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         return null;
       }
 
+      /* 已知容量的隐藏行槽：不进入 rowMap/readModel，也不出现在 getState().rows。
+       * 每行用真实 cell 盒模型占位，aria-hidden + visibility:hidden；空态行算一个容量行。 */
+      function clearReserveRows() {
+        Array.prototype.slice.call(tbody.querySelectorAll('.nui-table__reserve-row')).forEach(function (tr) {
+          if (tr.parentNode) tr.parentNode.removeChild(tr);
+        });
+      }
+
+      function renderReserveRows(columns, usedRows) {
+        clearReserveRows();
+        var capacity = Math.max(0, Math.floor(Number(state.reserveRows) || 0));
+        var count = Math.max(0, capacity - Math.max(0, usedRows | 0));
+        for (var i = 0; i < count; i += 1) {
+          var tr = create('tr', 'nui-table__reserve-row');
+          tr.setAttribute('aria-hidden', 'true');
+          tr.setAttribute('data-reserve-row', '');
+          tr.style.visibility = 'hidden';
+          columns.forEach(function (column) {
+            var td = create('td', 'nui-table__cell');
+            if (column.key != null) td.setAttribute('data-col-key', String(column.key));
+            td.textContent = '\u00A0';
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        }
+      }
+
       function renderEmptyRows(columns) {
         Array.prototype.slice.call(tbody.querySelectorAll('.nui-table__row')).forEach(function (tr) {
           if (tr.parentNode) tr.parentNode.removeChild(tr);
@@ -27966,6 +28015,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         setContent(emptyCell, state.empty == null ? '暂无数据' : state.empty);
         emptyRow.appendChild(emptyCell);
         tbody.appendChild(emptyRow);
+        renderReserveRows(columns, 1);
         rowMap = Object.create(null);
         rowRecordByKey = Object.create(null);
       }
@@ -28028,6 +28078,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
           rowRecordByKey['$' + record.keyString] = record;
           return { entry: slot.entry, record: record };
         });
+        renderReserveRows(columns, desired.length);
       }
 
       /* ---------------- 表头与整体 ---------------- */
@@ -28171,6 +28222,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         root.classList.toggle('nui-table--sortable', sortEnabled);
         stableState.enabled = state.stableStateLabels === true;
         root.classList.toggle('nui-table--stable-state', stableState.enabled);
+        root.classList.toggle('nui-table--reserve', Math.max(0, Math.floor(Number(state.reserveRows) || 0)) > 0);
         scroll.setAttribute('aria-label', captionBase);
         updateScrollState();
       }
@@ -66454,7 +66506,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
  * - 减少动效/恢复由 sceneAdapter helper 与公共 scene 收口：commit 直接落目标终态。
  *
  * 兼容边界：Frame 视图中的表格值/状态/标签必须是可序列化标量或普通数据；DOM/函数
- * 只允许出现在 binding options（rowKey/rowState/cellState/onSort）。scene update 不支持
+ * 只允许出现在 binding options（rowKey/rowState/cellState/onSort/reserveRows）。scene update 不支持
  * 列结构（键/顺序/对齐/sortable）变化，请改用 cut/reveal；行删除不提供退场动画。
  */
 (function (global) {
@@ -67047,7 +67099,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         cellState: tableOptions.cellState,
         onSort: tableOptions.onSort,
         /* scene 表格默认启用稳定状态槽；作者可在 binding options 显式 false 关闭。 */
-        stableStateLabels: tableOptions.stableStateLabels !== false
+        stableStateLabels: tableOptions.stableStateLabels !== false,
+        /* 已知未来行数时预留行槽；普通场景不传即 0。 */
+        reserveRows: tableOptions.reserveRows
       });
       var destroyed = false;
       var overlays = [];
@@ -70051,6 +70105,30 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       if (ctrl.resolve) ctrl.resolve(false);
     }
 
+    /* 窄屏页脚吸底时，目标可能落在页脚下方。只在目标被页脚遮挡或跑出视口时
+     * 做一次最小滚动，让正文和焦点框一起进入可读区；桌面普通文档流不干预。 */
+    function revealAttentionTarget(el, partialOnly) {
+      if (!el || !global || typeof global.scrollBy !== 'function') return;
+      var stage = el.closest ? el.closest('.nblk-demo-stage') : null;
+      var footer = stage && stage.querySelector ? stage.querySelector('.nblk-demo-stage__footer') : null;
+      if (!footer) return;
+      var footerStyle = global.getComputedStyle ? global.getComputedStyle(footer) : null;
+      if (!footerStyle || footerStyle.position !== 'sticky') return;
+      var targetRect = el.getBoundingClientRect();
+      /* attention 开始时只处理“已在视口内、但被页脚压住”的目标，避免为远在下方的
+       * 后续目标提前跳页；焦点真实到达时仍会完整揭示。 */
+      if (partialOnly && (targetRect.bottom < 0 || targetRect.top > global.innerHeight)) return;
+      var footerRect = footer.getBoundingClientRect();
+      var safeTop = 8;
+      var safeBottom = Math.min(footerRect.top - 8, global.innerHeight - 8);
+      if (!(safeBottom > safeTop)) return;
+      if (targetRect.bottom > safeBottom) {
+        global.scrollBy({ top: targetRect.bottom - safeBottom, behavior: 'auto' });
+      } else if (targetRect.top < safeTop) {
+        global.scrollBy({ top: targetRect.top - safeTop, behavior: 'auto' });
+      }
+    }
+
     function showAttentionTarget(desc) {
       var session;
       try {
@@ -70069,6 +70147,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         desc.mainElement = current;
         if (focusRegistry) focusRegistry.set(current, { measure: desc.measure });
       }
+      revealAttentionTarget(desc.mainElement);
       var view = session.view;
       try {
         view.show({ el: desc.mainElement, geometry: focusGeometry });
@@ -70122,6 +70201,11 @@ if(__exports != exports)module.exports = exports;return module.exports}));
         }
         ready.then(function () {
           if (ctrl.closed || attentionRun !== ctrl) return;
+          revealAttentionTarget(desc.mainElement);
+          /* 下一个内容目标如果已经被吸底页脚遮住，提前把它滚入可读区，
+           * 让 reveal/after 内容出现时就能看到；仍只在确有遮挡时调整页面。 */
+          var nextDesc = ctrl.descs[index + 1];
+          if (nextDesc && nextDesc.mainElement) revealAttentionTarget(nextDesc.mainElement);
           stepAttention(ctrl, index + 1);
         }, function (error) {
           failAttention(ctrl, error);
@@ -70147,6 +70231,10 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       for (var i = 0; i < attention.targets.length; i += 1) {
         descs.push(resolveAttentionTarget(attention.targets[i], frameId, i));
       }
+      /* 先让本次 attention 的目标区域进入可读区；只在目标确实被吸底页脚或视口
+       * 遮挡时滚动，避免每次焦点移动都无条件跟随。reveal/after 内容也因此在
+       * 出现时就已可见。 */
+      for (var r = 0; r < descs.length; r += 1) revealAttentionTarget(descs[r].mainElement, true);
       var ctrl = {
         closed: false,
         resolve: null,
@@ -71163,8 +71251,10 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       var processBody = el('div', 'nd-recipe__process-body');
       processCard.appendChild(processBody);
       (options.process || []).forEach(function (item) {
-        if (!isObject(item) || !item.slot) fail('process 每项必须是 {slot,title?}。');
-        var built = card(item.title, item.meta, item.slot, 'nd-recipe__process-slot');
+        if (!isObject(item) || !item.slot) fail('process 每项必须是 {slot,title?,meta?}。');
+        var className = 'nd-recipe__process-slot' +
+          (item.title || item.meta ? ' nd-recipe__process-slot--titled' : '');
+        var built = card(item.title, item.meta, item.slot, className);
         processBody.appendChild(built.el);
       });
 
@@ -71531,7 +71621,7 @@ window.NOTE_LIBRARY_REGISTRY = {
   "schemaVersion": 1,
   "generatedBy": "scripts/build.mjs",
   "build": {
-    "time": "2026-11-04T08:26:42.066Z",
+    "time": "2026-11-04T09:13:53.850Z",
     "mode": "final",
     "command": "node scripts/build.mjs --final --release",
     "moduleOrder": [

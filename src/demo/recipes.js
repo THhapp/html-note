@@ -108,8 +108,10 @@
       var processBody = el('div', 'nd-recipe__process-body');
       processCard.appendChild(processBody);
       (options.process || []).forEach(function (item) {
-        if (!isObject(item) || !item.slot) fail('process 每项必须是 {slot,title?}。');
-        var built = card(item.title, item.meta, item.slot, 'nd-recipe__process-slot');
+        if (!isObject(item) || !item.slot) fail('process 每项必须是 {slot,title?,meta?}。');
+        var className = 'nd-recipe__process-slot' +
+          (item.title || item.meta ? ' nd-recipe__process-slot--titled' : '');
+        var built = card(item.title, item.meta, item.slot, className);
         processBody.appendChild(built.el);
       });
 

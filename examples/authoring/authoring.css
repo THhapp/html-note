@@ -173,6 +173,18 @@ body {
   font-size: 13px;
 }
 
+[data-author-demo="sequence"] .nd-recipe__process-slot--titled {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+[data-author-demo="sequence"] .nd-recipe__process-slot--titled .nd-recipe__head {
+  margin: 0;
+}
+
+.authoring-demo [data-demo-slot="readout"] .note-demo-dom,
 .authoring-demo .nd-recipe__readout .note-demo-dom,
 .authoring-demo .nd-recipe__result .note-demo-dom {
   min-height: 2em;
@@ -180,6 +192,14 @@ body {
   font-family: var(--hnv-font-mono, Consolas, monospace);
   font-size: 20px;
   font-weight: 650;
+}
+
+.authoring-demo [data-demo-slot="readout"] .note-demo-dom {
+  display: inline-flex;
+  min-inline-size: 3em;
+  align-items: center;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .authoring-demo .nd-recipe__result .note-demo-dom {
