@@ -106,7 +106,18 @@
      * Adapter 场景默认开启；独立使用默认关闭。 */
     stableStateLabels: false
   };
+  var MAX_RESERVE_ROWS = 100;
   var TABLE_NO_VALUE = {};
+
+  /* reserveRows 是对“已知未来行数”的布局容量，不是数据；在创建任何占位 DOM 前
+   * 统一拒绝非整数、负数、非有限值和超出上限的值，避免把 Infinity 变成无界循环。 */
+  function normalizeReserveRows(value) {
+    var shown = value === Infinity ? 'Infinity' : (value === -Infinity ? '-Infinity' : (Number.isNaN && Number.isNaN(value) ? 'NaN' : String(value)));
+    if (typeof value !== 'number' || !isFinite(value) || Math.floor(value) !== value || value < 0 || value > MAX_RESERVE_ROWS) {
+      throw new RangeError('Table reserveRows 必须是 0 到 ' + MAX_RESERVE_ROWS + ' 之间的整数（当前 ' + shown + '）。');
+    }
+    return value;
+  }
   var tableCollator = null;
 
   function sameKey(left, right) {
@@ -257,7 +268,9 @@
       var C = core();
       C.validateHost(host);
       var state = C.assign({}, TABLE_DEFAULTS);
-      C.assign(state, input || {});
+      var mountInput = input || {};
+      C.assign(state, mountInput);
+      if (own(mountInput, 'reserveRows')) state.reserveRows = normalizeReserveRows(mountInput.reserveRows);
       var root = create('div', 'nui-table');
       var scroll = create('div', 'nui-table__scroll');
       var table = create('table', 'nui-table__table');
@@ -816,6 +829,16 @@
         syncSort(patch);
         render();
       }, cleanup);
+      var rawUpdate = instance.update;
+      instance.update = function (patch) {
+        if (patch && typeof patch === 'object' && own(patch, 'reserveRows')) {
+          var nextPatch = {};
+          Object.keys(patch).forEach(function (key) { nextPatch[key] = patch[key]; });
+          nextPatch.reserveRows = normalizeReserveRows(patch.reserveRows);
+          patch = nextPatch;
+        }
+        return rawUpdate(patch);
+      };
       render();
       host.appendChild(root);
       bindOverflow();

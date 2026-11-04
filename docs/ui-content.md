@@ -242,7 +242,7 @@ table.update({ rows: [] });
 | `rowState` | function | `null` | 可选 `(row,index,rowKey) -> 状态`；声明后优先于 `row.state`。 |
 | `cellState` | function | `null` | 可选 `(row,column,rowKey,index) -> 状态`；声明后优先于 `row.cellStates`。 |
 | `stableStateLabels` | boolean | `false` | 稳定状态标签槽；`true` 时每行/带状态的单元保留固定状态行占位，label 显隐不改变行高。独立使用时默认关闭，`table` scene Adapter 默认开启。 |
-| `reserveRows` | number | `0` | 已知未来最大行数时，为正文行槽预留的隐藏占位行数；空态行也算一个容量行。只影响布局高度，不改变 `rows`/`getState()`。 |
+| `reserveRows` | number（0–100 整数） | `0` | 已知未来最大行数时，为正文行槽预留的隐藏占位行数；空态行也算一个容量行。只影响布局高度，不改变 `rows`/`getState()`。非法类型、非有限值、负数、小数、超出 100 会抛出明确指出 `reserveRows` 与允许范围的错误。 |
 
 排序与空态：
 
@@ -264,6 +264,7 @@ table.update({ rows: [] });
 ### 已知容量 `reserveRows`
 
 - 只在作者明确知道未来最大行数时使用；默认 `0`，独立 Table 和 Scene Adapter 的既有行为不变。
+- 容量必须是 `0` 到 `100` 的整数。`mount` 与 `update` 都会在创建/修改占位 DOM 前校验；`update` 收到非法值时原表格保持可用，不产生部分更新。Adapter 在 `binding.options.reserveRows` 透传同一契约。
 - 设为 `N` 后，tbody 始终按至少 N 个正文行槽占高：已有数据行照常渲染，差额用 `aria-hidden`、`visibility:hidden` 的真实 cell 行占位；空态行占一个槽，其余补隐藏行。
 - 实际新增行仍按真实数据行到达；`getState().rows`、`readModel()`、行身份、排序和 `getTarget(rowKey)` 不包含占位行。不要用它伪造数据或提前宣布正文。
 - 空态行在 reserve 模式下使用与正文行相同的 cell 盒模型和行高，避免初始空表与首个数据行之间跳动；这是语义容量，不是固定像素高度。

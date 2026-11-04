@@ -1434,28 +1434,43 @@
       if (ctrl.resolve) ctrl.resolve(false);
     }
 
-    /* 窄屏页脚吸底时，目标可能落在页脚下方。只在目标被页脚遮挡或跑出视口时
-     * 做一次最小滚动，让正文和焦点框一起进入可读区；桌面普通文档流不干预。 */
-    function revealAttentionTarget(el, partialOnly) {
-      if (!el || !global || typeof global.scrollBy !== 'function') return;
-      var stage = el.closest ? el.closest('.nblk-demo-stage') : null;
+    /* 窄屏页脚吸底时，按本次 attention 的完整观察几何避让：
+     * - local / union 范围优先，主目标 + 作者关联成员在落点和显现时一起可读；
+     * - 完整范围装得下时，只滚动最小必要距离；
+     * - 范围高于可用视口时，优先保证当前主目标可读，不让范围上下边反复拉动；
+     * - 桌面普通文档流不滚动。 */
+    function revealAttentionRange(desc) {
+      if (!desc || !desc.mainElement || !global || typeof global.scrollBy !== 'function') return;
+      var stage = desc.mainElement.closest ? desc.mainElement.closest('.nblk-demo-stage') : null;
       var footer = stage && stage.querySelector ? stage.querySelector('.nblk-demo-stage__footer') : null;
       if (!footer) return;
       var footerStyle = global.getComputedStyle ? global.getComputedStyle(footer) : null;
       if (!footerStyle || footerStyle.position !== 'sticky') return;
-      var targetRect = el.getBoundingClientRect();
-      /* attention 开始时只处理“已在视口内、但被页脚压住”的目标，避免为远在下方的
-       * 后续目标提前跳页；焦点真实到达时仍会完整揭示。 */
-      if (partialOnly && (targetRect.bottom < 0 || targetRect.top > global.innerHeight)) return;
+      var full;
+      try {
+        full = typeof desc.measure === 'function' ? desc.measure() : rawRectOf(desc.mainElement);
+      } catch (error) {
+        full = rawRectOf(desc.mainElement);
+      }
+      var main = rawRectOf(desc.mainElement);
       var footerRect = footer.getBoundingClientRect();
       var safeTop = 8;
       var safeBottom = Math.min(footerRect.top - 8, global.innerHeight - 8);
-      if (!(safeBottom > safeTop)) return;
-      if (targetRect.bottom > safeBottom) {
-        global.scrollBy({ top: targetRect.bottom - safeBottom, behavior: 'auto' });
-      } else if (targetRect.top < safeTop) {
-        global.scrollBy({ top: targetRect.top - safeTop, behavior: 'auto' });
+      var available = safeBottom - safeTop;
+      if (!(available > 0)) return;
+      var delta = 0;
+      if (full.height <= available) {
+        if (full.top < safeTop) delta = full.top - safeTop;
+        else if (full.bottom > safeBottom) delta = full.bottom - safeBottom;
+      } else if (main.height <= available) {
+        /* 完整范围高于视口：只保证当前主目标完整可读；关联成员保留自己的滚动路径，
+         * 不把视线拉到范围另一端。 */
+        if (main.top < safeTop) delta = main.top - safeTop;
+        else if (main.bottom > safeBottom) delta = main.bottom - safeBottom;
+      } else {
+        delta = main.top - safeTop;
       }
+      if (Math.abs(delta) > 1) global.scrollBy({ top: delta, behavior: 'auto' });
     }
 
     function showAttentionTarget(desc) {
@@ -1476,7 +1491,7 @@
         desc.mainElement = current;
         if (focusRegistry) focusRegistry.set(current, { measure: desc.measure });
       }
-      revealAttentionTarget(desc.mainElement);
+      revealAttentionRange(desc);
       var view = session.view;
       try {
         view.show({ el: desc.mainElement, geometry: focusGeometry });
@@ -1530,11 +1545,7 @@
         }
         ready.then(function () {
           if (ctrl.closed || attentionRun !== ctrl) return;
-          revealAttentionTarget(desc.mainElement);
-          /* 下一个内容目标如果已经被吸底页脚遮住，提前把它滚入可读区，
-           * 让 reveal/after 内容出现时就能看到；仍只在确有遮挡时调整页面。 */
-          var nextDesc = ctrl.descs[index + 1];
-          if (nextDesc && nextDesc.mainElement) revealAttentionTarget(nextDesc.mainElement);
+          revealAttentionRange(desc);
           stepAttention(ctrl, index + 1);
         }, function (error) {
           failAttention(ctrl, error);
@@ -1560,10 +1571,6 @@
       for (var i = 0; i < attention.targets.length; i += 1) {
         descs.push(resolveAttentionTarget(attention.targets[i], frameId, i));
       }
-      /* 先让本次 attention 的目标区域进入可读区；只在目标确实被吸底页脚或视口
-       * 遮挡时滚动，避免每次焦点移动都无条件跟随。reveal/after 内容也因此在
-       * 出现时就已可见。 */
-      for (var r = 0; r < descs.length; r += 1) revealAttentionTarget(descs[r].mainElement, true);
       var ctrl = {
         closed: false,
         resolve: null,

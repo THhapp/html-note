@@ -252,6 +252,54 @@
     table.destroy();
     check('destroy removes table', outer.children.length === 0);
     outer.remove();
+
+    /* reserveRows: 已知容量的隐藏行槽与非法输入契约。 */
+    var reserveNode = host('360');
+    var reserveColumns = [{ key: 'id', label: 'ID' }, { key: 'label', label: '名称' }];
+    var reserveTable = NoteUI.Table.mount(reserveNode, {
+      columns: reserveColumns,
+      rows: [{ id: 'a', label: 'A' }],
+      rowKey: 'id',
+      reserveRows: 2
+    });
+    check('reserveRows adds hidden capacity rows', reserveTable.el.querySelectorAll('.nui-table__reserve-row').length === 1);
+    check('reserveRows does not add row identity', reserveTable.getTarget('a') && reserveTable.getTarget('reserved') === null);
+    check('reserveRows does not enter readModel', reserveTable.getState().rows.length === 1 &&
+      reserveTable.getState().rows[0].row.id === 'a');
+    check('reserveRows hides placeholders from AT', Array.from(reserveTable.el.querySelectorAll('.nui-table__reserve-row')).every(function (row) {
+      return row.getAttribute('aria-hidden') === 'true' && getComputedStyle(row).visibility === 'hidden';
+    }));
+
+    function invalidReserve(value) {
+      try {
+        NoteUI.Table.mount(reserveNode, { columns: reserveColumns, rows: [], rowKey: 'id', reserveRows: value });
+        return null;
+      } catch (error) {
+        return error;
+      }
+    }
+    [Infinity, NaN, -1, 1.5, '2', null, 101, 1000000].forEach(function (value) {
+      var error = invalidReserve(value);
+      check('reserveRows rejects invalid mount value ' + String(value), !!error &&
+        /reserveRows/.test(error.message) && /0/.test(error.message) && /100/.test(error.message) &&
+        reserveNode.children.length === 1,
+        error ? error.message : 'did not throw');
+    });
+    var updateError = null;
+    try { reserveTable.update({ reserveRows: Infinity }); } catch (error) { updateError = error; }
+    check('reserveRows rejects invalid update without breaking table', !!updateError &&
+      /reserveRows/.test(updateError.message) && reserveTable.getState().rows.length === 1 &&
+      reserveTable.getTarget('a') && reserveNode.children.length === 1,
+      updateError ? updateError.message : 'did not throw');
+    reserveTable.update({ reserveRows: 1 });
+    check('reserveRows can be updated to another legal capacity',
+      reserveTable.el.querySelectorAll('.nui-table__reserve-row').length === 0);
+    reserveTable.update({ rows: [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }, { id: 'c', label: 'C' }] });
+    check('real rows beyond reserve capacity still render', reserveTable.getState().rows.length === 3 &&
+      reserveTable.el.querySelectorAll('tbody .nui-table__row').length === 3 &&
+      reserveTable.el.querySelectorAll('.nui-table__reserve-row').length === 0);
+    reserveTable.destroy();
+    reserveNode.remove();
   }
 
   async function runC07() {

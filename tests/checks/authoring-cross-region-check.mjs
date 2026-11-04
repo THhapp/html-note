@@ -114,6 +114,46 @@ async function openWithHelpers(options = {}) {
   await context.close();
 }
 
+/* ---------------- table Adapter 透传 reserveRows：非法值在分配占位 DOM 前拒绝 ---------------- */
+{
+  const { context, page, pageErrors } = await openWithHelpers();
+  const result = await page.evaluate(() => {
+    const adapter = window.NoteDemoInternals.adapters.table;
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    const invalid = [];
+    [Infinity, NaN, -1, 1.5, '2', 101].forEach((value) => {
+      try {
+        adapter.mount(host, { rowKey: 'id', reserveRows: value });
+        invalid.push({ value: String(value), error: null });
+      } catch (error) {
+        invalid.push({ value: String(value), error: error.message });
+      }
+    });
+    const valid = adapter.mount(host, { rowKey: 'id', reserveRows: 2 });
+    valid.restore(adapter.normalizeView({
+      columns: [{ key: 'id', label: 'ID' }, { key: 'label', label: '名称' }],
+      rows: [],
+      dense: true
+    }, { rowKey: 'id' }));
+    const table = host.querySelector('.nui-table');
+    const capacity = table ? table.querySelectorAll('.nui-table__reserve-row').length : -1;
+    const dataRows = table ? table.querySelectorAll('tbody .nui-table__row').length : -1;
+    valid.destroy();
+    host.remove();
+    return { invalid, capacity, dataRows, hostChildren: host.children.length };
+  });
+  check('跨区域例：table Adapter 拒绝非法 reserveRows',
+    result.invalid.length === 6 && result.invalid.every((item) => item.error &&
+      /reserveRows/.test(item.error) && /0/.test(item.error) && /100/.test(item.error) && result.hostChildren === 0),
+    JSON.stringify(result.invalid));
+  check('跨区域例：table Adapter 合法 reserveRows 透传',
+    result.capacity === 1 && result.dataRows === 0 && result.hostChildren === 0,
+    JSON.stringify({ capacity: result.capacity, dataRows: result.dataRows, hostChildren: result.hostChildren }));
+  check('跨区域例：Adapter reserveRows 核对区无页面/控制台错误', pageErrors.length === 0, pageErrors.slice(0, 5).join(' | '));
+  await context.close();
+}
+
 /* ---------------- step A/B + replay/cancel：同一页面连续推进 ---------------- */
 {
   const { context, page, pageErrors } = await openWithHelpers();

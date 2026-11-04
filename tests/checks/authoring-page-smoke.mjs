@@ -405,7 +405,7 @@ async function openPage(options = {}) {
     for (let i = 0; i < 160; i += 1) {
       await sleep(16);
       const current = measure();
-      if (current.phase === 'running' && current.text === '17') {
+      if (current.phase === 'running' && current.text === '17' && current.visible) {
         revealed = current;
         break;
       }
@@ -414,7 +414,7 @@ async function openPage(options = {}) {
     await sleep(160);
     return { before, revealed, settled: measure(), state: session.getState() };
   });
-  check('窄屏末步：结果揭示时正文在吸底页脚上方且实际可见',
+  check('窄屏末步：结果目标到达时正文在吸底页脚上方且实际可见',
     final.revealed && final.revealed.text === '17' && final.revealed.value.bottom <= final.revealed.footer.top - 1 &&
       final.revealed.visible && final.revealed.controls.bottom <= 844,
     JSON.stringify(final.revealed));

@@ -9785,7 +9785,7 @@
       if (!host || host.nodeType !== 1) fail('mount(host, options)：host 必须是元素。');
       var Table = tableComponent();
       var tableOptions = isObject(options) ? options : {};
-      var table = Table.mount(host, {
+      var mountOptions = {
         columns: [],
         rows: [],
         rowKey: tableOptions.rowKey,
@@ -9794,10 +9794,11 @@
         cellState: tableOptions.cellState,
         onSort: tableOptions.onSort,
         /* scene 表格默认启用稳定状态槽；作者可在 binding options 显式 false 关闭。 */
-        stableStateLabels: tableOptions.stableStateLabels !== false,
-        /* 已知未来行数时预留行槽；普通场景不传即 0。 */
-        reserveRows: tableOptions.reserveRows
-      });
+        stableStateLabels: tableOptions.stableStateLabels !== false
+      };
+      /* 只有作者显式声明时才透传容量，避免 undefined 被 Table 当成非法输入。 */
+      if (tableOptions.reserveRows !== undefined) mountOptions.reserveRows = tableOptions.reserveRows;
+      var table = Table.mount(host, mountOptions);
       var destroyed = false;
       var overlays = [];
 
