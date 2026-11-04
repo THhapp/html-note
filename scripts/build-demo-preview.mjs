@@ -57,12 +57,17 @@ const HELP = [
   '',
   '做什么:',
   '  - 读取模板中的本地 <link rel="stylesheet"> 与经典 <script src>，按模板目录解析后内联为单文件。',
-  '  - 校验产物不再含本地/外部资源引用；没有模板就不会被读取（--help 不需要模板存在）。',
+  '  - 最终校验按标签/属性用途分类：正文导航 <a href>/<area href>（http(s)、相对页、#）保留；',
+  '    页面加载资源（script src、link rel=stylesheet/preload/prefetch/icon 等 href、img/source src/srcset、',
+  '    video/audio src、video poster、iframe/embed src、object data、track src、input[type=image] src、',
+  '    SVG image/use href 等）必须已内联或为 data:/blob:/#。实体编码（如 https&#58;//）按解码后判断。',
+  '  - 没有模板就不会被读取（--help 不需要模板存在）；导航链接不会被误报为外部资源。',
   '',
   '限制（不符合会以退出码 4/5 报错，不写半成品）:',
   '  - 仅支持经典脚本；ES module <script type="module"> 不能内联。',
   '  - 仅支持本地文件资源；http(s)://、// 外链、@import、非 data:/#/blob: 的 url() 都是错误。',
-  '  - <base> 会被移除；外部资源属性（img src 等）会让产物判定为不自包含。',
+  '  - <base> 会被移除；正文导航链接可保留，但加载资源属性（img src 等）未内联会让产物判定为不自包含，',
+  '    错误会指出标签、属性、原值与解码后的值/解析路径。',
   '  - 输出不能与模板是同一文件；输出目录不存在会自动创建。',
   '',
   '退出码（稳定）:',
@@ -162,6 +167,100 @@ function isExternal(value) {
   return /^(?:https?:)?\/\//i.test(String(value).trim());
 }
 
+const NAMED_ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", colon: ':', sol: '/', period: '.', num: '#', equals: '=', quest: '?', commat: '@' };
+
+/* 解码 HTML 实体；只用于判断用途，不修改输出中的原文。 */
+function decodeEntities(value) {
+  return String(value == null ? '' : value)
+    .replace(/&#x([0-9a-f]+);?/gi, (match, hex) => {
+      const code = parseInt(hex, 16);
+      return Number.isFinite(code) ? String.fromCodePoint(code) : match;
+    })
+    .replace(/&#([0-9]+);?/g, (match, digits) => {
+      const code = parseInt(digits, 10);
+      return Number.isFinite(code) ? String.fromCodePoint(code) : match;
+    })
+    .replace(/&([a-z][a-z0-9]+);/gi, (match, name) => {
+      const key = String(name).toLowerCase();
+      return Object.prototype.hasOwnProperty.call(NAMED_ENTITIES, key) ? NAMED_ENTITIES[key] : match;
+    });
+}
+
+function parseAttrs(raw) {
+  const attrs = Object.create(null);
+  const text = String(raw == null ? '' : raw);
+  const re = /([^\s=/>]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?/g;
+  let match;
+  while ((match = re.exec(text)) !== null) {
+    const name = match[1].toLowerCase();
+    const rawValue = match[2] !== undefined ? match[2] : match[3] !== undefined ? match[3] : match[4];
+    attrs[name] = { raw: rawValue === undefined ? '' : rawValue, value: decodeEntities(rawValue === undefined ? '' : rawValue) };
+  }
+  return attrs;
+}
+
+const RESOURCE_RELS = new Set(['stylesheet', 'preload', 'prefetch', 'icon', 'apple-touch-icon', 'apple-touch-icon-precomposed', 'manifest', 'modulepreload', 'preconnect', 'dns-prefetch', 'prerender']);
+
+function tagHtml(tag, attrs, attrName) {
+  const item = attrs[attrName];
+  return '<' + tag + (item ? ' ' + attrName + '="' + item.raw + '"' : '') + '>';
+}
+
+function resourceRefs(tag, attrs) {
+  const refs = [];
+  const add = (attrName) => {
+    const item = attrs[attrName];
+    if (item !== undefined) refs.push({ tag: tag, attr: attrName, raw: item.raw, value: item.value });
+  };
+  if (tag === 'script') add('src');
+  else if (tag === 'link') {
+    const rel = (attrs.rel ? attrs.rel.value : '').toLowerCase().split(/\s+/).filter(Boolean);
+    if (rel.some((token) => RESOURCE_RELS.has(token))) add('href');
+  } else if (tag === 'img') { add('src'); add('srcset'); }
+  else if (tag === 'source') { add('src'); add('srcset'); }
+  else if (tag === 'video') { add('src'); add('poster'); }
+  else if (tag === 'audio') { add('src'); }
+  else if (tag === 'iframe') { add('src'); }
+  else if (tag === 'embed') { add('src'); }
+  else if (tag === 'object') { add('data'); }
+  else if (tag === 'track') { add('src'); }
+  else if (tag === 'input') {
+    if (attrs.type && attrs.type.value.toLowerCase() === 'image') add('src');
+  } else if (tag === 'image' || tag === 'use' || tag === 'feimage') {
+    add('href'); add('xlink:href');
+  } else if (tag === 'body' || tag === 'table' || tag === 'td' || tag === 'th') add('background');
+  return refs;
+}
+
+function splitSrcset(value) {
+  const tokens = [];
+  const masked = String(value).replace(/data:[^\s]+/gi, () => {
+    tokens.push('__HNVDATA__');
+    return '__HNVDATA__';
+  });
+  return masked.split(',').map((part) => part.trim().split(/\s+/)[0]).filter(Boolean).map((candidate) => candidate === '__HNVDATA__' ? 'data:' : candidate);
+}
+
+function checkResourceValue(ref, baseDir, issues) {
+  const values = ref.attr === 'srcset' ? splitSrcset(ref.value) : [ref.value];
+  for (const candidate of values) {
+    const value = String(candidate).trim();
+    const lower = value.toLowerCase();
+    if (!value) {
+      issues.push('页面加载资源为空：标签 ' + tagHtml(ref.tag, {}, '') + '，属性 ' + ref.attr + '，原值 ' + JSON.stringify(ref.raw) + '。');
+      continue;
+    }
+    if (lower.startsWith('data:') || lower.startsWith('blob:') || value.startsWith('#')) continue;
+    const external = /^[a-z][a-z0-9+.-]*:/i.test(value) || value.startsWith('//');
+    const clean = value.split('#')[0].split('?')[0];
+    const resolved = external ? value : path.resolve(baseDir, clean);
+    issues.push('页面加载资源未内联：标签 <' + ref.tag + '>，属性 ' + ref.attr + '，原值 ' + JSON.stringify(ref.raw) +
+      (ref.attr === 'srcset' ? '，候选值 ' + JSON.stringify(value) : '') +
+      '，解码值 ' + JSON.stringify(ref.value) + '，' + (external ? '解析为外部资源 ' + value : '解析为本地文件 ' + displayPath(resolved)) +
+      '；只允许 data:/blob:/# 或已内联资源。');
+  }
+}
+
 function localFile(href, baseDir) {
   const clean = String(href).split('#')[0].split('?')[0];
   if (!clean) return null;
@@ -196,13 +295,16 @@ function inlineStylesheets(html, baseDir, errors) {
       errors.push('存在没有 href 的 stylesheet link');
       return whole;
     }
-    if (isExternal(href)) {
-      errors.push('外部样式表不能内联：' + href);
+    const decodedHref = decodeEntities(href);
+    if (isExternal(decodedHref)) {
+      errors.push('外部样式表不能内联：标签 <link rel="stylesheet">，属性 href，原值 ' + JSON.stringify(href) +
+        '，解码值 ' + JSON.stringify(decodedHref) + '，解析为外部资源 ' + decodedHref + '。');
       return whole;
     }
-    const file = localFile(href, baseDir);
+    const file = localFile(decodedHref, baseDir);
     if (!file || !existsFile(file)) {
-      errors.push('找不到样式表：' + href + (file ? '（解析为 ' + displayPath(file) + '）' : ''));
+      errors.push('找不到样式表：标签 <link rel="stylesheet">，属性 href，原值 ' + JSON.stringify(href) +
+        '，解码值 ' + JSON.stringify(decodedHref) + (file ? '（解析为 ' + displayPath(file) + '）' : '') + '。');
       return whole;
     }
     const css = inlineCss(readText(file, '样式表 ' + href), '样式表 ' + href, errors);
@@ -214,17 +316,21 @@ function inlineScripts(html, baseDir, errors) {
   return html.replace(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi, (whole, attrs, body) => {
     const src = getAttr(attrs, 'src');
     if (src === null) return whole;
+    const decodedSrc = decodeEntities(src);
     if (/\btype\s*=\s*["'][^"']*module/i.test(attrs)) {
-      errors.push('ES module 脚本不能内联为经典脚本：' + src);
+      errors.push('ES module 脚本不能内联为经典脚本：标签 <script>，属性 src，原值 ' + JSON.stringify(src) +
+        '，解码值 ' + JSON.stringify(decodedSrc) + '。');
       return '';
     }
-    if (isExternal(src)) {
-      errors.push('外部脚本不能内联：' + src);
+    if (isExternal(decodedSrc)) {
+      errors.push('外部脚本不能内联：标签 <script>，属性 src，原值 ' + JSON.stringify(src) +
+        '，解码值 ' + JSON.stringify(decodedSrc) + '，解析为外部资源 ' + decodedSrc + '。');
       return '';
     }
-    const file = localFile(src, baseDir);
+    const file = localFile(decodedSrc, baseDir);
     if (!file || !existsFile(file)) {
-      errors.push('找不到脚本：' + src + (file ? '（解析为 ' + displayPath(file) + '）' : ''));
+      errors.push('找不到脚本：标签 <script>，属性 src，原值 ' + JSON.stringify(src) +
+        '，解码值 ' + JSON.stringify(decodedSrc) + (file ? '（解析为 ' + displayPath(file) + '）' : '') + '。');
       return '';
     }
     const code = readText(file, '脚本 ' + src).replace(/<\/script/gi, '<\\/script');
@@ -236,20 +342,21 @@ function inlineScripts(html, baseDir, errors) {
   });
 }
 
-function verifySingleFile(html) {
+function verifySingleFile(html, baseDir) {
   const issues = [];
   const withoutComments = html.replace(/<!--[\s\S]*?-->/g, '');
-  if (/<script\b[^>]*\bsrc\s*=/i.test(withoutComments)) issues.push('产物仍含 <script src=>');
-  if (/<link\b[^>]*\brel\s*=\s*["']?stylesheet/i.test(withoutComments)) issues.push('产物仍含样式表 link');
   if (/<base\b/i.test(withoutComments)) issues.push('产物仍含 <base>');
+  /* 先把脚本/样式正文替换为空，避免内联代码里的字符串被当作标签；再逐标签按属性用途分类。
+   * 正文导航链接（a/area href）允许外部/相对/#，加载资源必须 data:/blob:/# 或已内联。 */
   const markup = withoutComments
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, '<script></script>')
-    .replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, '<style></style>');
-  if (/(?:src|href|poster)\s*=\s*["']?(?:https?:)?\/\//i.test(markup)) issues.push('产物仍含外部资源属性');
-  const resAttrs = markup.match(/\b(?:src|poster)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi) || [];
-  for (const attr of resAttrs) {
-    const value = attr.replace(/^\w+\s*=\s*/, '').replace(/^["']|["']$/g, '');
-    if (!/^data:/i.test(value) && !value.startsWith('#')) issues.push('非 data: 资源引用：' + attr);
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, (whole) => whole.replace(/(<script\b[^>]*>)[\s\S]*?(<\/script\s*>)/i, '$1$2'))
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, (whole) => whole.replace(/(<style\b[^>]*>)[\s\S]*?(<\/style\s*>)/i, '$1$2'));
+  const tagRe = /<([a-zA-Z][\w:-]*)((?:\s+[^<>]*?)?)\/?>/g;
+  let match;
+  while ((match = tagRe.exec(markup)) !== null) {
+    const tag = match[1].toLowerCase();
+    const attrs = parseAttrs(match[2]);
+    for (const ref of resourceRefs(tag, attrs)) checkResourceValue(ref, baseDir, issues);
   }
   const styleBlocks = withoutComments.match(/<style\b[^>]*>([\s\S]*?)<\/style\s*>/gi) || [];
   for (const block of styleBlocks) {
@@ -292,7 +399,7 @@ function main() {
     throw toolError('resources_incomplete', EXIT.RESOURCES,
       '单文件预览未写出：模板 ' + displayPath(args.template) + ' 的本地资源不完整（' + errors.length + ' 个问题，见上）。');
   }
-  const issues = verifySingleFile(html);
+  const issues = verifySingleFile(html, baseDir);
   if (issues.length) {
     for (const issue of issues) console.error('[error] ' + issue);
     throw toolError('not_self_contained', EXIT.SELF_CONTAINED,

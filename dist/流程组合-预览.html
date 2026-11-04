@@ -312,15 +312,15 @@
 }
 
 .nui-badge[data-tone="accent"] {
-  border-color: #c8d3f4;
+  border-color: color-mix(in srgb, var(--hnv-color-accent, #315cda) 32%, var(--hnv-color-surface, #ffffff));
   color: var(--hnv-color-accent, #315cda);
   background: var(--hnv-color-accent-soft, #eef2ff);
 }
 
 .nui-badge[data-tone="warning"] {
-  border-color: #e7d5ac;
-  color: #775018;
-  background: #fff7e8;
+  border-color: color-mix(in srgb, var(--hnv-color-warning, #8a5a12) 32%, var(--hnv-color-surface, #ffffff));
+  color: var(--hnv-color-warning, #8a5a12);
+  background: var(--hnv-color-warning-soft, #fdf5e4);
 }
 
 .nui-notice {
@@ -341,7 +341,7 @@
   width: 20px;
   height: 20px;
   margin-top: 3px;
-  border: 1px solid #bcc6d3;
+  border: 1px solid color-mix(in srgb, var(--hnv-color-muted, #5c6879) 32%, var(--hnv-color-surface, #ffffff));
   border-radius: 50%;
   color: var(--hnv-color-muted, #5c6879);
   font-size: 14px;
@@ -380,14 +380,14 @@
 .nui-notice[data-tone="accent"] { border-left: 3px solid var(--hnv-color-accent, #315cda); }
 .nui-notice[data-tone="accent"] .nui-notice__marker {
   color: var(--hnv-color-accent, #315cda);
-  border-color: #aebfea;
+  border-color: color-mix(in srgb, var(--hnv-color-accent, #315cda) 32%, var(--hnv-color-surface, #ffffff));
   background: var(--hnv-color-accent-soft, #eef2ff);
 }
-.nui-notice[data-tone="warning"] { border-left: 3px solid #b17c25; }
+.nui-notice[data-tone="warning"] { border-left: 3px solid var(--hnv-color-warning, #8a5a12); }
 .nui-notice[data-tone="warning"] .nui-notice__marker {
-  color: #775018;
-  border-color: #e0c38f;
-  background: #fff7e8;
+  color: var(--hnv-color-warning, #8a5a12);
+  border-color: color-mix(in srgb, var(--hnv-color-warning, #8a5a12) 32%, var(--hnv-color-surface, #ffffff));
+  background: var(--hnv-color-warning-soft, #fdf5e4);
 }
 
 .nui-disclosure {
@@ -413,9 +413,9 @@
 }
 .nui-disclosure__summary::-webkit-details-marker { display: none; }
 .nui-disclosure__summary::marker { content: ""; }
-.nui-disclosure__summary:hover { background: #f7f9fc; }
+.nui-disclosure__summary:hover { background: var(--hnv-color-page, #f4f6f9); }
 .nui-disclosure__summary:focus-visible {
-  outline: 3px solid #90aafa;
+  outline: var(--hnv-focus-ring-width, 3px) solid var(--hnv-color-focus, #315cda);
   outline-offset: 3px;
 }
 .nui-disclosure__text {
@@ -15313,7 +15313,11 @@
   line-height: 1.5;
   letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+  /* 作者可自定义 labels.progress；长中文/窄屏必须换行而不是把整页撑出横向滚动。 */
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .note-demo__error {
@@ -19170,6 +19174,8 @@ body {
       marker.setAttribute('aria-hidden', 'true');
       var body = element('div', 'nui-notice__body');
       var heading = element('div', 'nui-notice__title');
+      var titleId = 'nui-notice-title-' + (++sequence);
+      heading.id = titleId;
       var content = element('div', 'nui-notice__content');
       var alive = true;
       root.setAttribute('role', 'note');
@@ -19182,6 +19188,8 @@ body {
         marker.textContent = currentTone === 'warning' ? '!' : currentTone === 'accent' ? 'i' : '·';
         heading.textContent = text(options.title);
         heading.hidden = !text(options.title);
+        if (text(options.title)) root.setAttribute('aria-labelledby', titleId);
+        else root.removeAttribute('aria-labelledby');
         if (!patch || own(patch, 'content')) applyNoticeContent(content, options.content);
       }
       render();

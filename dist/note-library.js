@@ -3426,6 +3426,8 @@
       marker.setAttribute('aria-hidden', 'true');
       var body = element('div', 'nui-notice__body');
       var heading = element('div', 'nui-notice__title');
+      var titleId = 'nui-notice-title-' + (++sequence);
+      heading.id = titleId;
       var content = element('div', 'nui-notice__content');
       var alive = true;
       root.setAttribute('role', 'note');
@@ -3438,6 +3440,8 @@
         marker.textContent = currentTone === 'warning' ? '!' : currentTone === 'accent' ? 'i' : '·';
         heading.textContent = text(options.title);
         heading.hidden = !text(options.title);
+        if (text(options.title)) root.setAttribute('aria-labelledby', titleId);
+        else root.removeAttribute('aria-labelledby');
         if (!patch || own(patch, 'content')) applyNoticeContent(content, options.content);
       }
       render();

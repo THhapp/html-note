@@ -479,10 +479,61 @@ try {
   expect(outsideSearch.ok === true && outsideSearch.results[0].id === 'D01', '工程外中文目录可执行查询');
   const explicitRoot = json(run(['search', 'D01', '--root', root, '--json'], temp));
   expect(explicitRoot.ok === true && explicitRoot.results[0].id === 'D01', '--root 明确指定库位置');
+  const outsideHelp = run(['--help'], temp);
+  expect(outsideHelp.status === 0 && /load/.test(outsideHelp.stdout) && /--with/.test(outsideHelp.stdout) && /--root/.test(outsideHelp.stdout),
+    '工程外 --help 只返回帮助，不读取库模板或构建', outsideHelp.stdout.slice(0, 500));
+  const loadWithRoot = json(run(['load', 'recipe:composition', '--with', 'C06', '--root', root, '--json'], temp));
+  expect(loadWithRoot.ok === true && loadWithRoot.modules.includes('ui-content'), '工程外可用 --root + --with 生成加载清单', JSON.stringify({ context: loadWithRoot.context, modules: loadWithRoot.modules }));
+  const spacedRoot = path.join(tempRoot, '中文 库');
+  fs.symlinkSync(root, spacedRoot, 'junction');
+  const loadSpacedRoot = json(run(['load', 'C06', '--root', spacedRoot, '--json'], temp));
+  expect(loadSpacedRoot.ok === true && loadSpacedRoot.modules.includes('ui-content') && fs.realpathSync(loadSpacedRoot.library.root) === fs.realpathSync(root),
+    '--root 支持含中文/空格路径', JSON.stringify({ root: loadSpacedRoot.library.root, resolved: fs.realpathSync(loadSpacedRoot.library.root), modules: loadSpacedRoot.modules }));
 } finally {
   fs.rmSync(tempRoot, { recursive: true, force: true });
 }
 
+const helpText = run(['--help']);
+expect(helpText.status === 0 && /authoring:start/.test(helpText.stdout) && /load/.test(helpText.stdout) &&
+  /--context/.test(helpText.stdout) && /--with/.test(helpText.stdout) && /--root/.test(helpText.stdout) &&
+  /零命中/.test(helpText.stdout) && /上下文不匹配/.test(helpText.stdout) && /资源键不存在/.test(helpText.stdout),
+  'query --help 给出选路径→上下文→show→read/load 与排错入口', helpText.stdout.slice(0, 500));
+const loadD01 = json(run(['load', 'D01', '--json']));
+const loadD01Modules = loadD01.modules || [];
+expect(loadD01.ok === true && loadD01.context === 'independent' &&
+  loadD01Modules.indexOf('core') >= 0 && loadD01Modules.indexOf('viz-objects') > loadD01Modules.indexOf('core') &&
+  loadD01Modules.length === new Set(loadD01Modules).size &&
+  loadD01.styles.every((item) => fs.existsSync(path.join(root, item))) &&
+  loadD01.scripts.every((item) => fs.existsSync(path.join(root, item))) &&
+  loadD01.entries.some((item) => item.id === 'D01' && item.role === 'primary'),
+  'load D01 返回有序去重的真实模块与可粘贴路径', JSON.stringify({ modules: loadD01Modules, styles: loadD01.styles, scripts: loadD01.scripts }));
+const loadD01Text = run(['load', 'D01']);
+expect(loadD01Text.status === 0 && /<script src="dist\/modules\/core\.js"><\/script>/.test(loadD01Text.stdout) &&
+  /整库便捷入口/.test(loadD01Text.stdout) && /复制到 HTML/.test(loadD01Text.stdout) && /来源:/.test(loadD01Text.stdout),
+  'load D01 文本输出可粘贴标签、整库入口与来源', loadD01Text.stdout.slice(0, 500));
+const loadI07 = json(run(['load', 'I07', '--json']));
+expect(loadI07.ok === true && loadI07.context === 'mount' && loadI07.modules.includes('demo-ui') &&
+  loadI07.modules.includes('demo-stage') && loadI07.modules.includes('demo-runtime'),
+  'load I07 默认 mount 使用完整默认舞台闭包', JSON.stringify({ context: loadI07.context, modules: loadI07.modules }));
+const loadRecipe = json(run(['load', 'recipe:composition', '--with', 'C06', 'D08', '--json']));
+expect(loadRecipe.ok === true && loadRecipe.context === 'recipe' &&
+  loadRecipe.entries.filter((item) => item.role === 'with').map((item) => item.id).join(',') === 'C06,D08' &&
+  loadRecipe.modules.includes('ui-content') && loadRecipe.modules.includes('viz-flow') &&
+  loadRecipe.modules.indexOf('ui-content') < loadRecipe.modules.indexOf('demo-ui') &&
+  loadRecipe.modules.length === new Set(loadRecipe.modules).size,
+  'load recipe --with 把区域组件并入同一有序去重清单', JSON.stringify({ context: loadRecipe.context, entries: loadRecipe.entries, modules: loadRecipe.modules }));
+const loadNavigation = run(['load', 'authoring:start', '--json']);
+const loadNavigationJson = json(loadNavigation);
+expect(loadNavigation.status === 1 && loadNavigationJson.ok === false && loadNavigationJson.error.code === 'no_dependencies' &&
+  /具体条目/.test(loadNavigationJson.error.message), 'load 导航条目无依赖时非零退出并给出具体条目提示', JSON.stringify(loadNavigationJson));
+const loadUnknown = run(['load', 'NOPE', '--json']);
+const loadUnknownJson = json(loadUnknown);
+expect(loadUnknown.status === 1 && loadUnknownJson.ok === false && loadUnknownJson.error.code === 'not_found', 'load 未知条目不冒充成功', JSON.stringify(loadUnknownJson));
+const loadUnknownContext = run(['load', 'D01', '--context', 'mount', '--json']);
+const loadUnknownContextJson = json(loadUnknownContext);
+expect(loadUnknownContext.status === 1 && loadUnknownContextJson.error.code === 'unknown_context' &&
+  /independent/.test(loadUnknownContextJson.error.message) && /scene/.test(loadUnknownContextJson.error.message),
+  'load 不支持的上下文列出真实可用 key', JSON.stringify(loadUnknownContextJson));
 // 每个公开资源都必须能真正读取，不只检查路径存在或精选条目。
 const resourceFailures = [];
 const catalog = load(root);

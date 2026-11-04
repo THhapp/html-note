@@ -52,7 +52,7 @@ NoteDemo.mount(document.querySelector('[data-demo-host]'), {
 | 本地打开与量测 | `node scripts/inspect-note.mjs <成品.html> --json` · [观察入口说明](docs/公共编排层.md#author-inspect-note) |
 | 学会调用与组装 | [取用与组合](docs/取用与组合.md) · [公共编排层 API](docs/公共编排层.md) |
 | 制作指导 | [制作 Skill](skills/html-note-authoring/SKILL.md)（独立执行包） |
-| 看实际源码用法 | [作者入口](examples/authoring/index.html) · [scene 示例](examples/demo-scene/index.html) · [矩阵示例](examples/reuse-matrix-product/index.html) · [单项示例](examples/run.html?id=L01) · [组合简写](examples/composed.html) |
+| 看实际源码用法 | [作者入口](examples/authoring/index.html) · [Focus 可读性短例](examples/attention-order/index.html) · [离线短例](dist/Focus顺序短例-预览.html) · [scene 示例](examples/demo-scene/index.html) · [矩阵示例](examples/reuse-matrix-product/index.html) · [单项示例](examples/run.html?id=L01) · [组合简写](examples/composed.html) |
 | 下载完整资料 | GitHub 的 Code → Download ZIP；本地离线分发包通过 `scripts/package.ps1` 生成 |
 
 ## 查资料（查询 CLI）
@@ -73,11 +73,13 @@ node scripts/query.mjs show example:continuous-scene
 node scripts/query.mjs show example:flow-kit
 node scripts/query.mjs show D07
 node scripts/query.mjs show tool:inspect-note
+node scripts/query.mjs load D01
+node scripts/query.mjs load recipe:composition --with C06 D08
 node scripts/query.mjs read D01 api
 node scripts/query.mjs read D01 source --limit 80
 ```
 
-`info` 是接手入口，`search` 用于按名称/ID/用途/别名找候选，`show` 一次取多个条目的开工包（作者先 `show authoring:start` 取通用路径选择），`read` 再沿条目引用读取完整 API 小节、源码或示例；`progress`/`attention` 直接进入作者小节，`guide`/`full`/`minimal` 等资源键按条目实际声明。使用 `--json` 得到稳定 JSON；退出码 `0` 成功、`1` 未找到/读取失败、`2` 参数错误。数据来自 `src/manifests/*.json` 的 `query` 元数据和 `scripts/query/entries.mjs`，不再有独立查询语料文件。实际参数见 `node scripts/query.mjs --help`，使用接法见[取用与组合](docs/取用与组合.md#查询与本地观察)。
+`info` 是接手入口，`search` 用于按名称/ID/用途/别名找候选，`show` 一次取多个条目的开工包（作者先 `show authoring:start` 取通用路径选择），`read` 再沿条目引用读取完整 API 小节、源码或示例；`progress`/`attention` 直接进入作者小节，`guide`/`full`/`minimal` 等资源键按条目实际声明。使用 `--json` 得到稳定 JSON；退出码 `0` 成功、`1` 未找到/读取失败、`2` 参数错误。数据来自 `src/manifests/*.json` 的 `query` 元数据和 `scripts/query/entries.mjs`，不再有独立查询语料文件。实际参数与排错见 `node scripts/query.mjs --help`，使用接法见[取用与组合](docs/取用与组合.md#查询与本地观察)与[依赖与加载](docs/取用与组合.md#依赖与加载)。
 
 本地验证可用 `node scripts/inspect-note.mjs "<成品.html>" --json` 一次打开并收集观察结果；需要截图或作品专属量测时加 `--screenshot`/`--probe`，要看指定停点用 `--frame <frameId> --session <表达式>`。它复用工程现有 `playwright-core` 与本机 Edge，不启动常驻服务，也不把打开成功写成验收通过。详见[观察入口](docs/公共编排层.md#author-inspect-note)。
 

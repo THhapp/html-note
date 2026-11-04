@@ -58,6 +58,22 @@ function normalizeExpression(value, flag) {
   return value.trim();
 }
 
+function normalizeSelector(value, where) {
+  if (typeof value !== 'string' || !value.trim()) {
+    throw coded('usage', where + ' 需要非空 CSS 选择器字符串；示例：--selector ".nblk-demo-stage" --screenshot "D:/tmp/element.png"。');
+  }
+  return value.trim();
+}
+
+function normalizeSelectorIndex(value, where) {
+  if (value == null) return null;
+  const index = Number(value);
+  if (!Number.isInteger(index) || index < 0) {
+    throw coded('usage', where + ' 需要从 0 开始的整数；示例：--selector-index 0。');
+  }
+  return index;
+}
+
 /* go 的参数是单个 Frame ID：数组/null/空串/非字符串都必须在触达页面之前报 usage。 */
 function normalizeFrameId(value, where) {
   if (typeof value !== 'string' || !value.trim()) {
@@ -376,6 +392,72 @@ export function createInspectSession(page, options = {}) {
     return { path: resolved, bytes: fs.statSync(resolved).size };
   }
 
+  async function element(selector, optionsValue = {}) {
+    const targetSelector = normalizeSelector(selector, 'element(selector)');
+    const index = normalizeSelectorIndex(optionsValue.index, 'element(selector).index');
+    const info = await page.evaluate(({ selectorText, wantedIndex }) => {
+      const nodes = Array.from(document.querySelectorAll(selectorText));
+      const count = nodes.length;
+      if (!count) return { count: 0, index: wantedIndex };
+      const chosenIndex = wantedIndex == null ? 0 : wantedIndex;
+      if (chosenIndex < 0 || chosenIndex >= count) return { count: count, index: chosenIndex, outOfRange: true };
+      const node = nodes[chosenIndex];
+      const rect = node.getBoundingClientRect();
+      const style = getComputedStyle(node);
+      return {
+        count: count,
+        index: chosenIndex,
+        tagName: node.tagName.toLowerCase(),
+        box: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height },
+        visible: rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none',
+        opacity: Number(style.opacity),
+        text: (node.textContent || '').trim().slice(0, 200)
+      };
+    }, { selectorText: targetSelector, wantedIndex: index == null ? null : index });
+    const pageLabel = label ? ('页面：' + label) : '当前页面';
+    if (!info || info.count === 0) {
+      throw coded('selector_not_found',
+        '--selector 未命中任何元素：' + targetSelector + '（' + pageLabel + '）。下一步：检查 CSS 选择器拼写，或运行 --help 查看 --selector / --selector-index 说明。',
+        { selector: targetSelector, count: 0 });
+    }
+    if (info.outOfRange) {
+      throw coded('selector_index_out_of_range',
+        '--selector-index 越界：选择器 ' + targetSelector + ' 命中 ' + info.count + ' 个元素，可用下标 0..' + (info.count - 1) +
+        '，收到 ' + info.index + '（' + pageLabel + '）。下一步：改用范围内的 --selector-index 或缩小选择器。',
+        { selector: targetSelector, count: info.count, index: info.index });
+    }
+    if (index == null && info.count > 1) {
+      throw coded('selector_not_unique',
+        '选择器命中 ' + info.count + ' 个元素：' + targetSelector + '（' + pageLabel + '）；默认要求唯一。下一步：缩小选择器，或显式传 --selector-index 0..' +
+        (info.count - 1) + '；也可用 --help 查看说明。',
+        { selector: targetSelector, count: info.count });
+    }
+    return { selector: targetSelector, index: info.index, count: info.count, tagName: info.tagName, box: info.box, visible: info.visible, opacity: info.opacity, text: info.text };
+  }
+
+  async function screenshotElement(selector, file, optionsValue = {}) {
+    const targetSelector = normalizeSelector(selector, 'screenshotElement(selector, file)');
+    const resolved = path.resolve(String(file || ''));
+    if (!file) throw coded('usage', 'screenshotElement(selector, file) 需要显式输出路径；辅助默认不写文件。');
+    if (!path.isAbsolute(String(file))) throw coded('usage', 'screenshotElement(selector, file) 需要绝对路径。');
+    const parent = path.dirname(resolved);
+    if (!fs.existsSync(parent) || !fs.statSync(parent).isDirectory()) {
+      throw coded('invalid_output', 'screenshotElement 父目录不存在：' + parent);
+    }
+    if (fs.existsSync(resolved) && fs.statSync(resolved).isDirectory()) {
+      throw coded('invalid_output', 'screenshotElement 指向目录：' + resolved);
+    }
+    const info = await element(selector, optionsValue);
+    try {
+      await page.locator(targetSelector).nth(info.index).screenshot({ path: resolved });
+    } catch (error) {
+      throw coded('screenshot_failed', '元素截图失败（' + targetSelector + '）：' + (error && error.message ? error.message : String(error)), { cause: error });
+    }
+    let bytes = 0;
+    try { bytes = fs.statSync(resolved).size; } catch (error) { bytes = 0; }
+    return { path: resolved, bytes: bytes, selector: targetSelector, index: info.index, count: info.count, box: info.box, visible: info.visible };
+  }
+
   function observe() {
     if (!observations) return { available: false, note: '未传入 observations；请使用 inspect-note 提供的 contexts。' };
     return {
@@ -400,6 +482,8 @@ export function createInspectSession(page, options = {}) {
     step: step,
     sample: sample,
     box: box,
+    element: element,
+    screenshotElement: screenshotElement,
     screenshot: screenshot,
     observe: observe
   };

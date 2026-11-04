@@ -29,6 +29,7 @@ node <Skill目录>/scripts/query.mjs show D01 --context independent --json
 node <Skill目录>/scripts/query.mjs show public:continuous-adapter --json
 node <Skill目录>/scripts/query.mjs read authoring:start guide --json
 node <Skill目录>/scripts/query.mjs show recipe:composition --json
+node <Skill目录>/scripts/query.mjs load recipe:composition --with C06 D08 --json
 node <Skill目录>/scripts/query.mjs show tool:inspect-note --json
 ```
 
@@ -60,6 +61,12 @@ node <Skill目录>/scripts/query.mjs show tool:inspect-note --json
 ```
 
 按模块加载时按条目返回的 `dependencies`/`regionDependencies` 加载目标模块及其真实声明依赖：`NoteDemo.create` 使用场景/运行闭包，`NoteDemo.mount` 另需默认舞台 `demo-ui` 及其传递依赖；具体区域组件按实际 Binding 所属模块补。不同配方/示例的依赖分别取，不手写一套模块闭包清单。
+
+## Focus 可读性：先有依据，再展开
+
+有公共 Focus 时，每个落点必须对应一种可读状态：已经可读的参照只观察（`groups: []`）；尚未可读、到达后才展开的主要内容，必须由该落点声明负责区域的效果组，并由 Adapter 的 `groups()` 与 progress/WAAPI 真正推进。多个新增区域需要先后阅读时，分别建组并挂到各自目标；只有确实要一起辨认才共用一组，且组挂在让它们开始可读的目标上。`commit()` 只提交目标/预置来源视觉，主要变化交给 effects；不要在 commit 内直接 `animate()`，否则动画可能在 Focus 到达前结束，公共层无法取消或协调。Focus 离开当前目标前，当前主要内容应达到可辨认；用真实 `next()/replay()/prev()` 观察，不设全局透明度阈值、统一等待或固定秒数。
+
+短例：`node <Skill目录>/scripts/query.mjs show example:attention-order --root <库目录> --json`，资源键 `guide/example/verify`。两个已复现反例是“新增卡片共用最后一目标的组”和“侧栏说明与当前行共用后一目标的组”，原因都是组绑到了错误的落点。
 
 ## 具体分支：跨区域承接与 Table 行组
 
@@ -147,7 +154,7 @@ window.__inspectSession = session; // 可选：让 inspect-note 默认找到会�
 
 ```text
 node <Skill目录>/scripts/inspect-note.mjs "<成品HTML绝对路径>" --root <库目录> --json
-node <Skill目录>/scripts/inspect-note.mjs "<成品HTML绝对路径>" --probe "<probe模块绝对路径>" --root <库目录> --json
+node <Skill目录>/scripts/inspect-note.mjs "<成品HTML绝对路径>" --selector "<CSS选择器>" --screenshot "<绝对PNG路径>" --root <库目录> --json
 ```
 
 - 页面需要驱动时设置 `window.__inspectSession = session`，或用 `--session` 指定明确表达式；作者入口用稳定映射 `window.AuthoringDemoSessions`（如 `.crossRegion`），不依赖固定数组下标。

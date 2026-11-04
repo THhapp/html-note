@@ -3,7 +3,7 @@ window.NOTE_LIBRARY_REGISTRY = {
   "schemaVersion": 1,
   "generatedBy": "scripts/build.mjs",
   "build": {
-    "time": "2026-11-03T12:16:53.186Z",
+    "time": "2026-11-04T06:10:22.335Z",
     "mode": "final",
     "command": "node scripts/build.mjs --final --release",
     "moduleOrder": [
@@ -44,7 +44,7 @@ window.NOTE_LIBRARY_REGISTRY = {
     "preview": {
       "path": "dist/组件库-预览.html",
       "selfContained": true,
-      "bytes": 4066171
+      "bytes": 4067201
     }
   },
   "statusLegend": {

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>关注顺序 · 先读已有依据，再到达后展开</title>
+<link rel="stylesheet" href="../../dist/note-library.css">
+<style>
+  html, body { margin: 0; padding: 0; background: #f4f6f9; }
+  body { font-family: "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif; color: #202938; }
+  .ao-page { max-width: 1120px; margin: 0 auto; padding: 20px; }
+  .ao-head h1 { margin: 0 0 8px; font-size: 26px; line-height: 1.35; }
+  .ao-head p { margin: 0 0 16px; max-width: 76ch; line-height: 1.65; }
+  .ao-card { min-width: 0; padding: 16px 18px; border: 1px solid #dce2ea; border-radius: 14px; background: #fff; }
+  .ao-card__tag { display: inline-block; margin-bottom: 8px; padding: 2px 8px; border-radius: 999px; background: #eef2ff; color: #315cda; font-size: 12px; font-weight: 650; }
+  .ao-card h2 { margin: 0 0 8px; font-size: 18px; line-height: 1.4; }
+  .ao-card p { margin: 0; line-height: 1.7; }
+  .ao-card--a { border-color: #b9c8f5; background: #f6f8ff; }
+  .ao-card--b { border-color: #dbe4f2; }
+  .ao-card--c { border-color: #dbe4f2; }
+  .ao-layout { padding: 6px; }
+  .ao-grid { display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: 14px; align-items: stretch; }
+  @media (max-width: 760px) { .ao-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main class="ao-page">
+  <header class="ao-head">
+    <h1>关注顺序：先读已有依据，再到达后展开</h1>
+    <p>短例只演示一次过渡：A 是“已有可读参照”，始终可见；B 和 C 在下一个停点的目标模型里，但 commit 时都先预置为不可见，分别等自己的焦点到达后由 step-b / step-c 展开。B 展开到可辨认之后才迁移到 C，B 阶段不会提前出现 C。</p>
+  </header>
+  <section class="ao-card" aria-label="关注顺序短例">
+    <div data-attention-order-host></div>
+  </section>
+</main>
+<script src="../../dist/note-library.js"></script>
+<script>
+(function (global) {
+  'use strict';
+
+  var NoteDemo = global.NoteDemo;
+  var SceneAdapter = NoteDemo && NoteDemo.sceneAdapter;
+  if (!NoteDemo || !SceneAdapter || typeof SceneAdapter.define !== 'function' ||
+      typeof SceneAdapter.progress !== 'function' || typeof NoteDemo.mount !== 'function') {
+    throw new Error('attention-order 需要 dist/note-library.js 提供 NoteDemo.sceneAdapter.define / progress / NoteDemo.mount。');
+  }
+
+  var STAGE_TOTAL = 1;
+  /* 组名集中一处：adapter.groups()、Definition targets 和 effects 共用，避免手写漂移。 */
+  var GROUPS = { b: 'step-b', c: 'step-c' };
+
+  function stageOf(value, where) {
+    var stage = value == null ? 0 : Number(value);
+    if (!isFinite(stage) || stage % 1 !== 0 || stage < 0 || stage > STAGE_TOTAL) {
+      throw new Error('attention-order：' + where + ' 必须是 0–' + STAGE_TOTAL + ' 的整数，收到 ' + String(value));
+    }
+    return stage;
+  }
+
+  /*
+   * 目标 / 组 / 来源画面 / 进度效果 / 承接关系：
+   * - 来源画面 initial：模型 stage=0，只呈现 A；B、C 在 DOM 中保留版位但 opacity 0。
+   * - 目标画面 expanded：模型 stage=1，A/B/C 都进入目标模型；commit 时 B/C 仍预置 opacity 0。
+   * - attention 目标顺序 A → B → C；A 是已有可读参照，groups: []（只观察，不放行新内容）；
+   *   B 目标 groups: [&#39;step-b&#39;]；C 目标 groups: [&#39;step-c&#39;]。B/C 必须分开分组，不能把两个新增卡
+   *   都挂到最后一个目标的组里，否则第一个目标期间两个新卡会一起透明。
+   * - progress 效果组 step-b / step-c 只更新自己的卡：B 到达后展开 B，C 到达后展开 C；
+   *   B 的 ready（opacity 到 1）完成后焦点才迁移到 C；C ready 后收束。
+   * - 时长写在 scene.timing 里，只是观感选择；适配器没有全局透明度阈值或固定等待。
+   */
+  var adapter = SceneAdapter.define({
+    name: 'attention-order',
+    sceneModes: ['update'],
+    defaultSceneMode: 'update',
+    sceneTimingDefaults: { enterDuration: 640, easing: 'linear' },
+
+    normalizeView: function (input) {
+      var view = input == null ? { stage: 0 } : input;
+      if (typeof view !== 'object' || Array.isArray(view)) {
+        throw new Error('attention-order：视图必须是 { stage } 对象。');
+      }
+      return { model: { stage: stageOf(view.stage, 'view.stage') }, cues: {} };
+    },
+
+    mount: function (host) {
+      var root = document.createElement('div');
+      root.className = 'ao-layout';
+      root.innerHTML = [
+        '<div class="ao-grid">',
+        '  <article class="ao-card ao-card--a" data-part="a">',
+        '    <span class="ao-card__tag">观察目标 · groups: []</span>',
+        '    <h2>A · 已有可读参照</h2>',
+        '    <p>这张卡在来源停点里已经可读，不需要等新内容。焦点到达 A 只是确认已有依据。</p>',
+        '  </article>',
+        '  <article class="ao-card ao-card--b" data-part="b">',
+        '    <span class="ao-card__tag">观察目标 · groups: [&#39;step-b&#39;]</span>',
+        '    <h2>B · 到达后展开</h2>',
+        '    <p>焦点到达 B 之前保持不可见；step-b 进度只展开这张卡，完成后焦点才去 C。</p>',
+        '  </article>',
+        '  <article class="ao-card ao-card--c" data-part="c">',
+        '    <span class="ao-card__tag">观察目标 · groups: [&#39;step-c&#39;]</span>',
+        '    <h2>C · 到达后展开</h2>',
+        '    <p>B 阶段 C 保持不出现；焦点到达 C 后由 step-c 单独展开。两个新区域各自放行。</p>',
+        '  </article>',
+        '</div>'
+      ].join('');
+      host.appendChild(root);
+
+      var rootEl = root;
+      var cards = {
+        a: root.querySelector('[data-part="a"]'),
+        b: root.querySelector('[data-part="b"]'),
+        c: root.querySelector('[data-part="c"]')
+      };
+      var model = { stage: 0 };
+      var visual = { b: 0, c: 0 };
+
+      function paint() {
+        cards.b.style.opacity = String(visual.b);
+        cards.c.style.opacity = String(visual.c);
+        cards.b.setAttribute('aria-hidden', visual.b < 1 ? 'true' : 'false');
+        cards.c.setAttribute('aria-hidden', visual.c < 1 ? 'true' : 'false');
+        rootEl.setAttribute('data-stage', String(model.stage));
+      }
+
+      function paintStage(stage) {
+        visual.b = stage === 1 ? 1 : 0;
+        visual.c = stage === 1 ? 1 : 0;
+        paint();
+      }
+
+      function restore(viewModel) {
+        var stage = stageOf(viewModel && viewModel.stage, 'restore().stage');
+        model = { stage: stage };
+        if (stage === 1) {
+          visual.b = 1;
+          visual.c = 1;
+        } else {
+          visual.b = 0;
+          visual.c = 0;
+        }
+        paint();
+      }
+
+      function readModel() {
+        return { stage: model.stage };
+      }
+
+      function target(query) {
+        var part = query && typeof query === 'object' ? query.part : null;
+        if (part === 'a') return cards.a;
+        if (part === 'b') return cards.b;
+        if (part === 'c') return cards.c;
+        if (part === 'root' || part == null) return rootEl;
+        return null;
+      }
+
+      function planStep(input) {
+        var from = stageOf(input.sourceModel && input.sourceModel.stage, 'sourceModel.stage');
+        var to = stageOf(input.targetModel && input.targetModel.stage, 'targetModel.stage');
+        if (from !== 0 || to !== 1) {
+          throw new Error('attention-order：只支持 initial(0) → expanded(1)，收到 ' + from + ' → ' + to + '。');
+        }
+        var reduced = input.reduced === true;
+        var committed = false;
+        var plan = {
+          /* 两个新区域分别声明：B 由 step-b、C 由 step-c 各自放行。 */
+          groups: function () { return [GROUPS.b, GROUPS.c]; },
+          targets: function () { return []; },
+          commit: function () {
+            if (committed) return;
+            committed = true;
+            model = { stage: 1 };
+            if (reduced) {
+              visual.b = 1;
+              visual.c = 1;
+              paint();
+            } else {
+              /* commit 只提交目标模型，B/C 仍预置不可见；各自 progress 到达后才可见。 */
+              visual.b = 0;
+              visual.c = 0;
+              paint();
+            }
+          },
+          effects: function (timing) {
+            if (reduced) return [];
+            function expand(group, key) {
+              return SceneAdapter.progress({
+                group: group,
+                gate: 'ready',
+                duration: timing.enterDuration,
+                easing: timing.easing,
+                update: function (progress) {
+                  visual[key] = progress;
+                  paint();
+                }
+              });
+            }
+            return [expand(GROUPS.b, 'b'), expand(GROUPS.c, 'c')];
+          },
+          cleanup: function () {}
+        };
+        return plan;
+      }
+
+      restore({ stage: 0 });
+      return {
+        restore: restore,
+        readModel: readModel,
+        target: target,
+        planStep: planStep,
+        destroy: function () { rootEl.remove(); }
+      };
+    }
+  });
+
+  var definition = {
+    initialFrameId: 'initial',
+    bindings: { board: { adapter: 'attention-order', slot: 'board' } },
+    frames: [
+      {
+        id: 'initial',
+        caption: '初始停点：只有 A 是已有可读参照；B/C 不在来源画面里可见。',
+        views: { board: { stage: 0 } }
+      },
+      {
+        id: 'expanded',
+        caption: '目标模型包含 A/B/C；B 在自己的焦点到达后展开，B 可辨认后才迁移 C，C 到达后展开。',
+        views: { board: { stage: 1 } }
+      }
+    ],
+    transitions: [{
+      from: 'initial',
+      to: 'expanded',
+      scene: {
+        bindings: [{ binding: 'board', mode: 'update' }],
+        /* 640ms 只是观感选择：不使用全局透明度阈值，也不靠固定等待让内容出现。 */
+        timing: { enterDuration: 640, easing: 'linear' },
+        attention: {
+          targets: [
+            /* A：已有可读参照，只观察，不放行新内容。 */
+            { binding: 'board', query: { part: 'a' }, groups: [] },
+            /* B：自己的新区域，由 step-b 组放行。 */
+            { binding: 'board', query: { part: 'b' }, groups: [GROUPS.b] },
+            /* C：自己的新区域，由 step-c 组放行。 */
+            { binding: 'board', query: { part: 'c' }, groups: [GROUPS.c] }
+          ]
+        }
+      }
+    }]
+  };
+
+  function layout(container) {
+    var wrap = document.createElement('div');
+    var slot = document.createElement('div');
+    slot.setAttribute('data-demo-slot', 'board');
+    wrap.appendChild(slot);
+    container.appendChild(wrap);
+    return { root: wrap, slots: { board: slot } };
+  }
+
+  function boot() {
+    var host = document.querySelector('[data-attention-order-host]');
+    if (!host) return;
+    var session = NoteDemo.mount(host, {
+      definition: definition,
+      layout: layout,
+      adapters: { 'attention-order': adapter },
+      title: '关注顺序：先读已有依据，再到达后展开',
+      label: '关注顺序短例',
+      captionLabel: '说明'
+    });
+    /* 查询/检查只读入口；不参与运行决策。 */
+    global.AttentionOrder = { session: session, definition: definition, adapter: adapter };
+    global.__inspectSession = session;
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
+  else boot();
+})(window);
+</script>
+</body>
+</html>

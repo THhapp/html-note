@@ -22,6 +22,13 @@ const frameShotFile = path.join(cacheDir, 'inspect-note-frame-check.png');
 const unknownShotFile = path.join(cacheDir, 'inspect-note-unknown-frame.png');
 const failingProbeFile = path.join(cacheDir, 'inspect-note-failing-probe.mjs');
 const goArgProbeFile = path.join(cacheDir, 'inspect-note-go-arg-probe.mjs');
+const selectorDir = path.join(cacheDir, 'inspect 中文 路径');
+const selectorShotFile = path.join(selectorDir, '元素 截图.png');
+const spacePageFile = path.join(selectorDir, '预览 页面.html');
+const spaceProbeFile = path.join(selectorDir, '空格 probe.mjs');
+fs.rmSync(selectorDir, { recursive: true, force: true });
+fs.mkdirSync(selectorDir, { recursive: true });
+fs.copyFileSync(path.join(root, 'dist', '连续画面局部变化-预览.html'), spacePageFile);
 for (const file of [probeFile, shotFile, frameShotFile, unknownShotFile, failingProbeFile, goArgProbeFile]) {
   if (fs.existsSync(file)) fs.rmSync(file, { force: true });
 }
@@ -48,6 +55,12 @@ fs.writeFileSync(probeFile, `export default async ({ page }) => {
       caption: (document.querySelector('.nblk-demo-stage__caption') || {}).textContent || ''
     };
   });
+};
+`, 'utf8');
+
+fs.writeFileSync(spaceProbeFile, `export default async ({ page }) => {
+  await page.waitForFunction(() => window.ContinuousExample && window.ContinuousExample.session);
+  return await page.evaluate(() => ({ title: document.title, hasStage: !!document.querySelector('.nblk-demo-stage') }));
 };
 `, 'utf8');
 
@@ -84,16 +97,22 @@ function expect(condition, message, detail) {
   if (condition) { passes += 1; console.log('PASS  ' + message); }
   else { failures.push(message); console.log('FAIL  ' + message + (detail == null ? '' : ' :: ' + String(detail).slice(0, 500))); }
 }
-function run(args) {
-  const result = spawnSync(process.execPath, [cli, ...args], { cwd: root, encoding: 'utf8', windowsHide: true, timeout: 120000 });
+function run(args, cwd = root) {
+  const result = spawnSync(process.execPath, [cli, ...args], { cwd: cwd, encoding: 'utf8', windowsHide: true, timeout: 120000 });
   return { status: result.status, stdout: result.stdout || '', stderr: result.stderr || '', error: result.error };
 }
 
 try {
   const help = run(['--help']);
   expect(help.status === 0 && /--probe/.test(help.stdout) && /--screenshot/.test(help.stdout) &&
-    /--frame/.test(help.stdout) && /--frame "right-again"/.test(help.stdout) && /不自动安装/.test(help.stdout),
-    'inspect-note --help 给出实际参数（含 --frame）与环境边界');
+    /--frame/.test(help.stdout) && /--selector/.test(help.stdout) && /--selector-index/.test(help.stdout) &&
+    /--frame "right-again"/.test(help.stdout) && /step\('go', 'frame-id'\)/.test(help.stdout) &&
+    /静态停点/.test(help.stdout) && /next\(\).*replay\(\)|replay\(\).*观察/.test(help.stdout) &&
+    /当前工作目录/.test(help.stdout) && /不自动安装/.test(help.stdout),
+    'inspect-note --help 给出 --frame/--selector 用法、go 字符串参数、静态停点/过程观察与路径基准');
+  const helpOutside = run(['--help'], selectorDir);
+  expect(helpOutside.status === 0 && /inspect-note/.test(helpOutside.stdout) && !helpOutside.stderr,
+    '--help 从工程外只显示帮助（不读页面/模板）', helpOutside.stderr || helpOutside.stdout.slice(0, 300));
 
   const observed = run([example, '--json', '--width', '860', '--height', '700', '--probe', probeFile, '--screenshot', shotFile]);
   let data = null;
@@ -182,6 +201,61 @@ try {
     '合法 go 保留既有字段并额外给出 requested/actual/phase/navigation（settled≠导航成功）',
     JSON.stringify(validGo).slice(0, 600));
 
+  /* --selector：唯一/无截图状态/缺失/多个/下标，以及中文+空格路径。 */
+  const selectorShot = run([example, '--json', '--selector', '.nblk-demo-stage', '--screenshot', selectorShotFile]);
+  let selectorShotData = null;
+  try { selectorShotData = JSON.parse(selectorShot.stdout); } catch (error) { /* 下面统一报错 */ }
+  expect(selectorShot.status === 0 && selectorShotData && selectorShotData.ok === true &&
+    selectorShotData.selector === '.nblk-demo-stage' && selectorShotData.element &&
+    selectorShotData.element.count === 1 && selectorShotData.element.visible === true &&
+    selectorShotData.element.box.width > 0 && selectorShotData.element.tagName === 'section' &&
+    fs.existsSync(selectorShotFile) && fs.readFileSync(selectorShotFile).slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])),
+    '--selector 唯一选择器截取指定元素并返回元素状态（有效 PNG）', selectorShot.stdout.slice(0, 600));
+  const selectorOnly = run([example, '--json', '--selector', '.nblk-demo-stage']);
+  let selectorOnlyData = null;
+  try { selectorOnlyData = JSON.parse(selectorOnly.stdout); } catch (error) { /* 下面统一报错 */ }
+  expect(selectorOnly.status === 0 && selectorOnlyData && selectorOnlyData.screenshot === null &&
+    selectorOnlyData.element && selectorOnlyData.element.count === 1 && Number.isFinite(selectorOnlyData.element.box.top),
+    '--selector 未指定 --screenshot 时只返回元素状态', selectorOnly.stdout.slice(0, 500));
+  const missingSelector = run([example, '--json', '--selector', '.no-such-selector']);
+  let missingSelectorData = null;
+  try { missingSelectorData = JSON.parse(missingSelector.stdout); } catch (error) { /* 下面统一报错 */ }
+  expect(missingSelector.status === 1 && missingSelectorData && missingSelectorData.error &&
+    missingSelectorData.error.code === 'selector_not_found' &&
+    /no-such-selector/.test(missingSelectorData.error.message) &&
+    missingSelectorData.error.message.includes(example) &&
+    /--selector-index|--help/.test(missingSelectorData.error.message),
+    '--selector 不存在时明确错误（含选择器、页面文件、下一步）', missingSelector.stdout.slice(0, 700));
+  const multiSelector = run([example, '--json', '--selector', 'div']);
+  let multiSelectorData = null;
+  try { multiSelectorData = JSON.parse(multiSelector.stdout); } catch (error) { /* 下面统一报错 */ }
+  expect(multiSelector.status === 1 && multiSelectorData && multiSelectorData.error &&
+    multiSelectorData.error.code === 'selector_not_unique' &&
+    /--selector-index 0\.\./.test(multiSelectorData.error.message),
+    '--selector 命中多个时明确报错并建议 --selector-index', multiSelector.stdout.slice(0, 600));
+  const indexedSelector = run([example, '--json', '--selector', 'div', '--selector-index', '2']);
+  let indexedSelectorData = null;
+  try { indexedSelectorData = JSON.parse(indexedSelector.stdout); } catch (error) { /* 下面统一报错 */ }
+  expect(indexedSelector.status === 0 && indexedSelectorData && indexedSelectorData.selectorIndex === 2 &&
+    indexedSelectorData.element && indexedSelectorData.element.index === 2 && indexedSelectorData.element.count > 2,
+    '--selector-index 指定多个命中中的元素', indexedSelector.stdout.slice(0, 500));
+  const indexWithoutSelector = run([example, '--selector-index', '0', '--json']);
+  expect(indexWithoutSelector.status === 2 && /--selector-index/.test(indexWithoutSelector.stderr + indexWithoutSelector.stdout),
+    '--selector-index 不能脱离 --selector 使用', (indexWithoutSelector.stderr || indexWithoutSelector.stdout).slice(0, 300));
+  const spaceSelector = run([spacePageFile, '--json', '--selector', 'body', '--screenshot', path.join(selectorDir, '空间 截图.png')]);
+  let spaceSelectorData = null;
+  try { spaceSelectorData = JSON.parse(spaceSelector.stdout); } catch (error) { /* 下面统一报错 */ }
+  expect(spaceSelector.status === 0 && spaceSelectorData && spaceSelectorData.ok === true &&
+    spaceSelectorData.element && spaceSelectorData.element.count === 1 && spaceSelectorData.element.tagName === 'body' &&
+    fs.existsSync(path.join(selectorDir, '空间 截图.png')),
+    '中文+空格页面/截图路径可用', spaceSelector.stdout.slice(0, 500));
+  const spaceProbe = run([example, '--json', '--probe', spaceProbeFile]);
+  let spaceProbeData = null;
+  try { spaceProbeData = JSON.parse(spaceProbe.stdout); } catch (error) { /* 下面统一报错 */ }
+  expect(spaceProbe.status === 0 && spaceProbeData && spaceProbeData.probe && spaceProbeData.probe.hasStage === true &&
+    /连续画面/.test(spaceProbeData.probe.title || ''),
+    '中文+空格 probe 路径可用', spaceProbe.stdout.slice(0, 500));
+
   const failedProbe = run([example, '--json', '--probe', failingProbeFile]);
   let failedData = null;
   try { failedData = JSON.parse(failedProbe.stdout); } catch (error) { /* 下面统一报错 */ }
@@ -211,6 +285,7 @@ try {
   if (fs.existsSync(frameShotFile)) fs.rmSync(frameShotFile, { force: true });
   if (fs.existsSync(unknownShotFile)) fs.rmSync(unknownShotFile, { force: true });
   if (fs.existsSync(goArgProbeFile)) fs.rmSync(goArgProbeFile, { force: true });
+  if (fs.existsSync(selectorDir)) fs.rmSync(selectorDir, { recursive: true, force: true });
 }
 
 console.log('SUMMARY ' + passes + '/' + (passes + failures.length) + ' passed');

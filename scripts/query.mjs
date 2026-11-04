@@ -3,10 +3,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { load, showCatalog, search, find, resolveEntryResource, readFilePage } from './query/catalog.mjs';
+import { MODULE_ORDER } from './lib/source-order.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const defaultRoot = path.resolve(scriptDir, '..');
-const COMMANDS = ['info', 'search', 'show', 'read'];
+const COMMANDS = ['info', 'search', 'show', 'read', 'load'];
 
 function fail(code, message, extra = {}) {
   const error = new Error(message);
@@ -16,8 +17,8 @@ function fail(code, message, extra = {}) {
 }
 
 function parseArgs(argv) {
-  const options = { json: false, root: null, context: null, file: null, offset: null, limit: null, type: null, module: null, resource: null };
-  const allowed = new Set(['json', 'help', 'root', 'context', 'file', 'offset', 'limit', 'type', 'module', 'resource']);
+  const options = { json: false, root: null, context: null, file: null, offset: null, limit: null, type: null, module: null, resource: null, with: [] };
+  const allowed = new Set(['json', 'help', 'root', 'context', 'file', 'offset', 'limit', 'type', 'module', 'resource', 'with']);
   const positional = [];
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -27,6 +28,18 @@ function parseArgs(argv) {
     const eq = arg.indexOf('=');
     const key = (eq >= 0 ? arg.slice(2, eq) : arg.slice(2)).replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
     if (!allowed.has(key)) fail('usage', '未知选项 --' + key);
+    if (key === 'with') {
+      const values = [];
+      if (eq >= 0) values.push(arg.slice(eq + 1));
+      else {
+        while (i + 1 < argv.length && !argv[i + 1].startsWith('--')) values.push(argv[++i]);
+      }
+      if (!values.length) fail('usage', '--with 需要至少一个条目 ID/公开名/别名');
+      for (const value of values) {
+        for (const token of String(value).split(/[,，]/).map((item) => item.trim()).filter(Boolean)) options.with.push(token);
+      }
+      continue;
+    }
     let value = eq >= 0 ? arg.slice(eq + 1) : null;
     if (!['json', 'help'].includes(key)) {
       if (value == null) {
@@ -108,6 +121,7 @@ function commandInfo(catalog, options) {
     info: 'node scripts/query.mjs info [--json]',
     search: 'node scripts/query.mjs search <中文/英文名称或用途> [--type <类型>] [--module m] [--limit n] [--json]',
     show: 'node scripts/query.mjs show <id|公开名|别名> [更多条目...] [--context independent|scene|create|mount|recipe|public|authoring|tool] [--json]',
+    load: 'node scripts/query.mjs load <条目...> [--context <key>] [--with <条目...>] [--json]',
     read: 'node scripts/query.mjs read <条目> <资源键|api|source|example|fragment|full|minimal|guide|demo> [--offset n] [--limit n] [--file path] [--json]'
   };
   return {
@@ -305,6 +319,166 @@ function textShow(data) {
   return lines.join('\n');
 }
 
+function commandLoad(catalog, tokens, options) {
+  if (!tokens.length) fail('usage', 'load 需要至少一个主条目；例如 load D01、load recipe:composition --with C06 D08');
+  if (options.context && typeof options.context !== 'string') fail('usage', '--context 需要一个上下文 key');
+  const primaryTokens = tokens.slice();
+  const withTokens = Array.isArray(options.with) ? options.with.slice() : [];
+
+  function loadEntry(token, role) {
+    const found = find(catalog, token);
+    if (!found.entry) {
+      if (found.error === 'ambiguous') fail('ambiguous', '条目名称匹配多个结果，请用 ID：' + (found.matches || []).map((entry) => entry.id).join(', '));
+      fail('not_found', '未找到条目：' + token + '；先用 search 查找，或 show authoring:start 选路径');
+    }
+    const entry = found.entry;
+    const shown = showCatalog(catalog, [token], { context: null });
+    const available = shown.entries && shown.entries[0] ? shown.entries[0].contexts : [];
+    let key = options.context || null;
+    if (role === 'with' && key) {
+      /* 区域组件没有主条目的强制上下文要求：支持就沿用，否则退回独立调用。 */
+      if (!available.some((item) => item.key === key)) key = null;
+    }
+    if (!key) {
+      if (role === 'primary') {
+        if (found.entry.kind === 'component') {
+          if (available.some((item) => item.key === 'mount')) key = 'mount';
+          else if (available.some((item) => item.key === 'independent')) key = 'independent';
+          else key = available[0] && available[0].key;
+        } else {
+          key = available[0] && available[0].key;
+        }
+      } else {
+        if (available.some((item) => item.key === 'independent')) key = 'independent';
+        else key = available[0] && available[0].key;
+      }
+    }
+    const context = available.find((item) => item.key === key);
+    if (!context) {
+      const keys = available.map((item) => item.key);
+      fail('unknown_context', '条目 ' + entry.id + ' 不支持 --context "' + key + '"；可用上下文: ' + keys.join(', ') + '；例如: node scripts/query.mjs show ' + entry.id + ' --context ' + (keys[0] || 'independent'));
+    }
+    const dependencies = Array.isArray(context.dependencies) ? context.dependencies : [];
+    if (!dependencies.length) {
+      if (entry.type === '作者开工') {
+        fail('no_dependencies', entry.id + ' 是作者路径导航，不声明运行依赖：先用 show ' + entry.id + ' 选具体组件/配方/公共接法，再 load 具体条目');
+      }
+      fail('no_dependencies', '条目 ' + entry.id + ' 的 ' + key + ' 上下文没有浏览器模块依赖；若它是 Node 工具，请按工具用法运行，不要生成页面加载清单');
+    }
+    return {
+      entry,
+      id: entry.id,
+      name: entry.name,
+      type: entry.type,
+      role,
+      context: context.key,
+      contextLabel: context.label,
+      dependencySummary: context.dependencySummary && /\+|→/.test(context.dependencySummary)
+        ? context.dependencySummary
+        : context.dependencies.map((item) => item.module).join(' + '),
+      moduleDependencies: context.dependencies.map((item) => item.module),
+      dependencies,
+      regionDependencies: context.regionDependencies || null,
+      refs: context.refs || [],
+      sourceNote: role === 'with'
+        ? '区域组件/附加条目'
+        : (entry.type === '配方' ? '配方骨架（区域组件用 --with 另加）' : '主条目'),
+      completeExample: (context.refs || []).find((ref) => ['full', 'example', 'minimal'].includes(ref.key)) || null,
+      notes: context.notes || []
+    };
+  }
+
+  const selected = [];
+  const seen = new Set();
+  function add(item, token) {
+    if (seen.has(item.id)) return;
+    seen.add(item.id);
+    selected.push({ ...item, token });
+  }
+  primaryTokens.forEach((token) => add(loadEntry(token, 'primary'), token));
+  withTokens.forEach((token) => add(loadEntry(token, 'with'), token));
+
+  const moduleSet = new Set();
+  for (const item of selected) for (const moduleName of item.moduleDependencies) moduleSet.add(moduleName);
+  const names = [...moduleSet].sort((a, b) => {
+    const ai = MODULE_ORDER.indexOf(a);
+    const bi = MODULE_ORDER.indexOf(b);
+    return (ai < 0 ? MODULE_ORDER.length : ai) - (bi < 0 ? MODULE_ORDER.length : bi) || a.localeCompare(b);
+  });
+  const dependencies = catalog.moduleLoadingMany(names);
+  const styles = dependencies.filter((item) => item.css).map((item) => item.css);
+  const scripts = dependencies.map((item) => item.js);
+  const wholeLibrary = { styles: ['dist/note-library.css'], scripts: ['dist/note-library.js'] };
+  const primaryContexts = [...new Set(selected.filter((item) => item.role === 'primary').map((item) => item.context))];
+  const context = primaryContexts.length === 1 ? primaryContexts[0] : (primaryContexts.length ? 'mixed' : null);
+  const notes = [];
+  for (const item of selected) {
+    if (item.role === 'primary' && item.entry.kind === 'component' && item.context === 'independent' && !item.entry.id.startsWith('I07')) {
+      notes.push(item.id + ' 默认使用独立调用上下文；该条目没有 mount 上下文，不能 --context mount；需要默认舞台时请使用支持 mount 的条目（如 I07）。');
+    }
+    for (const note of item.notes) if (note && !notes.includes(note)) notes.push(note);
+  }
+  const recipeItems = selected.filter((item) => item.role === 'primary' && item.entry.type === '配方');
+  if (recipeItems.length) {
+    const regionNote = recipeItems.map((item) => item.regionDependencies).filter(Boolean);
+    if (regionNote.length && !withTokens.length) notes.push('配方骨架不等于区域组件：实际使用的区域组件请用 --with 并入，例如 --with C06 D08。');
+  }
+  if (withTokens.length) notes.push('--with 条目已并入同一加载清单；模块按 ' + MODULE_ORDER.join(' -> ') + ' 的实际顺序去重排序。');
+  const data = {
+    ok: true,
+    command: 'load',
+    library: { root: catalog.root },
+    context,
+    entries: selected.map((item) => ({
+      id: item.id,
+      name: item.name,
+      type: item.type,
+      role: item.role,
+      context: item.context,
+      sourceNote: item.sourceNote,
+      completeExample: item.completeExample ? { key: item.completeExample.key, path: item.completeExample.path } : null,
+      moduleDependencies: item.moduleDependencies.slice(),
+      dependencySummary: item.dependencySummary
+    })),
+    modules: names,
+    dependencies,
+    styles,
+    scripts,
+    wholeLibrary,
+    notes
+  };
+  return data;
+}
+
+function textLoad(data) {
+  const lines = [];
+  lines.push('加载清单 · ' + data.entries.map((item) => item.id + (item.role === 'with' ? '[with]' : '')).join(' + '));
+  lines.push('库根: ' + data.library.root);
+  lines.push('上下文: ' + (data.context || '-'));
+  lines.push('模块（' + data.modules.length + '）: ' + data.modules.join(' -> '));
+  lines.push('');
+  lines.push('复制到 HTML（路径相对库根；css 为空的模块跳过）:');
+  lines.push('');
+  for (const href of data.styles) lines.push('<link rel="stylesheet" href="' + href + '">');
+  for (const src of data.scripts) lines.push('<script src="' + src + '"></script>');
+  lines.push('');
+  lines.push('整库便捷入口:');
+  for (const href of data.wholeLibrary.styles) lines.push('<link rel="stylesheet" href="' + href + '">');
+  for (const src of data.wholeLibrary.scripts) lines.push('<script src="' + src + '"></script>');
+  lines.push('');
+  lines.push('来源:');
+  for (const item of data.entries) {
+    lines.push('  - ' + item.id + ' [' + item.sourceNote + ' / ' + item.context + '] ' + item.dependencySummary);
+    if (item.completeExample) lines.push('    完整示例: ' + item.completeExample.path + (item.completeExample.key === 'minimal' ? '（最小）' : ''));
+  }
+  if (data.notes.length) {
+    lines.push('');
+    lines.push('注意:');
+    for (const note of data.notes) lines.push('  - ' + note);
+  }
+  return lines.join('\n');
+}
+
 function commandRead(catalog, entryToken, resourceKey, options) {
   const found = find(catalog, entryToken);
   if (!found.entry) {
@@ -378,6 +552,9 @@ function main() {
     data = commandShow(catalog, positional, options);
     console.log(options.json ? JSON.stringify(data, null, 2) : textShow(data));
     if (!data.ok) process.exitCode = 1;
+  } else if (command === 'load') {
+    data = commandLoad(catalog, positional, options);
+    console.log(options.json ? JSON.stringify(data, null, 2) : textLoad(data));
   } else if (command === 'read') {
     if (!positional.length) fail('usage', 'read 需要条目和资源键，例如: read D01 api');
     const entry = positional[0];
@@ -393,29 +570,67 @@ function main() {
 
 function printHelp(json) {
   const help = {
-    usage: 'node scripts/query.mjs <info|search|show|read> ... [--json] [--root <库目录>]',
+    usage: 'node scripts/query.mjs <info|search|show|read|load> ... [--json] [--root <库目录>]',
+    workflow: [
+      '1. 选路径：node scripts/query.mjs show authoring:start',
+      '2. 选上下文：show <条目> --json 看 contexts[].key；需要时加 --context <key>',
+      '3. 取开工包：show <条目...> [--context <key>]',
+      '4. 深入读取：read <条目> <资源键> [--offset n] [--limit n]',
+      '5. 生成模块加载引用：load <条目...> [--context <key>] [--with <条目...>]'
+    ],
     commands: {
-      info: '库位置、资料覆盖、文档入口、加载方式',
+      info: '库位置、资料覆盖、文档入口与加载方式',
       search: '按中文/英文名称、ID、别名、用途检索；支持 --type、--module、--limit',
-      show: '取得一个或多个条目的开工包；支持 --context',
-      read: '读取条目的完整文档段、源码或指定文件；支持 --offset/--limit/--file'
+      show: '取得一个或多个条目的开工包与可用上下文；支持 --context',
+      read: '读取条目的完整文档段、源码或指定文件；支持 --offset/--limit/--file',
+      load: '从条目和上下文生成有序、去重、可粘贴的模块加载引用；支持 --context/--with'
     },
+    contextRules: [
+      '组件默认 mount（存在时；否则 independent）；配方默认 recipe；单一上下文条目用自己的上下文。',
+      '--context 指定后所有主条目都必须支持，否则报错并列出实际可用上下文。',
+      '--with 把实际区域组件/附加条目并入同一加载清单；模块按真实加载顺序去重。'
+    ],
+    loadRules: [
+      '输出路径相对库根；css 为 null 的模块跳过；整库路径同时给出，供快速浏览。',
+      '未知条目、未知上下文、导航条目或没有浏览器模块依赖的条目会非零退出，并给出可执行提示。',
+      'load 只读查询资料，不构建、不启动浏览器、不修改 dist。'
+    ],
     examples: [
       'node scripts/query.mjs info',
       'node scripts/query.mjs search 矩阵 --json',
-      'node scripts/query.mjs show D01',
       'node scripts/query.mjs show authoring:start',
-      'node scripts/query.mjs show recipe:focusWorkbench --context recipe',
-      'node scripts/query.mjs show public:progress',
+      'node scripts/query.mjs show D01 --json',
+      'node scripts/query.mjs show recipe:composition --context recipe --json',
+      'node scripts/query.mjs load D01',
+      'node scripts/query.mjs load recipe:composition --with C06 D08 --json',
+      'node scripts/query.mjs load public:continuous-adapter --context public',
       'node scripts/query.mjs read public:progress api',
-      'node scripts/query.mjs show example:continuous-scene',
-      'node scripts/query.mjs show tool:inspect-note',
-      'node scripts/query.mjs read D01 api',
       'node scripts/query.mjs read D01 source --offset 0 --limit 80'
     ],
-    exitCodes: { 0: '成功（空搜索也是 0）', 1: '未找到/读取失败/上下文不匹配', 2: '参数错误' }
+    troubleshooting: [
+      '零命中：search 的 results 为空时看 suggestions（来自实际拆词命中），或 show authoring:start 重新选路径；不要把空结果当成库没有能力。',
+      '上下文不匹配：show 的错误/JSON missing[].availableContexts 会列出真实 key，按提示的 show ... --context <key> 重试。',
+      '资源键不存在：show <条目> --json 的 resources[].key 是实际可读键；read 的报错也会列出可用键。',
+      'load 失败：未知条目先 search/show；导航条目先选具体条目；区域组件用 --with 并入。'
+    ],
+    root: '--root <库目录> 显式指定库；缺省按脚本位置/当前目录向上查找。工程外调用请显式 --root。--help 只显示帮助，不读取模板、不构建、不启动浏览器。',
+    exitCodes: { 0: '成功（空搜索也是 0）', 1: '未找到/读取失败/上下文不匹配/无依赖', 2: '参数错误' }
   };
-  console.log(json ? JSON.stringify(help, null, 2) : ['html-note 查询 CLI', '', '用法: ' + help.usage, '', '命令:'].concat(Object.entries(help.commands).map(([key, value]) => '  ' + key + ': ' + value)).concat(['', '示例:'].concat(help.examples.map((line) => '  ' + line)).concat(['', '退出码: 0 成功；1 未找到/读取失败；2 参数错误'])).join('\n'));
+  if (json) { console.log(JSON.stringify(help, null, 2)); return; }
+  const lines = ['html-note 查询 CLI', '', '用法: ' + help.usage, '', '推荐路径:'];
+  for (const line of help.workflow) lines.push('  ' + line);
+  lines.push('', '命令:');
+  for (const [key, value] of Object.entries(help.commands)) lines.push('  ' + key + ': ' + value);
+  lines.push('', '上下文与加载规则:');
+  for (const line of help.contextRules) lines.push('  - ' + line);
+  for (const line of help.loadRules) lines.push('  - ' + line);
+  lines.push('', '示例:');
+  for (const line of help.examples) lines.push('  ' + line);
+  lines.push('', '排错:');
+  for (const line of help.troubleshooting) lines.push('  - ' + line);
+  lines.push('', '库位置: ' + help.root);
+  lines.push('退出码: 0 成功；1 未找到/读取失败/上下文不匹配/无依赖；2 参数错误');
+  console.log(lines.join('\n'));
 }
 
 try {

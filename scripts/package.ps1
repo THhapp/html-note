@@ -1,6 +1,57 @@
 param(
-  [string]$Output
+  [string]$Output,
+  # -Help / -? 只显示帮助，不读取/不写入任何文件；与打包参数互斥。
+  [Alias('?')]
+  [switch]$Help
 )
+
+if ($Help) {
+  @'
+NoteDemo 整理包打包 · package.ps1
+
+用法:
+  pwsh -NoProfile -File scripts/package.ps1 [-Output <zip 绝对或相对路径>]
+  pwsh -NoProfile -File scripts/package.ps1 -Help
+  pwsh -NoProfile -File scripts/package.ps1 -?
+
+-Help / -?:
+  只打印本帮助并以 0 退出；不读取、不创建、不覆盖 ZIP。
+
+输入根:
+  仓库根由本脚本位置推导（scripts/package.ps1 的上一级）；只枚举现行维护目录
+  src、dist、docs、examples、gallery、scripts、skills、vendor、tests，以及根文件
+  README.md、LICENSE、THIRD_PARTY_NOTICES.md、registry.json、.gitignore、.gitattributes。
+  不会从仓库根递归打包 archive、.local 等历史/私有资料。
+
+输出:
+  默认 dist/公共编排层-整合候选.zip；-Output 可指定其他 .zip；
+  输出目录必须已存在，脚本不会创建父目录；写入临时 .tmp 后原子替换。
+
+必含清单来源:
+  - 脚本内显式 required 清单（README、许可、关键 docs/scripts/tests、examples、dist 预览等）；
+  - src/manifests/*.json 中 js/css/demos 的全部路径（去重）。
+  缺少任一 required 会抛出错误并保留已生成 ZIP，便于定位。
+
+预览与打包的差异:
+  - build-demo-preview.mjs 生成单文件预览时：正文导航链接 <a href>/<area href>
+    （http(s)、相对页、#）保留；页面加载资源（script src、link stylesheet/preload/
+    icon、img/srcset、video/audio、iframe、object、SVG image/use 等）必须已内联或为
+    data:/blob:/#。
+  - 本打包脚本不解析 HTML 链接，只按目录/文件规则收集文件；预览的链接分类由
+    build-demo-preview.mjs 负责。
+
+排除规则（本次仅帮助，不改变规则/包内容）:
+  - 目录：node_modules、.git、__pycache__、_dev、Cache、Code Cache、GPUCache、
+    browser-profile*/profiles*、%SystemDrive%、.local、tests/.cache。
+  - 文件：输出 ZIP/.tmp、*.zip/.7z/.log/.out/.tmp、tests/checks/*.png|json、
+    tests/demo/*.json|png、历史 build-release-check.html。
+
+示例:
+  pwsh -NoProfile -File scripts/package.ps1
+  pwsh -NoProfile -File scripts/package.ps1 -Output D:/tmp/html-note.zip
+'@ | Write-Output
+  exit 0
+}
 
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -114,6 +165,13 @@ try {
     'tests/checks/density-config-check.mjs', 'tests/checks/density-screen-check.mjs',
     'tests/checks/minimal-scene-check.mjs',
     'tests/checks/query-closure-host-check.mjs',
+    'tests/checks/attention-order-check.mjs',
+    'tests/checks/module-load-check.mjs',
+    'tests/checks/preview-link-check.mjs',
+    'tests/checks/package-help-check.mjs',
+    'tests/checks/presentation-quality-check.mjs',
+    'tests/checks/ui-access-check.html',
+    'tests/checks/ui-access-check.mjs',
     'tests/checks/skill-independent-check.mjs',
     'skills/html-note-authoring/SKILL.md',
     'skills/html-note-authoring/references/principles.md',
@@ -133,6 +191,8 @@ try {
     'examples/continuous-scene/scene.js', 'examples/continuous-scene/adapter.js',
     'examples/continuous-scene/demo.js', 'examples/continuous-scene/minimal.html', 'examples/continuous-scene/README.md',
     'examples/flow-kit/index.html', 'examples/flow-kit/flow-kit.css', 'examples/flow-kit/flow-kit.js', 'examples/flow-kit/README.md',
+    'examples/attention-order/index.html',
+    'dist/Focus顺序短例-预览.html',
     'examples/flow-composition/index.html', 'examples/flow-composition/flow-composition.css',
     'examples/flow-composition/flow-composition.js', 'examples/flow-composition/README.md',
     'dist/note-library.js', 'dist/note-library.css', 'dist/registry.js',

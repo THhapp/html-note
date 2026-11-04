@@ -79,8 +79,8 @@ export const TOPICS = [
       }
     ],
     "runtime": "authoring",
-    "usage": "`node scripts/query.mjs show <具体条目>` 选择路径：静态组件（如 D01）、配方（recipe:composition）、跨区域协调（public:attention 与 examples/authoring）、自定义连续画面（public:continuous-adapter 与 examples/continuous-scene）。本入口只做导航，不声明运行依赖；选定后按该条目返回的 dependencies 加载，整库可用于浏览。",
-    "notes": "四条路径都从具体条目进入：静态组件如 D01/R01，配方如 recipe:composition，跨区域协调从 public:attention 与 `examples/authoring/index.html`，自定义连续画面从 public:continuous-adapter 与 `examples/continuous-scene/`；本条目自身不加载任何组件。"
+    "usage": "`node scripts/query.mjs show <具体条目>` 选择路径：静态组件（如 D01）、配方（recipe:composition）、跨区域协调（public:attention 与 examples/authoring）、自定义连续画面（public:continuous-adapter 与 examples/continuous-scene），Focus 可读性短例看 example:attention-order。选定后用 `show` 的 dependencies 或 `load` 生成有序模块引用；本入口只做导航，不声明运行依赖，整库可用于浏览。",
+    "notes": "四条路径都从具体条目进入：静态组件如 D01/R01，配方如 recipe:composition，跨区域协调从 public:attention 与 `examples/authoring/index.html`，自定义连续画面从 public:continuous-adapter 与 `examples/continuous-scene/`；Focus 可读性短例是 `example:attention-order`。`load <条目...>` 可把选定条目/上下文的依赖闭包合并成可复制清单；本条目自身不加载任何组件。"
   },
   {
     "id": "recipe:focusWorkbench",
@@ -276,7 +276,7 @@ export const TOPICS = [
       "demo-runtime"
     ],
     "usage": "`scene: { bindings:[...], attention:{ targets:[{binding,query,groups?,holdDuration?,range?}], stepDuration? } }`；groups 省略=整 Binding 门控、`[]`=只观察、非空=按组放行。",
-    "notes": "`examples/continuous-scene/demo.js` 是双组按焦点放行的接入片段；`examples/authoring/index.html` 是依据→结果跨区域示例；传播 `demo.js` 是另一条真实观察路线示例。跨区域时 attention 只负责观察顺序；table 新行/行组门控与辅助状态的 cut 提交归 `public:table-adapter` 与对应示例，不在通用 attention 里推演 Table 细节。辅助状态若视图变化，也必须列入 scene.bindings；阶段/模式/目标参数摘要可随提交，已收到/已完成事实随领域事件或实际展示进度；cut/update 按事实与视觉需要，是否 Focus 巡视另判，不要求一律 cut、逐项巡视或数字动画。受控内容的 CSS transition 由公共 Binding 容器统一接管，不靠 Adapter 或示例自己暂停。"
+    "notes": "`examples/attention-order/index.html` 是“已有可读参照 → 到达后展开”的短例；`examples/continuous-scene/demo.js` 是双组按焦点放行的接入片段；`examples/authoring/index.html` 是依据→结果跨区域示例；传播 `demo.js` 是另一条真实观察路线示例。跨区域时 attention 只负责观察顺序；table 新行/行组门控与辅助状态的 cut 提交归 `public:table-adapter` 与对应示例，不在通用 attention 里推演 Table 细节。辅助状态若视图变化，也必须列入 scene.bindings；阶段/模式/目标参数摘要可随提交，已收到/已完成事实随领域事件或实际展示进度；cut/update 按事实与视觉需要，是否 Focus 巡视另判，不要求一律 cut、逐项巡视或数字动画。受控内容的 CSS transition 由公共 Binding 容器统一接管，不靠 Adapter 或示例自己暂停。"
   },
   {
     "id": "public:handoff",
@@ -533,8 +533,70 @@ export const TOPICS = [
     ],
     "runtime": "tool",
     "moduleDependencies": [],
-    "usage": "`node scripts/inspect-note.mjs \"<成品.html>\" [--frame <frameId>] --json`；按需加 `--session <表达式>`、`--screenshot <绝对路径>`、`--probe <probe模块绝对路径>`、`--width`、`--height`、`--browser <可执行文件绝对路径>`。最终参数以 `--help` 与实现为准。",
+    "usage": "`node scripts/inspect-note.mjs \"<成品.html>\" [--frame <frameId>] --json`；按需加 `--session <表达式>`、`--selector <CSS选择器>`（唯一元素；可加 `--selector-index`）、`--screenshot <绝对路径>`、`--probe <probe模块绝对路径>`、`--width`、`--height`、`--browser <可执行文件绝对路径>`。源 HTML 可相对 cwd，截图/probe/browser 用绝对路径；最终参数以 `--help` 与实现为准。",
     "notes": "工具入口。probe 是调用方本地模块，导出 `default async ({ page }) => ...`，复用同一个已打开页面；不是第二套浏览器实现。"
+  },
+  {
+    "id": "example:attention-order",
+    "name": "Focus 可读性短例：已有依据到到达后展开",
+    "cn": "Focus 可读性短例",
+    "type": "完整示例",
+    "category": "完整示例；`examples/attention-order/index.html`，一个 Binding 内 A/B/C 三张卡。",
+    "purpose": "演示观察已有可读依据与到达后展开新内容放在同一条 Focus 流程：A 是已可读参照（groups: []），B、C 在 commit 时预置不可见，分别由 step-b、step-c 组在自己的目标到达后 progress 展开；B ready 后才迁移 C，离开当前目标前主要内容已可辨认。",
+    "limits": [
+      "短例只演示一次过渡，不提供通用视觉效果参数；A/B/C 的文案、时长和布局仅作接法示例，不是全局阈值或固定等待标准。"
+    ],
+    "terms": [
+      "Focus",
+      "可读内容",
+      "已有依据",
+      "到达后展开",
+      "观察目标",
+      "效果组",
+      "groups",
+      "step-b",
+      "step-c",
+      "progress",
+      "attention",
+      "A B C",
+      "短例"
+    ],
+    "aliases": [
+      "attention-order",
+      "Focus 可读性",
+      "已有依据",
+      "到达后展开",
+      "观察已有依据",
+      "展开新内容",
+      "分组放行",
+      "短例"
+    ],
+    "resources": [
+      {
+        "path": "docs/取用与组合.md",
+        "anchor": "author-focus-readability",
+        "key": "guide"
+      },
+      {
+        "path": "docs/公共编排层.md",
+        "anchor": "author-attention",
+        "key": "api"
+      },
+      {
+        "path": "examples/attention-order/index.html",
+        "key": "example"
+      },
+      {
+        "path": "tests/checks/attention-order-check.mjs",
+        "key": "verify"
+      }
+    ],
+    "runtime": "example",
+    "moduleDependencies": [
+      "demo-ui"
+    ],
+    "usage": "`node scripts/inspect-note.mjs \"examples/attention-order/index.html\" --json`；真实 next/replay/prev 与 reduced 核对见 `tests/checks/attention-order-check.mjs`。",
+    "notes": "短例把 A（已有可读参照）、B（到达后展开）、C（再到达后展开）放在同一条流程；另见 `example:continuous-scene` 的双组面板与作者入口的跨区域示例。它不修改 trial 输入，也不代表所有作品都需要 Focus。"
   },
   {
     "id": "example:continuous-scene",

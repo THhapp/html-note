@@ -75,7 +75,11 @@
   line-height: 1.5;
   letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+  /* 作者可自定义 labels.progress；长中文/窄屏必须换行而不是把整页撑出横向滚动。 */
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .note-demo__error {
