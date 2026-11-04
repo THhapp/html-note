@@ -62,6 +62,14 @@
 
 /* 字幕区与画面同属演示内容；标签提供身份，正文只保留阅读文本。
  * 高度仍由 Presentation/B01 的既有预留机制控制，长句自然换行。 */
+.nblk-demo-stage__footer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .nblk-demo-stage__narration {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -118,6 +126,19 @@
 
 .nblk-demo-stage__controls .nui-hstack {
   align-items: center;
+}
+
+@media (max-width: 760px) {
+  /* 高内容/窄屏时，画面与字幕继续随页面阅读，控件保持在视口内；
+   * 这是局部可操作的稳定条，不改变桌面舞台的布局，也不替代 session.phase。 */
+  .nblk-demo-stage__footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 8;
+    padding: 8px 0 max(8px, env(safe-area-inset-bottom, 0px));
+    background: var(--hnv-color-surface, #ffffff);
+    box-shadow: 0 -1px 0 var(--hnv-color-line, #e3e9f2), 0 -8px 18px rgba(20, 30, 50, 0.06);
+  }
 }
 
 @media (max-width: 520px) {

@@ -125,7 +125,7 @@ stage.setStage(document.createTextNode('纯文本画面'));
 - `destroy()` 幂等：销毁内部 Button 实例和布局实例，清空画面、字幕与标题，移除根。不会销毁宿主放进舞台的第三方组件，也不会恢复宿主移入的节点。
 - `stageEl`/`captionEl` 暴露供 `StepPlayer` 或宿主使用；不要依赖其下方未被文档化的类名。
 
-布局说明：`el` 是局部 `<section class="nblk-demo-stage">`，内部用 Stack 组织标题、舞台区、字幕和控件；字幕由 `.nblk-demo-stage__narration` 包住身份标签与正文。舞台本身没有强制外框、背景或固定高度。外部间距由宿主负责，根没有外部 margin。
+布局说明：`el` 是局部 `<section class="nblk-demo-stage">`，内部用 Stack 组织标题、舞台区和页脚；页脚 `.nblk-demo-stage__footer` 包含字幕 `.nblk-demo-stage__narration`（身份标签与正文）与控件 `.nblk-demo-stage__controls`。舞台本身没有强制外框、背景或固定高度。外部间距由宿主负责，根没有外部 margin。窄屏（≤760px）页脚吸底，长画面滚动时字幕和操作仍可见；桌面宽度保持正常文档流。
 
 <a id="B02"></a>
 ## 3. B02 `NoteBlocks.StepPlayer`

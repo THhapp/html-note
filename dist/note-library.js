@@ -36775,6 +36775,7 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       var captionLabelEl = make('span', 'nblk-demo-stage__caption-label');
       var captionEl = make('p', 'nblk-demo-stage__caption');
       var controlsWrap = make('div', 'nblk-demo-stage__controls');
+      var footer = make('div', 'nblk-demo-stage__footer');
       var inline = UI.Inline.mount(controlsWrap, { gap: 'sm', align: 'center' });
 
       titleEl.id = titleId;
@@ -36787,8 +36788,9 @@ if(__exports != exports)module.exports = exports;return module.exports}));
       controlsWrap.hidden = true;
       captionLabelEl.setAttribute('aria-hidden', 'true');
       narration.append(captionLabelEl, captionEl);
-      presentation.append(stageEl, narration);
-      stack.append(titleEl, presentation, controlsWrap);
+      footer.append(narration, controlsWrap);
+      presentation.append(stageEl, footer);
+      stack.append(titleEl, presentation);
 
       function applyLabel() {
         var label = text(state.label).trim();

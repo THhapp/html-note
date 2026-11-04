@@ -197,6 +197,77 @@ try {
   check('caption reserve keeps controls stable across frames', Math.abs(tops[0] - tops[1]) <= 1.5, JSON.stringify(stable.slice(0, 2)));
   check('width cycle does not leak stale stage/caption height', Math.abs(tops[2] - tops[4]) <= 1.5, JSON.stringify([stable[2], stable[4]]));
 
+  // Tall content at a narrow viewport: caption + controls remain a readable, operable footer.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.evaluate(() => {
+    const stage = document.querySelector('#root .nblk-demo-stage__stage');
+    if (stage) stage.style.minHeight = '1400px';
+    document.querySelector('#root .nblk-demo-stage').scrollIntoView({ block: 'start' });
+  });
+  await page.waitForTimeout(180);
+  const sticky = await page.evaluate(() => {
+    const rootEl = document.querySelector('#root .nblk-demo-stage');
+    const footer = rootEl.querySelector('.nblk-demo-stage__footer');
+    const caption = rootEl.querySelector('.nblk-demo-stage__caption');
+    const controls = rootEl.querySelector('.nblk-demo-stage__controls');
+    if (!footer || !caption || !controls) return null;
+    const f = footer.getBoundingClientRect(); const c = caption.getBoundingClientRect(); const p = controls.getBoundingClientRect();
+    return {
+      viewport: innerHeight, position: getComputedStyle(footer).position,
+      footerTop: Math.round(f.top), footerBottom: Math.round(f.bottom), footerHeight: Math.round(f.height),
+      captionTop: Math.round(c.top), captionBottom: Math.round(c.bottom),
+      controlsTop: Math.round(p.top), controlsBottom: Math.round(p.bottom),
+      captionText: caption.textContent.trim().slice(0, 20)
+    };
+  });
+  check('narrow tall stage keeps caption and controls in view', !!sticky && sticky.position === 'sticky' &&
+    sticky.footerTop >= 0 && sticky.footerBottom <= sticky.viewport + 1 && sticky.captionTop >= 0 &&
+    sticky.controlsBottom <= sticky.viewport + 1 && sticky.captionBottom <= sticky.controlsTop + 1,
+    JSON.stringify(sticky));
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.waitForTimeout(180);
+  const desktopFooter = await page.evaluate(() => {
+    const footer = document.querySelector('#root .nblk-demo-stage__footer');
+    return footer ? getComputedStyle(footer).position : null;
+  });
+  check('desktop stage keeps normal footer flow', desktopFooter === 'static', String(desktopFooter));
+
+  // Host-level labels and --hnv-* token overrides remain scoped and effective.
+  const theme = await page.evaluate(async () => {
+    const host = window.__makeHost();
+    host.style.setProperty('--hnv-color-accent', '#7a4bd6');
+    host.style.setProperty('--hnv-color-accent-soft', '#f0ebff');
+    const session = window.NoteDemo.mount(host, {
+      definition: window.__compile(),
+      layout: window.__layout,
+      title: '主题覆盖检查',
+      labels: { prev: '后退一步', next: '前进一步', replay: '再看一次', reset: '回到开头', progress: '第 {current} 步，共 {total} 步' },
+      captionLabel: '说明',
+      maxWidth: '920px',
+      minStageHeight: '420px'
+    });
+    await new Promise((resolve) => setTimeout(resolve, 260));
+    const rootEl = host.querySelector('.nblk-demo-stage');
+    const primary = host.querySelector('.note-demo__controls .nui-button--primary');
+    return {
+      phase: session.getState().phase,
+      rootMaxWidth: getComputedStyle(rootEl).maxWidth,
+      stageMinHeight: host.querySelector('.nblk-demo-stage__stage').style.minHeight,
+      captionLabel: host.querySelector('.nblk-demo-stage__caption-label').textContent.trim(),
+      progress: host.querySelector('.note-demo__progress').textContent.trim(),
+      buttonNames: Array.from(host.querySelectorAll('.note-demo__controls button')).map((b) => (b.getAttribute('aria-label') || b.textContent || '').trim()),
+      primaryBg: primary ? getComputedStyle(primary).backgroundColor : null,
+      hostAccent: getComputedStyle(host).getPropertyValue('--hnv-color-accent').trim()
+    };
+  });
+  check('host labels and caption labels are scoped and applied', theme.phase === 'idle' &&
+    theme.captionLabel === '说明' && theme.progress === '第 1 步，共 3 步' &&
+    theme.buttonNames.join('|') === '后退一步|前进一步|再看一次|回到开头',
+    JSON.stringify(theme));
+  check('host maxWidth/minStageHeight and --hnv accent override apply', theme.rootMaxWidth === '920px' &&
+    theme.stageMinHeight === 'calc(420px)' && theme.hostAccent === '#7a4bd6' && theme.primaryBg === 'rgb(122, 75, 214)',
+    JSON.stringify(theme));
+
   await page.screenshot({ path: path.join(root, 'tests/.cache/presentation-quality-390.png') });
   check('no page/console errors', pageErrors.length === 0, pageErrors.slice(0, 3).join(' | '));
   await context.close();
